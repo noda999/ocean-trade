@@ -1,0 +1,12 @@
+{
+  "title": "远洋贸易 · 大航海经商模拟",
+  "description": "扬帆起航，低买高卖！环游 15 座大航海时代港口，买卖 22 种特产，升级舰队、招募情报，成为一代海上商人。",
+  "language": "zh",
+  "robots": {
+    "index": true
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

@@ -1,0 +1,603 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Nunito', sans-serif;
+
+  --color-ocean:       #5bc8e8;
+  --color-ocean-deep:  #3aadd4;
+  --color-ocean-light: #a8e6f5;
+  --color-land:        #7ec87a;
+  --color-land-dark:   #5aaf56;
+  --color-sand:        #f0d48a;
+  --color-sand-dark:   #d4b060;
+  --color-orange:      #f5913a;
+  --color-orange-dark: #d97320;
+  --color-orange-light:#fdb870;
+  --color-cream:       #fffbf0;
+  --color-panel:       #ffffff;
+  --color-ink:         #3d2b10;
+  --color-muted:       #8a6a40;
+  --color-red:         #e05050;
+  --color-green:       #4cba6a;
+  --color-purple:      #9b6ee0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: #5bc8e8;
+  color: #3d2b10;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(245,145,58,0.4); border-radius: 4px; }
+
+/* Ocean animated background */
+/* 注意：不要在这里写 position，否则会覆盖 Tailwind 的 absolute（非层级 CSS 优先于 @layer） */
+.ocean-bg {
+  background: linear-gradient(160deg, #a8e6f5 0%, #5bc8e8 35%, #3aadd4 70%, #2a8fba 100%);
+  overflow: hidden;
+}
+
+/* 地图画布：自带定位，避免与工具类冲突 */
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(160deg, #a8e6f5 0%, #5bc8e8 35%, #3aadd4 70%, #2a8fba 100%);
+}
+.ocean-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 300px 150px at 20% 60%, rgba(255,255,255,0.15) 0%, transparent 70%),
+    radial-gradient(ellipse 200px 100px at 75% 40%, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Land blobs */
+.land-blob {
+  background: #7ec87a;
+  border-radius: 40% 60% 55% 45% / 45% 55% 60% 40%;
+  position: absolute;
+}
+
+/* Panels */
+.panel-white {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.panel-orange {
+  background: linear-gradient(135deg, #f5913a, #d97320);
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(217,115,32,0.4);
+  color: white;
+}
+
+.panel-cream {
+  background: #fffbf0;
+  border: 2px solid #f5c87a;
+  border-radius: 14px;
+}
+
+/* ── 城市锚点：建筑立在坐标点上，名称标签放在建筑侧边 ────────────────────── */
+.city-hit {
+  cursor: pointer;
+  /* 尺寸为 0，所有子元素以锚点为基准绝对定位 */
+  width: 0;
+  height: 0;
+}
+.city-lm {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  line-height: 0;
+}
+.city-pin-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin: -3px auto 0;
+  background: #f5913a;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.city-side-label {
+  position: absolute;
+  bottom: 44px;
+  background: white;
+  border: 2px solid #f5913a;
+  border-radius: 12px;
+  padding: 3px 9px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  white-space: nowrap;
+  user-select: none;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  z-index: 2;
+}
+.city-side-label.on-right { left: 40px; }
+.city-side-label.on-left { right: 40px; }
+/* 指向建筑的小箭头 */
+.city-side-label::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+}
+.city-side-label.on-right::before { left: -7px; border-right-color: #f5913a; }
+.city-side-label.on-left::before { right: -7px; border-left-color: #f5913a; }
+.city-hit:hover .city-side-label,
+.city-side-label.active {
+  transform: scale(1.07);
+  box-shadow: 0 4px 14px rgba(245,145,58,0.5);
+  border-color: #d97320;
+}
+.city-hit:hover .city-side-label.on-right::before,
+.city-side-label.active.on-right::before { border-right-color: #d97320; }
+.city-hit:hover .city-side-label.on-left::before,
+.city-side-label.active.on-left::before { border-left-color: #d97320; }
+.city-side-label.here { border-color: #4cba6a; }
+.city-side-label.here.on-right::before { border-right-color: #4cba6a; }
+.city-side-label.here.on-left::before { border-left-color: #4cba6a; }
+.city-side-label .pin-label {
+  font-weight: 800;
+  font-size: 12px;
+  color: #3d2b10;
+  line-height: 1.2;
+}
+.city-side-label .pin-sub {
+  font-size: 8px;
+  font-weight: 700;
+  color: #f5913a;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.city-side-label.active { animation: pin-pulse 1.5s ease-in-out infinite; }
+/* 顶部徽标（所在位置 / 前往中） */
+.city-badge {
+  position: absolute;
+  bottom: 96px;
+  left: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Bottom nav */
+.bottom-nav {
+  background: linear-gradient(180deg, #2a1a08 0%, #1a0e04 100%);
+  border-top: 3px solid #f5913a;
+}
+.nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  color: rgba(255,200,100,0.5);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+.nav-btn:hover { color: rgba(255,200,100,0.8); }
+.nav-btn.active {
+  background: rgba(245,145,58,0.2);
+  color: #fdb870;
+}
+
+/* Buttons */
+.btn-orange {
+  background: linear-gradient(135deg, #f5913a 0%, #e07820 100%);
+  color: white;
+  font-weight: 800;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b85a10, 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-orange:hover { transform: translateY(-1px); box-shadow: 0 4px 0 #b85a10, 0 6px 12px rgba(0,0,0,0.2); }
+.btn-orange:active { transform: translateY(2px); box-shadow: 0 1px 0 #b85a10; }
+
+.btn-green {
+  background: linear-gradient(135deg, #4cba6a 0%, #38a055 100%);
+  color: white;
+  font-weight: 800;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #2a8040, 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.1s, box-shadow 0.1s;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-green:hover { transform: translateY(-1px); }
+.btn-green:active { transform: translateY(2px); }
+
+.btn-red {
+  background: linear-gradient(135deg, #e05050 0%, #c03030 100%);
+  color: white;
+  font-weight: 800;
+  border-radius: 24px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #902020;
+  transition: transform 0.1s;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-red:active { transform: translateY(2px); }
+
+.btn-ghost-orange {
+  background: white;
+  color: #f5913a;
+  font-weight: 800;
+  border-radius: 24px;
+  border: 2px solid #f5913a;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: 'Nunito', sans-serif;
+}
+.btn-ghost-orange:hover { background: #fff5ec; }
+
+/* Stat pill */
+.stat-pill {
+  background: rgba(255,255,255,0.9);
+  border: 1.5px solid #f5c87a;
+  border-radius: 20px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+/* Progress bar */
+.prog-track {
+  background: #f0e0c8;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1.5px solid #f5c87a;
+}
+.prog-fill {
+  background: linear-gradient(90deg, #f5913a, #fdb870);
+  border-radius: 20px;
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+/* Table rows */
+.goods-row {
+  border-bottom: 1.5px solid #f5e8d0;
+  transition: background 0.12s;
+}
+.goods-row:hover { background: #fffbf0; }
+
+/* Ship floating animation */
+@keyframes float-ship {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+.float-ship { animation: float-ship 3s ease-in-out infinite; }
+
+@keyframes float-ship2 {
+  0%, 100% { transform: translateY(-3px) rotate(1deg); }
+  50% { transform: translateY(3px) rotate(-1deg); }
+}
+.float-ship2 { animation: float-ship2 3.5s ease-in-out infinite; }
+
+/* Wave lines */
+@keyframes wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Bottom bar travel info */
+.travel-bar {
+  background: linear-gradient(180deg, #1e1408 0%, #120c04 100%);
+  border-top: 2px solid #c07830;
+}
+
+/* Tooltip */
+.tooltip {
+  background: #2a1a08;
+  color: #ffeec8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  border: 1px solid rgba(245,200,120,0.3);
+  pointer-events: none;
+}
+
+/* Coin icon color */
+.coin { color: #f5c830; }
+.speed-up-btn {
+  background: linear-gradient(135deg, #f5c830, #e0a010);
+  color: #3d2b10;
+  font-weight: 900;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #a07010;
+  font-family: 'Nunito', sans-serif;
+  transition: transform 0.1s;
+}
+.speed-up-btn:active { transform: translateY(2px); }
+
+.badge-orange {
+  background: #f5913a;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+}
+.badge-green {
+  background: #4cba6a;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+}
+.badge-red {
+  background: #e05050;
+  color: white;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 7px;
+}
+
+/* Overlay sheet */
+.sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.2);
+  z-index: 20;
+}
+
+/* Ship SVG wake effect */
+@keyframes wake-pulse {
+  0%, 100% { opacity: 0.3; transform: scaleX(1); }
+  50% { opacity: 0.6; transform: scaleX(1.15); }
+}
+.ship-wake { animation: wake-pulse 2s ease-in-out infinite; }
+
+/* Map city pin pulse on select */
+@keyframes pin-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(245,145,58,0.3); }
+  50% { box-shadow: 0 2px 20px rgba(245,145,58,0.7); }
+}
+/* （旧 pin 动画已并入 .city-side-label.active） */
+
+/* ── 布局基础 ─────────────────────────────────────────────────────────────── */
+html, body, #root { height: 100%; margin: 0; }
+
+/* 应用外壳：手机上满屏，宽屏上居中成手机比例，避免地图被拉伸变形 */
+.app-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  background: #f8f0e0;
+}
+@media (min-width: 560px) {
+  .app-shell {
+    height: min(100%, 960px);
+    border-radius: 24px;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.12), 0 24px 70px rgba(0,0,0,0.55);
+  }
+}
+
+/* 字重工具类（Tailwind 无 font-900） */
+.font-700 { font-weight: 700; }
+.font-800 { font-weight: 800; }
+.font-900 { font-weight: 900; }
+
+.app-title {
+  font-weight: 900;
+  font-size: 19px;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 0 #1f7ba3, 0 3px 8px rgba(0,0,0,0.25);
+}
+
+.top-icon-btn {
+  width: 34px; height: 34px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.28);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: transform .12s, background .15s;
+}
+.top-icon-btn:hover { background: rgba(255,255,255,0.42); transform: translateY(-1px); }
+
+/* ── 城市锚点 ─────────────────────────────────────────────────────────────── */
+.pin-arrow {
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  margin-top: -4px;
+  background: #f5913a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.28);
+}
+.here-badge, .target-badge {
+  font-size: 9px; font-weight: 800;
+  padding: 1px 6px; border-radius: 8px;
+  white-space: nowrap; color: white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+.here-badge { background: #4cba6a; }
+.target-badge { background: #f5913a; animation: pin-pulse 1.4s ease-in-out infinite; }
+
+/* ── 商船名牌 ─────────────────────────────────────────────────────────────── */
+.ship-name-tag {
+  font-size: 9px; font-weight: 800;
+  color: #6b4c22;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(245,145,58,0.6);
+  border-radius: 8px;
+  padding: 1px 5px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.14);
+}
+.my-ship-tag {
+  font-size: 9px; font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, #f5913a, #d97320);
+  border-radius: 8px;
+  padding: 1px 6px;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(217,115,32,0.5);
+}
+.wake-dots { display: flex; gap: 3px; margin-top: -2px; }
+.wake-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.75);
+  animation: wake-pulse 1.2s ease-in-out infinite;
+}
+.wake-dots span:nth-child(2) { animation-delay: .18s; }
+.wake-dots span:nth-child(3) { animation-delay: .36s; }
+
+/* ── 航行横幅 ─────────────────────────────────────────────────────────────── */
+.voyage-banner {
+  background: linear-gradient(135deg, rgba(30,18,6,0.9), rgba(52,32,10,0.86));
+  border: 1.5px solid rgba(245,180,90,0.55);
+  border-radius: 16px;
+  padding: 9px 12px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+}
+.voyage-track {
+  position: relative;
+  height: 7px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.18);
+  overflow: visible;
+}
+.voyage-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f5c830, #f5913a);
+  transition: width .2s linear;
+}
+.voyage-ship {
+  position: absolute;
+  top: -8px;
+  font-size: 15px;
+  transition: left .2s linear;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+}
+
+/* ── 价格标签 ─────────────────────────────────────────────────────────────── */
+.price-chip {
+  font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 8px;
+}
+.price-chip.buy { background: #e8f1fb; color: #2f6fb0; }
+.price-chip.sell { background: #e6f6e9; color: #2f8a4a; }
+
+/* 预估价标记 */
+.est-tag {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 0 4px;
+  border-radius: 6px;
+  background: #f0ece0;
+  color: #a08a60;
+  border: 1px solid #ddd4bd;
+  vertical-align: 1px;
+}
+
+/* ── 称号卡 ───────────────────────────────────────────────────────────────── */
+.rank-card {
+  border-radius: 20px;
+  color: white;
+  background: linear-gradient(135deg, #7a5cd0 0%, #4f8fd8 55%, #3aa0c8 100%);
+  box-shadow: 0 8px 22px rgba(80,90,190,0.35);
+  position: relative;
+  overflow: hidden;
+}
+.rank-card::after {
+  content: '';
+  position: absolute;
+  right: -30px; top: -30px;
+  width: 130px; height: 130px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.13);
+}
+
+/* ── 提示气泡 ─────────────────────────────────────────────────────────────── */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 8px 13px;
+  border-radius: 14px;
+  cursor: pointer;
+  animation: toast-in .28s cubic-bezier(.2,.9,.3,1.4);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(4px);
+}
+.toast-good { background: linear-gradient(135deg, rgba(58,150,90,0.97), rgba(40,120,70,0.97)); color: #eafff0; }
+.toast-bad { background: linear-gradient(135deg, rgba(190,68,60,0.97), rgba(150,45,40,0.97)); color: #fff0ec; }
+.toast-info { background: linear-gradient(135deg, rgba(48,38,24,0.96), rgba(30,22,12,0.96)); color: #ffe9c8; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-14px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.sheet { animation: slideUp .26s ease; }
+
+/* ── 导航徽标 ─────────────────────────────────────────────────────────────── */
+.nav-badge {
+  position: absolute;
+  top: 2px; right: 18px;
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
+  background: #f5913a;
+  color: white;
+  font-size: 9px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.nav-dot {
+  position: absolute;
+  top: 4px; right: 22px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #4cba6a;
+  animation: pin-pulse 1.4s ease-in-out infinite;
+}
