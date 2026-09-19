@@ -14,8 +14,9 @@ export default defineConfig(({ mode }) => {
   return {
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
     build: {
-      // 小红书小工具沙箱要求 JS 兼容 ES2017 / Chrome 61。`npm run build:xhs`（--mode xhs）时降低目标。
-      target: mode === 'xhs' ? ['es2017', 'chrome61'] : 'modules',
+      // 小红书小工具沙箱要求 JS 兼容 ES2017 / Chrome 61。`npm run build:xhs`（--mode xhs）时降低目标，
+      // 其余构建沿用 Vite 默认（baseline-widely-available）。
+      target: mode === 'xhs' ? ['es2017', 'chrome61'] : undefined,
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
     },
