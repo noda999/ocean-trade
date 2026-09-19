@@ -14,15 +14,15 @@ export default defineConfig(({ mode }) => {
   return {
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
     build: {
-      // 小红书小工具沙箱要求 JS 兼容 ES2017 / Chrome 61（见 .figma/make/site.json 同级文档）。
-      // `npm run build:xhs` 以 `--mode xhs` 构建时降低编译目标。
-      target: mode === 'xhs' ? 'es2017' : 'modules',
+      // 小红书小工具沙箱要求 JS 兼容 ES2017 / Chrome 61。`npm run build:xhs`（--mode xhs）时降低目标。
+      target: mode === 'xhs' ? ['es2017', 'chrome61'] : 'modules',
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
     },
     plugins: [
 react(),
       tailwindcss(),
+      xhsMinitoolCompat(mode === 'xhs'),
       figmaSiteConfiguration(siteConfiguration),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
@@ -216,6 +216,65 @@ function figmaSiteConfiguration(config: FigmaSiteConfiguration): Plugin {
           tags,
         }
       },
+    },
+  }
+}
+
+/**
+ * 小红书小工具容器适配（仅在 `npm run build:xhs` 生效）。
+ *
+ * 容器规范（minitool-zip-builder 1.6.0）要求：
+ * - 脚本必须是经典脚本：禁用 `type="module"`、`import` / `export`、内联脚本 → 输出 IIFE
+ * - 资源全部相对路径、不得引用外部域名（CDN 字体等一律加载不到）→ 剔除 Google Fonts @import
+ * - viewport 需含 `viewport-fit=cover`（真机安全区）
+ */
+function xhsMinitoolCompat(enabled: boolean): Plugin {
+  const VIEWPORT =
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />'
+  // 离线容器无字体可加载，改用各端系统中文字体栈
+  const SYSTEM_FONT_STACK =
+    '-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif'
+  const stripRemoteFont = (code: string) =>
+    code
+      .replace(/@import\s*\\?['"]\s*https?:\/\/[^'"`]*?\\?['"];?/g, '')
+      .replace(/@import\s+url\(\s*['"]?https?:\/\/[^)]*\)\s*;?/g, '')
+      .replace(/"?Nunito"?\s*,\s*sans-serif/g, SYSTEM_FONT_STACK)
+
+  return {
+    name: 'xhs-minitool-compat',
+    apply: 'build',
+    config() {
+      if (!enabled) return
+      return {
+        build: {
+          // 单文件经典脚本，容器不解析 ES module
+          rollupOptions: {
+            output: { format: 'iife' as const, inlineDynamicImports: true },
+          },
+        },
+      }
+    },
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        if (!enabled) return html
+        return html
+          .replace(/<script type="module"([^>]*?)crossorigin /g, '<script ')
+          .replace(/<script type="module" /g, '<script ')
+          .replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
+          .replace(/<meta name="viewport"[^>]*>/, VIEWPORT)
+      },
+    },
+    generateBundle(_options, bundle) {
+      if (!enabled) return
+      for (const file of Object.values(bundle)) {
+        // IIFE 产物下 Vite 会把 CSS 内联注入到 JS chunk，因此 CSS 资源与 chunk 都要清理
+        if (file.type === 'asset' && typeof file.source === 'string' && file.fileName.endsWith('.css')) {
+          file.source = stripRemoteFont(file.source)
+        } else if (file.type === 'chunk') {
+          file.code = stripRemoteFont(file.code)
+        }
+      }
     },
   }
 }
