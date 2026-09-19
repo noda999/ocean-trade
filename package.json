@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:xhs": "vite build --mode xhs --base=./ --outDir dist-xhs",
     "preview": "vite preview",
     "format": "oxfmt"
   },

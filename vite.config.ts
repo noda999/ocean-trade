@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
   return {
     base: process.env.FIGMA_PUBLIC_URL ? `${process.env.FIGMA_PUBLIC_URL}/` : '/',
     build: {
+      // 小红书小工具沙箱要求 JS 兼容 ES2017 / Chrome 61（见 .figma/make/site.json 同级文档）。
+      // `npm run build:xhs` 以 `--mode xhs` 构建时降低编译目标。
+      target: mode === 'xhs' ? 'es2017' : 'modules',
       sourcemap: emitSourcemaps ? 'inline' : false,
       minify: !emitSourcemaps,
     },
