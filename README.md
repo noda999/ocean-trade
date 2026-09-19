@@ -16,6 +16,20 @@ npm run dev      # 启动开发服务器
 npm run build    # 构建生产版本到 dist/
 ```
 
+## 部署与更新
+
+本项目托管在 GitHub（[noda999/ocean-trade](https://github.com/noda999/ocean-trade)），并通过 **Vercel** 自动部署：每次 `git push` 后约 1 分钟，线上版本自动更新。
+
+本地改动后发布新版本：
+
+```bash
+git add .
+git commit -m "更新说明"
+git push
+```
+
+> 首次部署 Vercel 的方式：vercel.com 用 GitHub 账号登录 → Add New Project → Import 本仓库 → 直接 Deploy（Vite 项目零配置）。
+
 ## 玩法速览
 
 - **贸易**：每座城市有 5～6 种在售货物，原产地便宜、远方昂贵；航行耗时按真实航线距离计算
