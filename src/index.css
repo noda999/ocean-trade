@@ -178,6 +178,9 @@ body {
 .bottom-nav {
   background: linear-gradient(180deg, #2a1a08 0%, #1a0e04 100%);
   border-top: 3px solid #f5913a;
+  /* 安全区：Chrome 61 不支持 max()，先给基线再增强 */
+  padding-bottom: 0;
+  padding-bottom: max(0px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 .nav-btn {
   display: flex;
@@ -308,6 +311,8 @@ body {
 .travel-bar {
   background: linear-gradient(180deg, #1e1408 0%, #120c04 100%);
   border-top: 2px solid #c07830;
+  padding-bottom: 0;
+  padding-bottom: max(0px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 /* Tooltip */
