@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { useGame } from '../game/store'
+import { decodeSaveFromUrl, encodeSaveToUrl, useGame } from '../game/store'
 
 const SAVE_KEY = 'ocean-trade-save-v2'
 
@@ -53,6 +53,8 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
   const fileRef = useRef<HTMLInputElement>(null)
   const [status, setStatus] = useState<{ kind: 'ok' | 'bad' | 'info'; msg: string } | null>(null)
   const [importText, setImportText] = useState('')
+  const [linkInput, setLinkInput] = useState('')
+  const [generatedLink, setGeneratedLink] = useState('')
   const hasSave = !!readSaveBlob()
 
   function handleExport() {
@@ -126,6 +128,62 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
     setTimeout(() => location.reload(), 400)
   }
 
+  /** 生成一条带存档的完整链接（含 origin + pathname） */
+  function buildLink(): string | null {
+    const blob = readSaveBlob()
+    if (!blob) return null
+    const enc = encodeSaveToUrl(blob)
+    try {
+      const u = new URL(window.location.href)
+      u.search = ''
+      u.hash = ''
+      u.searchParams.set('save', enc)
+      return u.toString()
+    } catch {
+      // 容错：万一 URL 构造失败，至少给出相对路径
+      return `?save=${enc}`
+    }
+  }
+
+  function handleMakeLink() {
+    const link = buildLink()
+    if (!link) {
+      setStatus({ kind: 'bad', msg: '当前没有可导出的存档' })
+      setGeneratedLink('')
+      return
+    }
+    setGeneratedLink(link)
+    setStatus({ kind: 'ok', msg: `已生成链接（${link.length} 字符），下方长按全选复制，或点「📋 复制链接」` })
+  }
+
+  function handleCopyLink() {
+    const link = generatedLink || buildLink()
+    if (!link) {
+      setStatus({ kind: 'bad', msg: '当前没有可复制的存档' })
+      return
+    }
+    setGeneratedLink(link)
+    if (!navigator.clipboard?.writeText) {
+      setStatus({ kind: 'bad', msg: '当前环境不支持剪贴板，请长按下方链接手动复制' })
+      return
+    }
+    navigator.clipboard.writeText(link).then(
+      () => setStatus({ kind: 'ok', msg: `链接已复制（${link.length} 字符）—— 去小红书「我的收藏」或私信发给自己，下次点开即继续` }),
+      () => setStatus({ kind: 'bad', msg: '复制被浏览器拦截，请长按下方链接手动复制' }),
+    )
+  }
+
+  function handleImportLink() {
+    const json = decodeSaveFromUrl(linkInput)
+    if (!json) {
+      setStatus({ kind: 'bad', msg: '链接解析失败，请确认是本游戏的存档链接（不是其他网页 URL）' })
+      return
+    }
+    const r = writeSaveBlob(json)
+    setStatus({ kind: r.ok ? 'ok' : 'bad', msg: r.msg })
+    if (r.ok) setTimeout(() => location.reload(), 600)
+  }
+
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(20,40,55,.55)' }} onClick={onClose}>
       <div
@@ -168,6 +226,63 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
                 📋 复制
               </button>
             </BtnRow>
+          </Section>
+
+          {/* ⭐ 短链：最推荐的小红书存档方式 */}
+          <Section title="📎 存档短链（推荐）">
+            <BtnRow>
+              <button className="btn-orange flex-1 py-2.5 text-sm" onClick={handleMakeLink}>
+                🔗 生成长链
+              </button>
+              <button className="btn-ghost-orange px-3 py-2.5 text-sm" onClick={handleCopyLink} title="复制长链">
+                📋 复制链接
+              </button>
+            </BtnRow>
+            {generatedLink && (
+              <textarea
+                readOnly
+                value={generatedLink}
+                onFocus={e => e.currentTarget.select()}
+                className="w-full p-2 text-[10px] font-mono mt-2"
+                style={{
+                  borderRadius: 10,
+                  border: '1.5px solid #f0e2c8',
+                  background: '#fff8f0',
+                  color: '#3d2b10',
+                  minHeight: 60,
+                  maxHeight: 120,
+                  resize: 'vertical',
+                  outline: 'none',
+                  wordBreak: 'break-all',
+                }}
+              />
+            )}
+            <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
+              或粘贴已保存的链接导入：
+            </div>
+            <textarea
+              value={linkInput}
+              onChange={e => setLinkInput(e.target.value)}
+              placeholder="粘贴完整链接 或 仅 ?save= 后面那段"
+              className="w-full p-2 text-[11px] font-mono"
+              style={{
+                borderRadius: 10,
+                border: '1.5px solid #f0e2c8',
+                background: '#fff8f0',
+                color: '#3d2b10',
+                minHeight: 60,
+                resize: 'vertical',
+                outline: 'none',
+              }}
+            />
+            <button
+              className="btn-green w-full py-2 text-xs mt-2"
+              disabled={!linkInput.trim()}
+              style={{ opacity: !linkInput.trim() ? 0.45 : 1 }}
+              onClick={handleImportLink}
+            >
+              🔁 从链接导入并重启
+            </button>
           </Section>
 
           {/* 导入 */}

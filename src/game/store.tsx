@@ -22,25 +22,99 @@ const SAVE_KEY = 'ocean-trade-save-v2'
 /** 读取存档；结构不兼容时安全回退到新游戏，避免白屏 */
 function loadSaved(): GameState {
   try {
+    // ① 优先读 URL 上的 ?save= 存档链接（玩家从小红书私信/收藏里点回来的场景）
+    const fromUrl = readUrlSave()
+    if (fromUrl) {
+      // 写入 localStorage 持久化，然后清掉 URL 参数避免刷新重复载入
+      try { localStorage.setItem(SAVE_KEY, fromUrl) } catch { /* ignore */ }
+      try {
+        const u = new URL(window.location.href)
+        u.searchParams.delete('save')
+        window.history.replaceState({}, '', u.toString())
+      } catch { /* ignore */ }
+      const parsed = JSON.parse(fromUrl) as GameState
+      if (isValidSave(parsed)) return { ...parsed, toasts: [] }
+    }
+    // ② 读 localStorage 里的存档
     const raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return initialState()
     const saved = JSON.parse(raw) as GameState
-    const ok = saved
-      && typeof saved.money === 'number'
-      && typeof saved.cityId === 'string'
-      && !!CITY_BY_ID[saved.cityId]
-      && saved.markets
-      // 市场必须覆盖全部城市，且每城至少挂着它经营的货物（防旧结构/半写入存档）
-      && CITIES.every(c => saved.markets[c.id]
-        && c.exports.every(g => saved.markets[c.id][g])
-        && c.imports.every(g => saved.markets[c.id][g]))
-      && saved.cargo
-      && Array.isArray(saved.aiShips)
-      && Array.isArray(saved.visited)
-    if (!ok) return initialState()
+    if (!isValidSave(saved)) return initialState()
     return { ...saved, toasts: [] }
   } catch {
     return initialState()
+  }
+}
+
+/** 严格的存档结构校验 —— 字段不全 / 城市对不上 / markets 不齐都拒绝 */
+function isValidSave(saved: any): saved is GameState {
+  return !!saved
+    && typeof saved.money === 'number'
+    && typeof saved.cityId === 'string'
+    && !!CITY_BY_ID[saved.cityId]
+    && saved.markets
+    && CITIES.every(c => saved.markets[c.id]
+      && c.exports.every(g => saved.markets[c.id][g])
+      && c.imports.every(g => saved.markets[c.id][g]))
+    && saved.cargo
+    && Array.isArray(saved.aiShips)
+    && Array.isArray(saved.visited)
+}
+
+/** 从 URL ?save=xxx 提取存档文本，校验后返回 JSON 字符串；格式不对返回 null */
+function readUrlSave(): string | null {
+  try {
+    const u = new URL(window.location.href)
+    const enc = u.searchParams.get('save')
+    if (!enc) return null
+    // 容错：去掉可能的换行/空格
+    const clean = enc.replace(/\s+/g, '')
+    if (!clean) return null
+    // base64 → UTF-8 JSON
+    const bin = atob(clean)
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0))
+    const json = new TextDecoder('utf-8').decode(bytes)
+    // 校验能 parse 且结构合法
+    const parsed = JSON.parse(json)
+    if (!isValidSave(parsed)) return null
+    return json
+  } catch {
+    return null
+  }
+}
+
+/** 把一段存档 JSON 文本编码为 URL 安全 base64（UTF-8 安全） */
+export function encodeSaveToUrl(json: string): string {
+  const bytes = new TextEncoder().encode(json)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/** 把 URL 里的 base64 片段（或完整 URL）解码回 JSON 文本；解析失败返回 null */
+export function decodeSaveFromUrl(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  // 如果玩家粘了完整 URL，先抠出 ?save= 后面的部分
+  let enc = trimmed
+  try {
+    if (/^https?:\/\//i.test(trimmed)) {
+      const u = new URL(trimmed)
+      const v = u.searchParams.get('save')
+      if (v) enc = v
+    }
+  } catch { /* 不是 URL，按纯 base64 处理 */ }
+  // URL 安全 base64 → 标准 base64
+  const std = enc.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - enc.length % 4) % 4)
+  try {
+    const bin = atob(std)
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0))
+    const json = new TextDecoder('utf-8').decode(bytes)
+    const parsed = JSON.parse(json)
+    if (!isValidSave(parsed)) return null
+    return json
+  } catch {
+    return null
   }
 }
 

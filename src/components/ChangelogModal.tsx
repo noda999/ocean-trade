@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.0.3'
+const CURRENT_VERSION = 'v1.0.4'
 
 interface ChangeItem {
   icon: string
@@ -10,6 +10,7 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
+  { icon: '📎', title: '新增「存档短链」', desc: '顶栏 ⚙️ 里多了「生成长链」—— 把当前进度编码成 URL 的一段，复制 → 发小红书私信/收藏给自己，下次点开链接自动载档。无需下载文件，适合小红书容器。' },
   { icon: '⚙️', title: '新增「存档导入/导出」', desc: '小红书容器每次进入都是新的 webview，本地存档会丢 —— 现在顶栏 ⚙️ 一键下载 .json 备份，下次进入再导入即可继续。小红书容器屏蔽剪贴板时会自动降级到文件下载/上传。' },
   { icon: '🛡️', title: '修复「产地反套利」漏洞', desc: '之前本港是产地时，玩家把特产运回本港仍可卖给本港出口商（spike 暴涨时无风险套利）—— 已在 v1.0.2 修复：产地不回购同种货，货舱/CargoView/MarketView 三处同步拦截。' },
   { icon: '🔢', title: '强化买入/卖出数值校验', desc: '市场刷新或金币变化后，UI 数量和实际下单数量会自动夹紧到「stock / 货舱余量 / 金钱」三者最小，并拒绝 NaN / 负数 / 小数。' },
@@ -86,7 +87,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 正式版 · 新增 ⚙️ 存档导入/导出
+                {CURRENT_VERSION} · 正式版 · 新增 📎 存档短链
               </div>
             </div>
           </div>
