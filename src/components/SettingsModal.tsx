@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { decodeSaveFromUrl, encodeSaveToUrl, useGame } from '../game/store'
 
 const SAVE_KEY = 'ocean-trade-save-v2'
@@ -51,11 +51,26 @@ function downloadAsFile(filename: string, text: string) {
 export default function SettingsModal({ onClose }: Props): ReactNode {
   const { state, reset } = useGame()
   const fileRef = useRef<HTMLInputElement>(null)
+  const linkRef = useRef<HTMLTextAreaElement>(null)
   const [status, setStatus] = useState<{ kind: 'ok' | 'bad' | 'info'; msg: string } | null>(null)
   const [importText, setImportText] = useState('')
   const [linkInput, setLinkInput] = useState('')
   const [generatedLink, setGeneratedLink] = useState('')
   const hasSave = !!readSaveBlob()
+
+  /** 选中链接框里的全部内容（移动端长按复制需要先选中文本） */
+  function selectLinkText() {
+    const ta = linkRef.current
+    if (!ta) return
+    ta.focus({ preventScroll: true })
+    try { ta.setSelectionRange(0, ta.value.length) } catch { /* ignore */ }
+    ta.select()
+  }
+
+  /** 链接变化后自动 focus + 全选，方便用户长按复制 */
+  useEffect(() => {
+    if (generatedLink) selectLinkText()
+  }, [generatedLink])
 
   function handleExport() {
     const blob = readSaveBlob()
@@ -153,9 +168,20 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
       return
     }
     setGeneratedLink(link)
-    setStatus({ kind: 'ok', msg: `已生成链接（${link.length} 字符），下方长按全选复制，或点「📋 复制链接」` })
+    setStatus({
+      kind: 'ok',
+      msg: `已生成链接（${link.length} 字符）—— 下方链接已自动选中，📱 手机长按链接框选「拷贝」即可`,
+    })
   }
 
+  /**
+   * 复制链接，兼容移动 webview / 小红书容器：
+   *   1) execCommand('copy') — 兜底首选，移动 webview（小红书）通常能用
+   *   2) navigator.clipboard.writeText — 桌面浏览器备选
+   *   3) 都失败 → 提示长按下方链接框复制
+   * 关键：必须用 try/catch 包整个流程，且 clipboard 调用 800ms 内不响应就主动放弃，
+   * 因为小红书容器里 writeText 可能永远 pending、既不 resolve 也不 reject。
+   */
   function handleCopyLink() {
     const link = generatedLink || buildLink()
     if (!link) {
@@ -163,14 +189,68 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
       return
     }
     setGeneratedLink(link)
-    if (!navigator.clipboard?.writeText) {
-      setStatus({ kind: 'bad', msg: '当前环境不支持剪贴板，请长按下方链接手动复制' })
+
+    // 方案 1：execCommand('copy') —— 移动端 WKWebView 兜底首选
+    function tryExecCommand(): boolean {
+      const tmp = document.createElement('textarea')
+      tmp.value = link
+      tmp.setAttribute('readonly', '')
+      tmp.style.position = 'fixed'
+      tmp.style.top = '0'
+      tmp.style.left = '0'
+      tmp.style.width = '1px'
+      tmp.style.height = '1px'
+      tmp.style.opacity = '0'
+      document.body.appendChild(tmp)
+      tmp.focus()
+      try { tmp.setSelectionRange(0, link.length) } catch { /* ignore */ }
+      tmp.select()
+        let ok = false
+      try { ok = document.execCommand('copy') } catch { ok = false }
+      document.body.removeChild(tmp)
+      return ok
+    }
+
+    if (tryExecCommand()) {
+      setStatus({
+        kind: 'ok',
+        msg: `链接已复制（${link.length} 字符）—— 去小红书私信/保存草稿发给自己，下次点开即继续`,
+      })
       return
     }
-    navigator.clipboard.writeText(link).then(
-      () => setStatus({ kind: 'ok', msg: `链接已复制（${link.length} 字符）—— 去小红书「我的收藏」或私信发给自己，下次点开即继续` }),
-      () => setStatus({ kind: 'bad', msg: '复制被浏览器拦截，请长按下方链接手动复制' }),
-    )
+
+    // 方案 2：navigator.clipboard —— 桌面浏览器备选
+    if (navigator.clipboard?.writeText) {
+      let settled = false
+      const finish = (k: 'ok' | 'info', m: string) => {
+        if (settled) return
+        settled = true
+        setStatus({ kind: k, msg: m })
+      }
+      // 兜底超时：800ms 还没响应就放弃（小红书容器常见）
+      const timeoutId = window.setTimeout(() => {
+        finish('info', '复制未响应，📱 手机请长按下方链接框选「拷贝」')
+      }, 800)
+      try {
+        navigator.clipboard.writeText(link).then(
+          () => {
+            window.clearTimeout(timeoutId)
+            finish('ok', `链接已复制（${link.length} 字符）—— 去小红书私信发给自己，下次点开即继续`)
+          },
+          () => {
+            window.clearTimeout(timeoutId)
+            finish('info', '复制被浏览器拦截，📱 手机请长按下方链接框选「拷贝」')
+          },
+        )
+      } catch {
+        window.clearTimeout(timeoutId)
+        finish('info', '复制失败，📱 手机请长按下方链接框选「拷贝」')
+      }
+      return
+    }
+
+    // 方案 3：完全不支持剪贴板 —— 提示长按
+    setStatus({ kind: 'info', msg: '当前环境不支持自动复制，📱 手机请长按下方链接框选「拷贝」' })
   }
 
   function handleImportLink() {
@@ -240,9 +320,12 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
             </BtnRow>
             {generatedLink && (
               <textarea
+                ref={linkRef}
                 readOnly
                 value={generatedLink}
-                onFocus={e => e.currentTarget.select()}
+                onFocus={selectLinkText}
+                onClick={selectLinkText}
+                onTouchStart={selectLinkText}
                 className="w-full p-2 text-[10px] font-mono mt-2"
                 style={{
                   borderRadius: 10,
@@ -254,6 +337,8 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
                   resize: 'vertical',
                   outline: 'none',
                   wordBreak: 'break-all',
+                  WebkitUserSelect: 'all',
+                  userSelect: 'all',
                 }}
               />
             )}
