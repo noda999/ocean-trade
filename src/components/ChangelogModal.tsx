@@ -10,7 +10,7 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🔧', title: '修复自动存档失效', desc: 'TICK 每 200ms 打断 setTimeout，原 500ms 永远到不了 → localStorage 永远空、长链拿不到真实进度。现已 1.5s 兜底写入。' },
+  { icon: '🔧', title: '修复自动存档 + 短链压缩', desc: 'TICK 打断 setTimeout 导致 localStorage 永远空，已 1.5s 兜底写入；markets/cargo 数字串化、去掉日志，短链 ~6800 → ~1700 字符，手机一次能复制完。' },
   { icon: '🛡️', title: '小红书容器适配', desc: '顶栏避开容器胶囊/状态栏遮挡；favicon 不再 404；脚本 IIFE + TDZ 修复；离线字体栈。' },
   { icon: '📎', title: '新增「存档短链」', desc: '顶栏 ⚙️ 一键把进度编码到 URL 片段，复制 → 发小红书私信/收藏给自己，下次点开自动载档，无需下载文件。' },
   { icon: '⚙️', title: '新增「存档导入/导出」', desc: '小红书容器每次进入都是新 webview、存档会丢。现在 ⚙️ 一键下载 .json 备份，下次进入再导入即可继续。' },

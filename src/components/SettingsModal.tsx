@@ -170,7 +170,7 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
     setGeneratedLink(link)
     setStatus({
       kind: 'ok',
-      msg: `已生成链接（${link.length} 字符）—— 下方链接已自动选中，📱 手机长按链接框选「拷贝」即可`,
+      msg: `已生成短链（${link.length} 字符）—— 紧凑格式手机可一次性复制；下方链接已自动选中`,
     })
   }
 
