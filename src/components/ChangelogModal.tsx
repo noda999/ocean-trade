@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.0.1'
+const CURRENT_VERSION = 'v1.1.0'
 
 interface ChangeItem {
   icon: string
@@ -10,9 +10,7 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '📷', title: '新增「存档二维码」', desc: '短链生成后自动显示二维码 — 截图后用小红书「扫一扫」直接打开，**完全绕开复制问题**。iOS 长按 textarea 跨滚动全选不可靠的终极解法。' },
-  { icon: '🗜️', title: '短链体积再压 44%（v3 极致编码）', desc: '实测最大存档：3954 → 2186 字符（base36 索引 cities/goods/ships，markets 单字符串化）。手机一次复制成功。兼容 v2 / 老格式。' },
-  { icon: '🔧', title: '修复自动存档 + 短链压缩', desc: 'TICK 打断 setTimeout 导致 localStorage 永远空，已 1.5s 兜底写入；markets/cargo 数字串化、去掉日志，短链 ~6800 → ~1700 字符。' },
+  { icon: '🧹', title: '移除存档功能', desc: '复杂移动 webview 容器里复制/导入/二维码都不够稳，砍掉所有存档相关代码 —— 现在每次进来都是全新一局，体验更干净。' },
   { icon: '🛡️', title: '小红书容器适配', desc: '顶栏避开容器胶囊/状态栏遮挡；favicon 不再 404；脚本 IIFE + TDZ 修复；离线字体栈。' },
   { icon: '⛵', title: '核心玩法上线', desc: '15 座大航海港口 × 22 种货物 × 5 艘船升级树。' },
 ]
@@ -83,7 +81,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 正式版 · 存档二维码 & 短链压缩 v3
+                {CURRENT_VERSION} · 正式版 · 精简版本（移除存档）
               </div>
             </div>
           </div>

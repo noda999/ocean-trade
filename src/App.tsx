@@ -154,9 +154,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
               <button
                 className="btn-ghost-orange px-4 py-2 text-sm"
                 style={{ borderRadius: 12 }}
-                onClick={() => { localStorage.removeItem('ocean-trade-save-v2'); location.reload() }}
+                onClick={() => location.reload()}
               >
-                清空存档重开
+                重新加载
               </button>
             </div>
           </div>

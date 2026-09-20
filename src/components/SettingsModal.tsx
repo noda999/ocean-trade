@@ -1,318 +1,27 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import QRCode from 'qrcode'
-import { decodeSaveFromUrl, encodeSaveToUrl, useGame } from '../game/store'
-
-const SAVE_KEY = 'ocean-trade-save-v2'
+import { useState, type ReactNode } from 'react'
+import { useGame } from '../game/store'
 
 interface Props {
   onClose: () => void
 }
 
-/** 把当前 localStorage 里的存档原样取出（找不到返回 null） */
-function readSaveBlob(): string | null {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return null
-    // 二次校验结构合法再导出，避免把已损坏的存档喂回去
-    JSON.parse(raw)
-    return raw
-  } catch {
-    return null
-  }
-}
-
-/** 拿一段存档文本，写回 localStorage 并触发 reload */
-function writeSaveBlob(blob: string): { ok: boolean; msg: string } {
-  try {
-    const parsed = JSON.parse(blob)
-    if (!parsed || typeof parsed !== 'object') return { ok: false, msg: '存档格式不对，应为 JSON 对象' }
-    if (typeof parsed.money !== 'number' || typeof parsed.cityId !== 'string') {
-      return { ok: false, msg: '存档缺少关键字段（money / cityId）' }
-    }
-    localStorage.setItem(SAVE_KEY, blob)
-    return { ok: true, msg: '导入成功，正在重启…' }
-  } catch (e) {
-    return { ok: false, msg: '存档 JSON 解析失败：' + (e instanceof Error ? e.message : String(e)) }
-  }
-}
-
-/** 把一段文本存为文件触发下载 */
-function downloadAsFile(filename: string, text: string) {
-  const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
-
+/** 最小化的设置面板 —— 仅保留"重置进度" + 玩法简介（存档功能已移除） */
 export default function SettingsModal({ onClose }: Props): ReactNode {
   const { state, reset } = useGame()
-  const fileRef = useRef<HTMLInputElement>(null)
-  const linkRef = useRef<HTMLTextAreaElement>(null)
-  const [status, setStatus] = useState<{ kind: 'ok' | 'bad' | 'info'; msg: string } | null>(null)
-  const [importText, setImportText] = useState('')
-  const [linkInput, setLinkInput] = useState('')
-  const [generatedLink, setGeneratedLink] = useState('')
-  const [qrDataUrl, setQrDataUrl] = useState('')
-  const hasSave = !!readSaveBlob()
-
-  /** 选中链接框里的全部内容（移动端长按复制需要先选中文本） */
-  function selectLinkText() {
-    const ta = linkRef.current
-    if (!ta) return
-    ta.focus({ preventScroll: true })
-    try { ta.setSelectionRange(0, ta.value.length) } catch { /* ignore */ }
-    ta.select()
-  }
-
-  /** 链接变化后自动 focus + 全选 + 生成二维码 */
-  useEffect(() => {
-    if (generatedLink) {
-      selectLinkText()
-      // 生成可被小红书「扫一扫」识别的 QR（编码完整 URL）
-      const url = location.origin + window.location.pathname + '?save=' + generatedLink
-      QRCode.toDataURL(url, {
-        errorCorrectionLevel: 'L',
-        margin: 1,
-        width: 180,
-        color: { dark: '#3d2b10', light: '#fff8f0' },
-      }).then(setQrDataUrl).catch(() => setQrDataUrl(''))
-    } else {
-      setQrDataUrl('')
-    }
-  }, [generatedLink])
-
-  function handleExport() {
-    const blob = readSaveBlob()
-    if (!blob) {
-      setStatus({ kind: 'bad', msg: '当前没有可导出的存档' })
-      return
-    }
-    const filename = `ocean-trade-save-${new Date().toISOString().slice(0, 10)}.json`
-    downloadAsFile(filename, blob)
-    setStatus({ kind: 'ok', msg: `已下载 ${filename}（共 ${blob.length} 字节）` })
-    // 顺手复制一份到剪贴板（小红书容器可能屏蔽 clipboard API，但桌面浏览器可用）
-    try {
-      if (navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(blob).then(
-          () => setStatus(prev => ({ kind: 'ok', msg: (prev?.msg ?? '') + ' · 已复制到剪贴板' })),
-          () => { /* 静默忽略：失败不打扰用户 */ },
-        )
-      }
-    } catch { /* ignore */ }
-  }
-
-  function handleCopyOnly() {
-    const blob = readSaveBlob()
-    if (!blob) {
-      setStatus({ kind: 'bad', msg: '当前没有可复制的存档' })
-      return
-    }
-    if (!navigator.clipboard?.writeText) {
-      setStatus({ kind: 'bad', msg: '当前环境不支持剪贴板，请改用「下载文件」' })
-      return
-    }
-    navigator.clipboard.writeText(blob).then(
-      () => setStatus({ kind: 'ok', msg: `存档已复制（${blob.length} 字节），去别处粘贴回来` }),
-      () => setStatus({ kind: 'bad', msg: '复制被浏览器拦截，请改用「下载文件」' }),
-    )
-  }
-
-  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = String(reader.result ?? '')
-      applyImport(text)
-      e.target.value = '' // 允许重复选同一文件
-    }
-    reader.readAsText(f)
-  }
-
-  function handlePasteImport() {
-    if (!importText.trim()) {
-      setStatus({ kind: 'bad', msg: '请先粘贴存档文本' })
-      return
-    }
-    applyImport(importText.trim())
-  }
-
-  function applyImport(text: string) {
-    const r = writeSaveBlob(text)
-    setStatus({ kind: r.ok ? 'ok' : 'bad', msg: r.msg })
-    if (r.ok) {
-      setTimeout(() => location.reload(), 600)
-    }
-  }
+  const [status, setStatus] = useState<{ kind: 'ok' | 'bad'; msg: string } | null>(null)
 
   function handleReset() {
-    if (!window.confirm('确定要清空所有进度，重新开始吗？')) return
+    if (!window.confirm('确定要清空当前进度，重新开始吗？')) return
     reset()
-    setStatus({ kind: 'info', msg: '存档已清空，正在重启…' })
-    setTimeout(() => location.reload(), 400)
-  }
-
-  /** 生成一条带存档的完整链接（含 origin + pathname） */
-  function buildLink(): string | null {
-    const blob = readSaveBlob()
-    if (!blob) return null
-    const enc = encodeSaveToUrl(blob)
-    try {
-      const u = new URL(window.location.href)
-      u.search = ''
-      u.hash = ''
-      u.searchParams.set('save', enc)
-      return u.toString()
-    } catch {
-      // 容错：万一 URL 构造失败，至少给出相对路径
-      return `?save=${enc}`
-    }
-  }
-
-  function handleMakeLink() {
-    const link = buildLink()
-    if (!link) {
-      setStatus({ kind: 'bad', msg: '当前没有可导出的存档' })
-      setGeneratedLink('')
-      return
-    }
-    setGeneratedLink(link)
-    setStatus({
-      kind: 'ok',
-      msg: `已生成短链（${link.length} 字符）—— 紧凑格式手机可一次性复制；下方链接已自动选中`,
-    })
-  }
-
-  /**
-   * 复制链接，兼容移动 webview / 小红书容器：
-   *   1) execCommand('copy') — 兜底首选，移动 webview（小红书）通常能用
-   *   2) navigator.clipboard.writeText + 800ms 超时 — 桌面浏览器备选
-   *   3) 下载为 .txt 文件 — 终极兜底，小红书容器里 JS 复制全挂时仍可用
-   *   4) 都失败 → 提示用户长按下方链接框手动拷贝
-   *
-   * 关键：每一步都 try/catch 兜底，因为小红书 webview 里
-   *   document.body.appendChild / navigator.clipboard.writeText 都可能抛错或永远
-   *   pending，导致整个 click handler 抛错、setStatus 不被调用、按钮看起来"按了没反应"。
-   */
-  function handleCopyLink() {
-    let link = ''
-    try {
-      link = generatedLink || buildLink() || ''
-    } catch {
-      setStatus({ kind: 'bad', msg: '存档读取失败，请先玩一会儿再试' })
-      return
-    }
-    if (!link) {
-      setStatus({ kind: 'bad', msg: '当前没有可复制的存档' })
-      return
-    }
-    setGeneratedLink(link)
-
-    // 方案 1：execCommand('copy') —— 移动 webview 兜底首选
-    // 整个函数必须 try/catch：appendChild / focus / execCommand 任何一步都可能抛错
-    let copied = false
-    try {
-      const tmp = document.createElement('textarea')
-      tmp.value = link
-      tmp.setAttribute('readonly', '')
-      tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;'
-      try { document.body.appendChild(tmp) } catch { /* 容器可能禁止 appendChild */ }
-      try {
-        tmp.focus({ preventScroll: true })
-        try { tmp.setSelectionRange(0, link.length) } catch { /* ignore */ }
-        tmp.select()
-      } catch { /* focus 失败也继续 */ }
-      try {
-        copied = document.execCommand('copy')
-      } catch { /* ignore */ }
-      try { document.body.removeChild(tmp) } catch { /* ignore */ }
-    } catch {
-      copied = false
-    }
-
-    if (copied) {
-      setStatus({
-        kind: 'ok',
-        msg: `链接已复制（${link.length} 字符）—— 去小红书私信/保存草稿发给自己，下次点开即继续`,
-      })
-      return
-    }
-
-    // 方案 2：navigator.clipboard —— 桌面浏览器备选，800ms 超时
-    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-      let settled = false
-      const finish = (k: 'ok' | 'info', m: string) => {
-        if (settled) return
-        settled = true
-        setStatus({ kind: k, msg: m })
-      }
-      const timeoutId = window.setTimeout(() => {
-        finish('info', '复制未响应，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
-      }, 800)
-      try {
-        navigator.clipboard.writeText(link).then(
-          () => {
-            window.clearTimeout(timeoutId)
-            finish('ok', `链接已复制（${link.length} 字符）—— 去小红书私信发给自己，下次点开即继续`)
-          },
-          () => {
-            window.clearTimeout(timeoutId)
-            finish('info', '复制被浏览器拦截，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
-          },
-        )
-      } catch {
-        window.clearTimeout(timeoutId)
-        finish('info', '复制失败，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
-      }
-      return
-    }
-
-    // 方案 3：终极兜底 —— 把链接下载为 .txt 文件
-    try {
-      const blob = new Blob([link], { type: 'text/plain;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'ocean-trade-save-link.txt'
-      a.style.display = 'none'
-      try { document.body.appendChild(a) } catch { /* ignore */ }
-      a.click()
-      try { document.body.removeChild(a) } catch { /* ignore */ }
-      setTimeout(() => { try { URL.revokeObjectURL(url) } catch { /* ignore */ } }, 1000)
-      setStatus({
-        kind: 'info',
-        msg: `已下载链接文件 ocean-trade-save-link.txt（${link.length} 字符）—— 上传到小红书笔记，下次复制内容粘贴到「导入链接」框即可`,
-      })
-      return
-    } catch {
-      /* ignore */
-    }
-
-    // 方案 4：彻底失败 —— 提示长按
-    setStatus({
-      kind: 'info',
-      msg: '当前环境不支持自动复制，📱 手机请长按下方链接框选「拷贝」',
-    })
-  }
-
-  function handleImportLink() {
-    const json = decodeSaveFromUrl(linkInput)
-    if (!json) {
-      setStatus({ kind: 'bad', msg: '链接解析失败，请确认是本游戏的存档链接（不是其他网页 URL）' })
-      return
-    }
-    const r = writeSaveBlob(json)
-    setStatus({ kind: r.ok ? 'ok' : 'bad', msg: r.msg })
-    if (r.ok) setTimeout(() => location.reload(), 600)
+    setStatus({ kind: 'ok', msg: '已重新开始' })
   }
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(20,40,55,.55)' }} onClick={onClose}>
+    <div
+      className="absolute inset-0 z-40 flex items-center justify-center"
+      style={{ background: 'rgba(20,40,55,.55)' }}
+      onClick={onClose}
+    >
       <div
         className="panel-white mx-4 my-6 w-full max-w-md overflow-hidden"
         style={{ borderRadius: 18, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}
@@ -320,13 +29,13 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
       >
         {/* 顶部 */}
         <div className="px-4 pt-4 pb-3 flex items-center" style={{ borderBottom: '1.5px solid #f5e8d0' }}>
-          <div className="font-900 text-base" style={{ color: '#3d2b10' }}>⚙️ 存档设置</div>
+          <div className="font-900 text-base" style={{ color: '#3d2b10' }}>⚙️ 关于</div>
           <button className="ml-auto top-icon-btn" style={{ width: 28, height: 28 }} onClick={onClose}>✕</button>
         </div>
 
         {/* 正文 */}
         <div className="px-4 py-3 overflow-auto" style={{ flex: 1 }}>
-          {/* 状态卡片 */}
+          {/* 当前进度 */}
           <div className="panel-orange p-3 mb-3" style={{ borderRadius: 14 }}>
             <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,.92)' }}>
               <span>📍 当前进度</span>
@@ -336,180 +45,46 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
             </div>
             <div className="flex items-center gap-2 text-xs mt-1.5" style={{ color: 'rgba(255,255,255,.85)' }}>
               <span>📦 货舱 {Object.values(state.cargo).reduce((s, c) => s + c.qty, 0)} 件</span>
-              <span className="ml-auto">{hasSave ? '✅ 已有存档' : '⚠️ 当前没有存档'}</span>
-            </div>
-            <div className="text-[11px] mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,.78)' }}>
-              💡 小红书容器每次进入都是新的浏览器窗口，<b style={{ color: 'white' }}>localStorage 不会自动保留</b>。建议每次退出前点「导出存档」，下次进入时再「导入」。
             </div>
           </div>
 
-          {/* 导出 */}
-          <Section title="📤 导出存档">
-            <BtnRow>
-              <button className="btn-orange flex-1 py-2.5 text-sm" onClick={handleExport}>
-                ⬇️ 下载 .json 文件
-              </button>
-              <button className="btn-ghost-orange px-3 py-2.5 text-sm" onClick={handleCopyOnly} title="复制到剪贴板">
-                📋 复制
-              </button>
-            </BtnRow>
-          </Section>
-
-          {/* ⭐ 短链：最推荐的小红书存档方式 */}
-          <Section title="📎 存档短链（推荐）">
-            <BtnRow>
-              <button className="btn-orange flex-1 py-2.5 text-sm" onClick={handleMakeLink}>
-                🔗 生成长链
-              </button>
-              <button
-                className="btn-ghost-orange px-3 py-2.5 text-sm"
-                onClick={handleCopyLink}
-                title="复制或下载链接"
-              >
-                📌 复制/下载
-              </button>
-            </BtnRow>
-            {generatedLink && (
-              <>
-                <div
-                  className="text-[11px] mt-2 mb-1 px-2 py-1.5"
-                  style={{
-                    borderRadius: 8,
-                    background: '#fff5ec',
-                    color: '#a07030',
-                    border: '1px dashed #f5d8a8',
-                  }}
-                >
-                  📱 手机复制失败时，<b style={{ color: '#c08030' }}>长按下方链接框选「拷贝」</b>（小红书容器里最稳的方式）
-                </div>
-                <textarea
-                  ref={linkRef}
-                  readOnly
-                  value={generatedLink}
-                  onFocus={selectLinkText}
-                  onClick={selectLinkText}
-                  onTouchStart={selectLinkText}
-                  className="w-full p-2 text-[10px] font-mono mt-1"
-                  style={{
-                    borderRadius: 10,
-                    border: '1.5px solid #f0e2c8',
-                    background: '#fff8f0',
-                    color: '#3d2b10',
-                    minHeight: 60,
-                    maxHeight: 120,
-                    resize: 'vertical',
-                    outline: 'none',
-                    wordBreak: 'break-all',
-                    WebkitUserSelect: 'all',
-                    userSelect: 'all',
-                  }}
-                />
-                {qrDataUrl && (
-                  <>
-                    <div
-                      className="text-[11px] mt-2 mb-1 px-2 py-1.5"
-                      style={{
-                        borderRadius: 8,
-                        background: '#fff0e0',
-                        color: '#a07030',
-                        border: '1px dashed #f5d8a8',
-                      }}
-                    >
-                      📷 <b style={{ color: '#c08030' }}>截图下方二维码</b>，下次进入游戏从相册选「扫一扫」直接打开（绕开复制问题）
-                    </div>
-                    <div className="flex justify-center mt-2 mb-1">
-                      <img
-                        src={qrDataUrl}
-                        alt="存档二维码（小红书扫一扫打开）"
-                        style={{
-                          width: 168,
-                          height: 168,
-                          borderRadius: 10,
-                          border: '1.5px solid #f0e2c8',
-                          background: '#fff8f0',
-                          imageRendering: 'pixelated',
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-              </>
-            )}
-            <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
-              或粘贴已保存的链接导入：
-            </div>
-            <textarea
-              value={linkInput}
-              onChange={e => setLinkInput(e.target.value)}
-              placeholder="粘贴完整链接 或 仅 ?save= 后面那段"
-              className="w-full p-2 text-[11px] font-mono"
+          {/* 玩法简介 */}
+          <div className="mb-4">
+            <div className="text-xs font-800 mb-2" style={{ color: '#8a6a40' }}>📖 玩法简介</div>
+            <div
+              className="text-xs leading-relaxed p-3"
               style={{
                 borderRadius: 10,
-                border: '1.5px solid #f0e2c8',
                 background: '#fff8f0',
-                color: '#3d2b10',
-                minHeight: 60,
-                resize: 'vertical',
-                outline: 'none',
+                border: '1.5px solid #f0e2c8',
+                color: '#5a4020',
+                lineHeight: 1.6,
               }}
-            />
-            <button
-              className="btn-green w-full py-2 text-xs mt-2"
-              disabled={!linkInput.trim()}
-              style={{ opacity: !linkInput.trim() ? 0.45 : 1 }}
-              onClick={handleImportLink}
             >
-              🔁 从链接导入并重启
-            </button>
-          </Section>
-
-          {/* 导入 */}
-          <Section title="📥 导入存档">
-            <BtnRow>
-              <button
-                className="btn-green flex-1 py-2.5 text-sm"
-                onClick={() => fileRef.current?.click()}
-              >
-                📂 选择文件
-              </button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="application/json,.json,.txt"
-                className="hidden"
-                onChange={handleFileSelected}
-              />
-            </BtnRow>
-            <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
-              或粘贴 JSON 文本：
+              1️⃣ 在港口 <b>低买高卖</b>，赚取差价<br />
+              2️⃣ 跑 <b>远航贸易</b>，跨区域倒货赚更多<br />
+              3️⃣ 用利润 <b>升级帆船</b>，容量更大、单趟更赚<br />
+              4️⃣ 解锁 <b>更多港口</b>，发现更稀缺的货物<br />
+              5️⃣ 挑战 <b>功勋榜</b>，目标 12 万总资产登顶！
             </div>
-            <textarea
-              value={importText}
-              onChange={e => setImportText(e.target.value)}
-              placeholder='{"money":3000,"cityId":"china",…}'
-              className="w-full p-2 text-[11px] font-mono"
-              style={{
-                borderRadius: 10,
-                border: '1.5px solid #f0e2c8',
-                background: '#fff8f0',
-                color: '#3d2b10',
-                minHeight: 80,
-                resize: 'vertical',
-                outline: 'none',
-              }}
-            />
-            <button
-              className="btn-green w-full py-2 text-xs mt-2"
-              disabled={!importText.trim()}
-              style={{ opacity: !importText.trim() ? 0.45 : 1 }}
-              onClick={handlePasteImport}
-            >
-              🔁 导入并重启
-            </button>
-          </Section>
+          </div>
+
+          {/* 提示 */}
+          <div
+            className="text-[11px] leading-relaxed p-2.5 mb-4"
+            style={{
+              borderRadius: 10,
+              background: '#fff5ec',
+              color: '#a07030',
+              border: '1px dashed #f5d8a8',
+            }}
+          >
+            💡 离开小红书 webview 后，<b style={{ color: '#c08030' }}>本局进度不会保留</b>，下次进来会重新开始。
+          </div>
 
           {/* 危险区 */}
-          <Section title="⚠️ 危险操作">
+          <div className="mb-4">
+            <div className="text-xs font-800 mb-2" style={{ color: '#8a6a40' }}>⚠️ 危险操作</div>
             <button
               className="w-full py-2.5 text-sm font-800"
               style={{
@@ -520,19 +95,19 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
               }}
               onClick={handleReset}
             >
-              🗑️ 清空存档，重新开始
+              🗑️ 重新开始
             </button>
-          </Section>
+          </div>
 
           {/* 状态消息 */}
           {status && (
             <div
-              className="text-xs p-2.5 mt-2"
+              className="text-xs p-2.5"
               style={{
                 borderRadius: 10,
-                background: status.kind === 'ok' ? '#e8f6ec' : status.kind === 'bad' ? '#fcecec' : '#fff5ec',
-                color: status.kind === 'ok' ? '#3f9d52' : status.kind === 'bad' ? '#c05050' : '#8a6a40',
-                border: `1.5px solid ${status.kind === 'ok' ? '#cce8d4' : status.kind === 'bad' ? '#f5c8c8' : '#f0e2c8'}`,
+                background: status.kind === 'ok' ? '#e8f6ec' : '#fcecec',
+                color: status.kind === 'ok' ? '#3f9d52' : '#c05050',
+                border: `1.5px solid ${status.kind === 'ok' ? '#cce8d4' : '#f5c8c8'}`,
               }}
             >
               {status.msg}
@@ -552,17 +127,4 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
       </div>
     </div>
   )
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <div className="mb-4">
-      <div className="text-xs font-800 mb-2" style={{ color: '#8a6a40' }}>{title}</div>
-      {children}
-    </div>
-  )
-}
-
-function BtnRow({ children }: { children: ReactNode }) {
-  return <div className="flex items-center gap-2">{children}</div>
 }
