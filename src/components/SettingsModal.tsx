@@ -177,41 +177,51 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
   /**
    * 复制链接，兼容移动 webview / 小红书容器：
    *   1) execCommand('copy') — 兜底首选，移动 webview（小红书）通常能用
-   *   2) navigator.clipboard.writeText — 桌面浏览器备选
-   *   3) 都失败 → 提示长按下方链接框复制
-   * 关键：必须用 try/catch 包整个流程，且 clipboard 调用 800ms 内不响应就主动放弃，
-   * 因为小红书容器里 writeText 可能永远 pending、既不 resolve 也不 reject。
+   *   2) navigator.clipboard.writeText + 800ms 超时 — 桌面浏览器备选
+   *   3) 下载为 .txt 文件 — 终极兜底，小红书容器里 JS 复制全挂时仍可用
+   *   4) 都失败 → 提示用户长按下方链接框手动拷贝
+   *
+   * 关键：每一步都 try/catch 兜底，因为小红书 webview 里
+   *   document.body.appendChild / navigator.clipboard.writeText 都可能抛错或永远
+   *   pending，导致整个 click handler 抛错、setStatus 不被调用、按钮看起来"按了没反应"。
    */
   function handleCopyLink() {
-    const link = generatedLink || buildLink()
+    let link = ''
+    try {
+      link = generatedLink || buildLink() || ''
+    } catch {
+      setStatus({ kind: 'bad', msg: '存档读取失败，请先玩一会儿再试' })
+      return
+    }
     if (!link) {
       setStatus({ kind: 'bad', msg: '当前没有可复制的存档' })
       return
     }
     setGeneratedLink(link)
 
-    // 方案 1：execCommand('copy') —— 移动端 WKWebView 兜底首选
-    function tryExecCommand(): boolean {
+    // 方案 1：execCommand('copy') —— 移动 webview 兜底首选
+    // 整个函数必须 try/catch：appendChild / focus / execCommand 任何一步都可能抛错
+    let copied = false
+    try {
       const tmp = document.createElement('textarea')
       tmp.value = link
       tmp.setAttribute('readonly', '')
-      tmp.style.position = 'fixed'
-      tmp.style.top = '0'
-      tmp.style.left = '0'
-      tmp.style.width = '1px'
-      tmp.style.height = '1px'
-      tmp.style.opacity = '0'
-      document.body.appendChild(tmp)
-      tmp.focus()
-      try { tmp.setSelectionRange(0, link.length) } catch { /* ignore */ }
-      tmp.select()
-        let ok = false
-      try { ok = document.execCommand('copy') } catch { ok = false }
-      document.body.removeChild(tmp)
-      return ok
+      tmp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;'
+      try { document.body.appendChild(tmp) } catch { /* 容器可能禁止 appendChild */ }
+      try {
+        tmp.focus({ preventScroll: true })
+        try { tmp.setSelectionRange(0, link.length) } catch { /* ignore */ }
+        tmp.select()
+      } catch { /* focus 失败也继续 */ }
+      try {
+        copied = document.execCommand('copy')
+      } catch { /* ignore */ }
+      try { document.body.removeChild(tmp) } catch { /* ignore */ }
+    } catch {
+      copied = false
     }
 
-    if (tryExecCommand()) {
+    if (copied) {
       setStatus({
         kind: 'ok',
         msg: `链接已复制（${link.length} 字符）—— 去小红书私信/保存草稿发给自己，下次点开即继续`,
@@ -219,17 +229,16 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
       return
     }
 
-    // 方案 2：navigator.clipboard —— 桌面浏览器备选
-    if (navigator.clipboard?.writeText) {
+    // 方案 2：navigator.clipboard —— 桌面浏览器备选，800ms 超时
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
       let settled = false
       const finish = (k: 'ok' | 'info', m: string) => {
         if (settled) return
         settled = true
         setStatus({ kind: k, msg: m })
       }
-      // 兜底超时：800ms 还没响应就放弃（小红书容器常见）
       const timeoutId = window.setTimeout(() => {
-        finish('info', '复制未响应，📱 手机请长按下方链接框选「拷贝」')
+        finish('info', '复制未响应，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
       }, 800)
       try {
         navigator.clipboard.writeText(link).then(
@@ -239,18 +248,42 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
           },
           () => {
             window.clearTimeout(timeoutId)
-            finish('info', '复制被浏览器拦截，📱 手机请长按下方链接框选「拷贝」')
+            finish('info', '复制被浏览器拦截，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
           },
         )
       } catch {
         window.clearTimeout(timeoutId)
-        finish('info', '复制失败，📱 手机请长按下方链接框选「拷贝」')
+        finish('info', '复制失败，📱 手机请长按下方链接框选「拷贝」，或点「⬇️ 下载」')
       }
       return
     }
 
-    // 方案 3：完全不支持剪贴板 —— 提示长按
-    setStatus({ kind: 'info', msg: '当前环境不支持自动复制，📱 手机请长按下方链接框选「拷贝」' })
+    // 方案 3：终极兜底 —— 把链接下载为 .txt 文件
+    try {
+      const blob = new Blob([link], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'ocean-trade-save-link.txt'
+      a.style.display = 'none'
+      try { document.body.appendChild(a) } catch { /* ignore */ }
+      a.click()
+      try { document.body.removeChild(a) } catch { /* ignore */ }
+      setTimeout(() => { try { URL.revokeObjectURL(url) } catch { /* ignore */ } }, 1000)
+      setStatus({
+        kind: 'info',
+        msg: `已下载链接文件 ocean-trade-save-link.txt（${link.length} 字符）—— 上传到小红书笔记，下次复制内容粘贴到「导入链接」框即可`,
+      })
+      return
+    } catch {
+      /* ignore */
+    }
+
+    // 方案 4：彻底失败 —— 提示长按
+    setStatus({
+      kind: 'info',
+      msg: '当前环境不支持自动复制，📱 手机请长按下方链接框选「拷贝」',
+    })
   }
 
   function handleImportLink() {
@@ -314,33 +347,50 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
               <button className="btn-orange flex-1 py-2.5 text-sm" onClick={handleMakeLink}>
                 🔗 生成长链
               </button>
-              <button className="btn-ghost-orange px-3 py-2.5 text-sm" onClick={handleCopyLink} title="复制长链">
-                📋 复制链接
+              <button
+                className="btn-ghost-orange px-3 py-2.5 text-sm"
+                onClick={handleCopyLink}
+                title="复制或下载链接"
+              >
+                📌 复制/下载
               </button>
             </BtnRow>
             {generatedLink && (
-              <textarea
-                ref={linkRef}
-                readOnly
-                value={generatedLink}
-                onFocus={selectLinkText}
-                onClick={selectLinkText}
-                onTouchStart={selectLinkText}
-                className="w-full p-2 text-[10px] font-mono mt-2"
-                style={{
-                  borderRadius: 10,
-                  border: '1.5px solid #f0e2c8',
-                  background: '#fff8f0',
-                  color: '#3d2b10',
-                  minHeight: 60,
-                  maxHeight: 120,
-                  resize: 'vertical',
-                  outline: 'none',
-                  wordBreak: 'break-all',
-                  WebkitUserSelect: 'all',
-                  userSelect: 'all',
-                }}
-              />
+              <>
+                <div
+                  className="text-[11px] mt-2 mb-1 px-2 py-1.5"
+                  style={{
+                    borderRadius: 8,
+                    background: '#fff5ec',
+                    color: '#a07030',
+                    border: '1px dashed #f5d8a8',
+                  }}
+                >
+                  📱 手机复制失败时，<b style={{ color: '#c08030' }}>长按下方链接框选「拷贝」</b>（小红书容器里最稳的方式）
+                </div>
+                <textarea
+                  ref={linkRef}
+                  readOnly
+                  value={generatedLink}
+                  onFocus={selectLinkText}
+                  onClick={selectLinkText}
+                  onTouchStart={selectLinkText}
+                  className="w-full p-2 text-[10px] font-mono mt-1"
+                  style={{
+                    borderRadius: 10,
+                    border: '1.5px solid #f0e2c8',
+                    background: '#fff8f0',
+                    color: '#3d2b10',
+                    minHeight: 60,
+                    maxHeight: 120,
+                    resize: 'vertical',
+                    outline: 'none',
+                    wordBreak: 'break-all',
+                    WebkitUserSelect: 'all',
+                    userSelect: 'all',
+                  }}
+                />
+              </>
             )}
             <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
               或粘贴已保存的链接导入：
