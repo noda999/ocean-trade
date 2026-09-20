@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.0.4'
+const CURRENT_VERSION = 'v1.0.1'
 
 interface ChangeItem {
   icon: string

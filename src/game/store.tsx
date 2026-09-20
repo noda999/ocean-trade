@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useEffect, useMemo, useReducer, type ReactNode,
+  createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode,
 } from 'react'
 import { CITIES, CITY_BY_ID } from './data'
 import { assetsOf, initialState, reducer, type Action, type GameState } from './state'
@@ -130,15 +130,25 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // 自动存档（去抖，避免每个 tick 都写 localStorage）
+  // 注意：TICK 每 200ms 触发，state 频繁变化。若 timeout 设为 500ms 会被 TICK 反复清掉、永远到不了，
+  // 导致 localStorage 永远空、导出链也只是初始状态。这里 timeout 设 1500ms，并在 cleanup 兜底写一次。
+  const lastWrittenRef = useRef<string>('')
   useEffect(() => {
-    const id = window.setTimeout(() => {
+    const write = () => {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(state))
+        const snap = JSON.stringify(state)
+        if (snap === lastWrittenRef.current) return
+        lastWrittenRef.current = snap
+        localStorage.setItem(SAVE_KEY, snap)
       } catch {
         /* 隐私模式下可能不可写，忽略 */
       }
-    }, 500)
-    return () => window.clearTimeout(id)
+    }
+    const id = window.setTimeout(write, 1500)
+    return () => {
+      window.clearTimeout(id)
+      write() // 兜底：若被频繁 TICK 清掉、timeout 还没触发，cleanup 时先写一次
+    }
   }, [state])
 
   const assets = assetsOf(state)
