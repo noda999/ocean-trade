@@ -10,9 +10,8 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🧹', title: '移除存档功能', desc: '复杂移动 webview 容器里复制/导入/二维码都不够稳，砍掉所有存档相关代码 —— 现在每次进来都是全新一局，体验更干净。' },
-  { icon: '🛡️', title: '小红书容器适配', desc: '顶栏避开容器胶囊/状态栏遮挡；favicon 不再 404；脚本 IIFE + TDZ 修复；离线字体栈。' },
-  { icon: '⛵', title: '核心玩法上线', desc: '15 座大航海港口 × 22 种货物 × 5 艘船升级树。' },
+  { icon: '🛠️', title: '修复玩法漏洞', desc: '产地反套利：在特产港低价买入再在同港卖出可刷钱的漏洞已堵；BUY/SELL 数值校验更严，越界不会丢金币；「最佳出货」提示已排除本港，避免把货卖回产地。' },
+  { icon: '🧭', title: '上线新手导览', desc: '5 步带高亮指引：起航 → 市场买卖 → 船坞升级 → 功勋目标，从 0 跑通整条贸易回路，第一次玩也不会迷路。' },
 ]
 
 interface Props {
@@ -81,7 +80,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 正式版 · 精简版本（移除存档）
+                {CURRENT_VERSION} · 修复玩法 · 新手导览上线
               </div>
             </div>
           </div>
