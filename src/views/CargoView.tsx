@@ -78,6 +78,9 @@ export default function CargoView() {
               const unit = mk ? sellPrice(g, cm, ship.bonus) : null
               const value = unit !== null ? unit * c.qty : null
               const itemProfit = value !== null ? value - c.cost : null
+              // 本港是否禁止卖出（紧缺品不向本港进口商回购）
+              const isBlockedByImport = city.imports.includes(gid)
+              const canSellHere = unit !== null && !isBlockedByImport
               return (
                 <div key={gid} className="panel-white p-3" style={{ borderRadius: 14 }}>
                   <div className="flex items-center gap-3">
@@ -88,13 +91,15 @@ export default function CargoView() {
                       <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>{g.name} ×{c.qty}</div>
                       <div className="text-xs" style={{ color: '#a07030' }}>
                         成本 {(c.cost / c.qty).toFixed(0)}
-                        {unit !== null
+                        {canSellHere
                           ? <> · 本地卖价 <b style={{ color: '#f5913a' }}>{unit}</b></>
-                          : <> · <span style={{ color: '#c9b394' }}>本港不收购</span></>}
+                          : isBlockedByImport
+                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购</span></>
+                            : <> · <span style={{ color: '#c9b394' }}>本港不收购</span></>}
                       </div>
                     </div>
                     <div className="text-right">
-                      {unit !== null ? (
+                      {canSellHere ? (
                         <>
                           <div className="font-900 text-sm" style={{ color: itemProfit! >= 0 ? '#4cba6a' : '#e05050' }}>
                             {itemProfit! >= 0 ? '+' : '−'}{Math.abs(itemProfit!).toLocaleString()}
@@ -109,7 +114,9 @@ export default function CargoView() {
                           </button>
                         </>
                       ) : (
-                        <div className="font-800 text-xs" style={{ color: '#c9b394' }}>需运往别港</div>
+                        <div className="font-800 text-xs" style={{ color: '#c9b394' }}>
+                          {isBlockedByImport ? '本港不回购' : '需运往别港'}
+                        </div>
                       )}
                     </div>
                   </div>

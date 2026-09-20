@@ -248,9 +248,15 @@ function xhsMinitoolCompat(enabled: boolean): Plugin {
       if (!enabled) return
       return {
         build: {
-          // 单文件经典脚本，容器不解析 ES module
           rollupOptions: {
-            output: { format: 'iife' as const, inlineDynamicImports: true },
+            output: {
+              // IIFE 单 chunk，容器不解析 ES module。
+              // `name` 强制 IIFE 包装名为 'App'，Terser 不会再把 ReactDOM 撞成 'y'。
+              // 不要 constBindings —— IIFE 模式下 ReactDOM 的 default export 被转成 const，
+              // main.tsx 末尾的 ReactDOM.createRoot 在 const 声明前执行 → TDZ。
+              format: 'iife',
+              name: 'App',
+            },
           },
         },
       }
@@ -260,8 +266,13 @@ function xhsMinitoolCompat(enabled: boolean): Plugin {
       handler(html) {
         if (!enabled) return html
         return html
-          .replace(/<script type="module"([^>]*?)crossorigin /g, '<script ')
+          .replace(/<script type="module"([^>]*?)crossorigin /g, '<script $1')
           .replace(/<script type="module" /g, '<script ')
+          // 容器禁止 type="module"，但经典脚本默认同步执行。
+          // 脚本若在 <head>，执行时 <div id="root"> 尚未解析，
+          // document.getElementById('root') 返回 null → createRoot 抛错白屏。
+          // defer 让脚本在 DOM 解析完成后执行，绕过此问题。
+          .replace(/<script\s+src="([^"]+)"><\/script>/g, '<script defer src="$1"></script>')
           .replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
           .replace(/<meta name="viewport"[^>]*>/, VIEWPORT)
       },

@@ -13,6 +13,15 @@ export default function MarketView() {
 
   const [viewCityId, setViewCityId] = useState(state.cityId)
 
+  // 自动夹住 qty：市场刷新或货舱变化导致可用上限缩小时，UI 数量跟着缩
+  useEffect(() => {
+    if (!open) return
+    const m = cm?.[open]
+    if (!m) return
+    const maxRoom = Math.max(0, Math.min(room, m.stock))
+    if (qty > maxRoom) setQty(Math.max(1, maxRoom))
+  }, [open, cm, room, qty])
+
   // 抵达新港口时自动切回本港
   useEffect(() => { setViewCityId(state.cityId) }, [state.cityId])
 
@@ -242,22 +251,38 @@ export default function MarketView() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
-                      className="btn-green flex-1 py-2.5 text-sm"
-                      disabled={!canTrade || roomUse <= 0 || m.stock <= 0}
-                      style={{ opacity: !canTrade || roomUse <= 0 || m.stock <= 0 ? 0.45 : 1 }}
-                      onClick={() => trade(g.id, 'BUY', roomUse)}
-                    >
-                      📥 买入 {Math.min(qty, roomUse)}
-                    </button>
-                    <button
-                      className="btn-red flex-1 py-2.5 text-sm"
-                      disabled={!canTrade || !mine}
-                      style={{ opacity: !canTrade || !mine ? 0.45 : 1 }}
-                      onClick={() => trade(g.id, 'SELL', mine?.qty ?? 0)}
-                    >
-                      📤 卖出 {Math.min(qty, mine?.qty ?? 0)}
-                    </button>
+                    {/* 特产 = 本港是产地：禁止买入（玩家应装船出海卖去紧缺港） */}
+                    {!isExport && (
+                      <button
+                        className="btn-green flex-1 py-2.5 text-sm"
+                        disabled={!canTrade || roomUse <= 0 || m.stock <= 0}
+                        style={{ opacity: !canTrade || roomUse <= 0 || m.stock <= 0 ? 0.45 : 1 }}
+                        onClick={() => trade(g.id, 'BUY', roomUse)}
+                      >
+                        📥 买入 {Math.min(qty, roomUse)}
+                      </button>
+                    )}
+                    {/* 紧缺 = 本港是销地：禁止卖出（本港进口商不回购） */}
+                    {!isImport && mine && (
+                      <button
+                        className="btn-red flex-1 py-2.5 text-sm"
+                        disabled={!canTrade || !mine}
+                        style={{ opacity: !canTrade || !mine ? 0.45 : 1 }}
+                        onClick={() => trade(g.id, 'SELL', mine?.qty ?? 0)}
+                      >
+                        📤 卖出 {Math.min(qty, mine?.qty ?? 0)}
+                      </button>
+                    )}
+                    {/* 提示：特产只卖 / 紧缺只买 */}
+                    {(isExport || isImport) && (
+                      <div
+                        className="flex-1 py-2.5 text-xs text-center rounded-xl"
+                        style={{ background: '#fff5ec', color: '#a07030', border: '1.5px dashed #f0e2c8' }}
+                      >
+                        {isExport && !isImport && '🏭 产地：本港只卖不买'}
+                        {isImport && !isExport && '📥 销地：本港只买不卖'}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
