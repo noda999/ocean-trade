@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import QRCode from 'qrcode'
 import { decodeSaveFromUrl, encodeSaveToUrl, useGame } from '../game/store'
 
 const SAVE_KEY = 'ocean-trade-save-v2'
@@ -56,6 +57,7 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
   const [importText, setImportText] = useState('')
   const [linkInput, setLinkInput] = useState('')
   const [generatedLink, setGeneratedLink] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const hasSave = !!readSaveBlob()
 
   /** 选中链接框里的全部内容（移动端长按复制需要先选中文本） */
@@ -67,9 +69,21 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
     ta.select()
   }
 
-  /** 链接变化后自动 focus + 全选，方便用户长按复制 */
+  /** 链接变化后自动 focus + 全选 + 生成二维码 */
   useEffect(() => {
-    if (generatedLink) selectLinkText()
+    if (generatedLink) {
+      selectLinkText()
+      // 生成可被小红书「扫一扫」识别的 QR（编码完整 URL）
+      const url = location.origin + window.location.pathname + '?save=' + generatedLink
+      QRCode.toDataURL(url, {
+        errorCorrectionLevel: 'L',
+        margin: 1,
+        width: 180,
+        color: { dark: '#3d2b10', light: '#fff8f0' },
+      }).then(setQrDataUrl).catch(() => setQrDataUrl(''))
+    } else {
+      setQrDataUrl('')
+    }
   }, [generatedLink])
 
   function handleExport() {
@@ -390,6 +404,35 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
                     userSelect: 'all',
                   }}
                 />
+                {qrDataUrl && (
+                  <>
+                    <div
+                      className="text-[11px] mt-2 mb-1 px-2 py-1.5"
+                      style={{
+                        borderRadius: 8,
+                        background: '#fff0e0',
+                        color: '#a07030',
+                        border: '1px dashed #f5d8a8',
+                      }}
+                    >
+                      📷 <b style={{ color: '#c08030' }}>截图下方二维码</b>，下次进入游戏从相册选「扫一扫」直接打开（绕开复制问题）
+                    </div>
+                    <div className="flex justify-center mt-2 mb-1">
+                      <img
+                        src={qrDataUrl}
+                        alt="存档二维码（小红书扫一扫打开）"
+                        style={{
+                          width: 168,
+                          height: 168,
+                          borderRadius: 10,
+                          border: '1.5px solid #f0e2c8',
+                          background: '#fff8f0',
+                          imageRendering: 'pixelated',
+                        }}
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
             <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
