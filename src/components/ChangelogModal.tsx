@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.0.1'
+const CURRENT_VERSION = 'v1.0.2'
 
 interface ChangeItem {
   icon: string
@@ -10,10 +10,13 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🐛', title: '修复「市场」页面崩溃', desc: '切到「市场」标签会整页白屏 —— 已在 v1.0.1 修复，请放心点进市场买卖货物。' },
-  { icon: '🛡️', title: '修复反向套利漏洞', desc: '原本可以把紧缺港的进口货原价卖回给本港进口商（白嫖差价）—— 已在 v1.0.1 修复，本港不回购紧缺品，一键清仓也会自动跳过。' },
-  { icon: '🧭', title: '新手导览上线', desc: '首次进入会带你跑一遍 启航 → 买卖 → 换船 → 领奖，跟着橙色脉冲环 + 箭头点就好。' },
-  { icon: '📡', title: '小红书容器适配', desc: '脚本延迟加载、favicon 屏蔽、TDZ 修复 —— 在 小红书播夹里打开不再闪退/报错。' },
+  { icon: '🛡️', title: '修复「产地反套利」漏洞', desc: '之前本港是产地时，玩家把特产运回本港仍可卖给本港出口商（spike 暴涨时无风险套利）—— 已在 v1.0.2 修复：产地不回购同种货，货舱/CargoView/MarketView 三处同步拦截。' },
+  { icon: '🔢', title: '强化买入/卖出数值校验', desc: '市场刷新或金币变化后，UI 数量和实际下单数量会自动夹紧到「stock / 货舱余量 / 金钱」三者最小，并拒绝 NaN / 负数 / 小数。' },
+  { icon: '🧭', title: '「最优卖港」不再误推荐本港', desc: 'bestSellHint 现在排除本港 —— 不会再出现「销往本港可卖 N 金」的误导提示，SELL 始终按本港价结算。' },
+  { icon: '🐛', title: '修复「市场」页面崩溃', desc: '切到「市场」标签会整页白屏 —— 已在 v1.0.1 修复。' },
+  { icon: '🛡️', title: '修复销地反套利漏洞', desc: '原本可以把紧缺港的进口货卖回给本港进口商 —— 已在 v1.0.1 修复。' },
+  { icon: '🧭', title: '新手导览上线', desc: '首次进入会带你跑一遍 启航 → 买卖 → 换船 → 领奖。' },
+  { icon: '📡', title: '小红书容器适配', desc: '脚本延迟加载、favicon 屏蔽、TDZ 修复。' },
 ]
 
 interface Props {
@@ -82,7 +85,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 正式版 · 修复两个关键 Bug
+                {CURRENT_VERSION} · 正式版 · 反套利 + 数值校验加固
               </div>
             </div>
           </div>

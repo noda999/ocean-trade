@@ -174,13 +174,16 @@ export function bestBuyHint(
   return best!
 }
 
-/** 全城最优卖价 */
+/** 全城最优卖价（排除本港：玩家已在 s.cityId，卖出结算价就是本港价，无所谓"最优"） */
 export function bestSellHint(
   goodId: string, markets: AllMarkets, shipBonus: number, isKnown: (cid: string) => boolean,
+  hereId?: string,
 ): PriceHint {
   let best: PriceHint | null = null
   for (const city of CITIES) {
     if (!cityTrades(city, goodId)) continue
+    // 排除本港：本地的卖出结算价就是本港价，没必要显示"销往本港"
+    if (hereId && city.id === hereId) continue
     const known = isKnown(city.id)
     const price = known
       ? sellPrice(GOOD_BY_ID[goodId], markets[city.id], shipBonus)

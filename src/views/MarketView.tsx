@@ -46,7 +46,19 @@ export default function MarketView() {
 
   function trade(goodId: string, kind: 'BUY' | 'SELL', max: number) {
     if (!canTrade) return
-    const n = Math.min(qty, Math.max(1, max))
+    const m = cm?.[goodId]
+    if (!m) return
+    // 统一数值校验：禁止 NaN / 负数 / 小数；并按当前行情（最新 m.stock / 货舱余量 / 金钱）
+    // 夹紧，防止市场刷新后用陈旧的 qty state 提交超出上限的请求
+    let cap = max
+    if (kind === 'BUY') {
+      const afford = Math.max(0, Math.floor(state.money / m.price))
+      cap = Math.min(cap, m.stock, afford, room)
+    } else {
+      const held = state.cargo[goodId]?.qty ?? 0
+      cap = Math.min(cap, held)
+    }
+    const n = Math.max(0, Math.min(Math.floor(Number.isFinite(qty) ? qty : 0), Math.max(1, cap)))
     dispatch({ type: kind, goodId, qty: n })
   }
 
@@ -154,7 +166,7 @@ export default function MarketView() {
           const isExport = city.exports.includes(g.id)
           const isImport = city.imports.includes(g.id)
           const mine = state.cargo[g.id]
-          const best = bestSellHint(g.id, state.markets, ship.bonus, isKnown)
+          const best = bestSellHint(g.id, state.markets, ship.bonus, isKnown, state.cityId)
           const unit = sellPrice(g, cm, ship.bonus)
           const margin = Math.round(((best.price - m.price) / m.price) * 100)
           const expanded = open === g.id
@@ -264,8 +276,8 @@ export default function MarketView() {
                         📥 买入 {Math.min(qty, roomUse)}
                       </button>
                     )}
-                    {/* 紧缺 = 本港是销地：禁止卖出（本港进口商不回购） */}
-                    {!isImport && mine && (
+                    {/* 销地/产地：本港都不回购玩家持有的同种货，只让玩家按本港价「买/不买」 */}
+                    {!isImport && !isExport && mine && (
                       <button
                         className="btn-red flex-1 py-2.5 text-sm"
                         disabled={!canTrade || !mine}
@@ -281,8 +293,9 @@ export default function MarketView() {
                         className="flex-1 py-2.5 text-xs text-center rounded-xl"
                         style={{ background: '#fff5ec', color: '#a07030', border: '1.5px dashed #f0e2c8' }}
                       >
-                        {isExport && !isImport && '🏭 产地：本港只卖不买'}
-                        {isImport && !isExport && '📥 销地：本港只买不卖'}
+                        {isExport && !isImport && '🏭 产地：本港只卖不回购'}
+                        {isImport && !isExport && '📥 销地：本港只买不回购'}
+                        {isExport && isImport && '⚓ 本港既产也销：仅供查看'}
                       </div>
                     )}
                   </div>

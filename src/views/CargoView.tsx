@@ -78,9 +78,10 @@ export default function CargoView() {
               const unit = mk ? sellPrice(g, cm, ship.bonus) : null
               const value = unit !== null ? unit * c.qty : null
               const itemProfit = value !== null ? value - c.cost : null
-              // 本港是否禁止卖出（紧缺品不向本港进口商回购）
+              // 本港是否禁止卖出：销地不向本港进口商回购 / 产地不向本港出口商回购（双向反套利）
               const isBlockedByImport = city.imports.includes(gid)
-              const canSellHere = unit !== null && !isBlockedByImport
+              const isBlockedByExport = city.exports.includes(gid)
+              const canSellHere = unit !== null && !isBlockedByImport && !isBlockedByExport
               return (
                 <div key={gid} className="panel-white p-3" style={{ borderRadius: 14 }}>
                   <div className="flex items-center gap-3">
@@ -94,8 +95,10 @@ export default function CargoView() {
                         {canSellHere
                           ? <> · 本地卖价 <b style={{ color: '#f5913a' }}>{unit}</b></>
                           : isBlockedByImport
-                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购</span></>
-                            : <> · <span style={{ color: '#c9b394' }}>本港不收购</span></>}
+                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购（销地）</span></>
+                            : isBlockedByExport
+                              ? <> · <span style={{ color: '#c9b394' }}>本港不回购（产地）</span></>
+                              : <> · <span style={{ color: '#c9b394' }}>本港不收购</span></>}
                       </div>
                     </div>
                     <div className="text-right">
@@ -115,7 +118,7 @@ export default function CargoView() {
                         </>
                       ) : (
                         <div className="font-800 text-xs" style={{ color: '#c9b394' }}>
-                          {isBlockedByImport ? '本港不回购' : '需运往别港'}
+                          {isBlockedByImport ? '本港不回购（销地）' : isBlockedByExport ? '本港不回购（产地）' : '需运往别港'}
                         </div>
                       )}
                     </div>
