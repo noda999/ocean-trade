@@ -9,6 +9,8 @@ import DockView from './views/DockView'
 import QuestView from './views/QuestView'
 import MapView from './views/MapView'
 import IntelView from './views/IntelView'
+import OnboardingTour from './components/OnboardingTour'
+import ChangelogModal from './components/ChangelogModal'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
 
@@ -186,6 +188,8 @@ function Game() {
           <Toasts />
         </div>
         <NavBar tab={tab} setTab={setTab} />
+        <OnboardingTour activeTab={tab} setActiveTab={setTab} />
+        <ChangelogModal />
       </div>
     </div>
   )
