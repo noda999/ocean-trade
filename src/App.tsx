@@ -11,6 +11,7 @@ import MapView from './views/MapView'
 import IntelView from './views/IntelView'
 import OnboardingTour from './components/OnboardingTour'
 import ChangelogModal from './components/ChangelogModal'
+import SettingsModal from './components/SettingsModal'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
 
@@ -28,7 +29,7 @@ function clockFmt(sec: number) {
   return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
-function TopBar({ onIntel }: { onIntel: () => void }) {
+function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () => void }) {
   const { state, assets } = useGame()
   const ship = shipOf(state.shipId)
   const rank = assets >= 12_000 ? Math.max(1, Math.round(680 - Math.log10(assets) * 78)) : null
@@ -47,6 +48,7 @@ function TopBar({ onIntel }: { onIntel: () => void }) {
             <span className="font-900 text-xs" style={{ color: '#3d2b10' }}>{Math.floor(state.money).toLocaleString()}</span>
           </div>
           <button className="top-icon-btn" onClick={onIntel}>📡</button>
+          <button className="top-icon-btn" onClick={onSettings} title="存档设置">⚙️</button>
         </div>
       </div>
 
@@ -168,6 +170,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 function Game() {
   const [tab, setTab] = useState<Tab>('map')
   const [intelOpen, setIntelOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <div
@@ -175,7 +178,7 @@ function Game() {
       style={{ background: 'radial-gradient(circle at 50% 20%, #2b5e75 0%, #12242f 70%)' }}
     >
       <div className="app-shell">
-        <TopBar onIntel={() => setIntelOpen(true)} />
+        <TopBar onIntel={() => setIntelOpen(true)} onSettings={() => setSettingsOpen(true)} />
         <div className="relative flex-1 overflow-hidden">
           <ErrorBoundary>
             {tab === 'map' && <MapView onOpenIntel={() => setIntelOpen(true)} />}
@@ -184,7 +187,8 @@ function Game() {
             {tab === 'dock' && <DockView />}
             {tab === 'quest' && <QuestView />}
             {intelOpen && <IntelView onClose={() => setIntelOpen(false)} />}
-          </ErrorBoundary>
+                    </ErrorBoundary>
+                    {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
           <Toasts />
         </div>
         <NavBar tab={tab} setTab={setTab} />

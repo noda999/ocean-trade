@@ -327,10 +327,10 @@ export function reducer(state: GameState, action: Action): GameState {
       const m = cm?.[good.id]
       if (!m) { pushToast(s, '🚫', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，去原产地看看`, 'bad'); return s }
       const city = CITY_BY_ID[s.cityId]
-      // 特产 = 本港是产地：本港出口商挂牌卖货，玩家直接买入，等于「本港商户回购自己产品」——
-      // 玩家应去别的销地买或直接装船出海，故本港 BUY 拦截（语义：本港只卖不回购玩家持有的同种货）。
-      if (city.exports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 是 ${good.name} 的产地，本港只卖不回购`, 'bad'); return s
+      // 销地 = 本港是进口商：进口商只收货不出售（他们是来买货的，不是卖货的）。
+      // 玩家应去产地 BUY 装船出海，再运到销地 SELL，这才是海上贸易的正确流向。
+      if (city.imports.includes(good.id)) {
+        pushToast(s, '🚫', `${city.name} 紧缺 ${good.name}，本港进口商只收货不出售`, 'bad'); return s
       }
       const ship = shipOf(s.shipId)
       const room = ship.cap - cargoUnits(s.cargo)

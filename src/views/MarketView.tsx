@@ -265,8 +265,8 @@ export default function MarketView() {
                   </div>
 
                   <div className="flex gap-2">
-                    {/* 特产 = 本港是产地：禁止买入（玩家应装船出海卖去紧缺港） */}
-                    {!isExport && (
+                    {/* 销地（进口商）：本港只收不卖，禁止买入。产地（特产）允许买入：玩家应装船出海 */}
+                    {!isImport && (
                       <button
                         className="btn-green flex-1 py-2.5 text-sm"
                         disabled={!canTrade || roomUse <= 0 || m.stock <= 0}
@@ -276,7 +276,7 @@ export default function MarketView() {
                         📥 买入 {Math.min(qty, roomUse)}
                       </button>
                     )}
-                    {/* 销地/产地：本港都不回购玩家持有的同种货，只让玩家按本港价「买/不买」 */}
+                    {/* 销地（进口商收）和产地（出口商不回购）：本港都不向玩家回购，只让玩家按本港价「买/不买」 */}
                     {!isImport && !isExport && mine && (
                       <button
                         className="btn-red flex-1 py-2.5 text-sm"
@@ -287,14 +287,14 @@ export default function MarketView() {
                         📤 卖出 {Math.min(qty, mine?.qty ?? 0)}
                       </button>
                     )}
-                    {/* 提示：特产只卖 / 紧缺只买 */}
+                    {/* 提示：销地只买 / 产地只卖不回购 */}
                     {(isExport || isImport) && (
                       <div
                         className="flex-1 py-2.5 text-xs text-center rounded-xl"
                         style={{ background: '#fff5ec', color: '#a07030', border: '1.5px dashed #f0e2c8' }}
                       >
-                        {isExport && !isImport && '🏭 产地：本港只卖不回购'}
-                        {isImport && !isExport && '📥 销地：本港只买不回购'}
+                        {isImport && !isExport && '🚢 销地：本港只收不卖，运往别的产地看看'}
+                        {isExport && !isImport && '🏭 产地：本港出口商不回购，但可装船出海卖'}
                         {isExport && isImport && '⚓ 本港既产也销：仅供查看'}
                       </div>
                     )}

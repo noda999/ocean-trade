@@ -1,0 +1,275 @@
+import { useRef, useState, type ReactNode } from 'react'
+import { useGame } from '../game/store'
+
+const SAVE_KEY = 'ocean-trade-save-v2'
+
+interface Props {
+  onClose: () => void
+}
+
+/** 把当前 localStorage 里的存档原样取出（找不到返回 null） */
+function readSaveBlob(): string | null {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY)
+    if (!raw) return null
+    // 二次校验结构合法再导出，避免把已损坏的存档喂回去
+    JSON.parse(raw)
+    return raw
+  } catch {
+    return null
+  }
+}
+
+/** 拿一段存档文本，写回 localStorage 并触发 reload */
+function writeSaveBlob(blob: string): { ok: boolean; msg: string } {
+  try {
+    const parsed = JSON.parse(blob)
+    if (!parsed || typeof parsed !== 'object') return { ok: false, msg: '存档格式不对，应为 JSON 对象' }
+    if (typeof parsed.money !== 'number' || typeof parsed.cityId !== 'string') {
+      return { ok: false, msg: '存档缺少关键字段（money / cityId）' }
+    }
+    localStorage.setItem(SAVE_KEY, blob)
+    return { ok: true, msg: '导入成功，正在重启…' }
+  } catch (e) {
+    return { ok: false, msg: '存档 JSON 解析失败：' + (e instanceof Error ? e.message : String(e)) }
+  }
+}
+
+/** 把一段文本存为文件触发下载 */
+function downloadAsFile(filename: string, text: string) {
+  const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+export default function SettingsModal({ onClose }: Props): ReactNode {
+  const { state, reset } = useGame()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [status, setStatus] = useState<{ kind: 'ok' | 'bad' | 'info'; msg: string } | null>(null)
+  const [importText, setImportText] = useState('')
+  const hasSave = !!readSaveBlob()
+
+  function handleExport() {
+    const blob = readSaveBlob()
+    if (!blob) {
+      setStatus({ kind: 'bad', msg: '当前没有可导出的存档' })
+      return
+    }
+    const filename = `ocean-trade-save-${new Date().toISOString().slice(0, 10)}.json`
+    downloadAsFile(filename, blob)
+    setStatus({ kind: 'ok', msg: `已下载 ${filename}（共 ${blob.length} 字节）` })
+    // 顺手复制一份到剪贴板（小红书容器可能屏蔽 clipboard API，但桌面浏览器可用）
+    try {
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(blob).then(
+          () => setStatus(prev => ({ kind: 'ok', msg: (prev?.msg ?? '') + ' · 已复制到剪贴板' })),
+          () => { /* 静默忽略：失败不打扰用户 */ },
+        )
+      }
+    } catch { /* ignore */ }
+  }
+
+  function handleCopyOnly() {
+    const blob = readSaveBlob()
+    if (!blob) {
+      setStatus({ kind: 'bad', msg: '当前没有可复制的存档' })
+      return
+    }
+    if (!navigator.clipboard?.writeText) {
+      setStatus({ kind: 'bad', msg: '当前环境不支持剪贴板，请改用「下载文件」' })
+      return
+    }
+    navigator.clipboard.writeText(blob).then(
+      () => setStatus({ kind: 'ok', msg: `存档已复制（${blob.length} 字节），去别处粘贴回来` }),
+      () => setStatus({ kind: 'bad', msg: '复制被浏览器拦截，请改用「下载文件」' }),
+    )
+  }
+
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = String(reader.result ?? '')
+      applyImport(text)
+      e.target.value = '' // 允许重复选同一文件
+    }
+    reader.readAsText(f)
+  }
+
+  function handlePasteImport() {
+    if (!importText.trim()) {
+      setStatus({ kind: 'bad', msg: '请先粘贴存档文本' })
+      return
+    }
+    applyImport(importText.trim())
+  }
+
+  function applyImport(text: string) {
+    const r = writeSaveBlob(text)
+    setStatus({ kind: r.ok ? 'ok' : 'bad', msg: r.msg })
+    if (r.ok) {
+      setTimeout(() => location.reload(), 600)
+    }
+  }
+
+  function handleReset() {
+    if (!window.confirm('确定要清空所有进度，重新开始吗？')) return
+    reset()
+    setStatus({ kind: 'info', msg: '存档已清空，正在重启…' })
+    setTimeout(() => location.reload(), 400)
+  }
+
+  return (
+    <div className="absolute inset-0 z-40 flex items-center justify-center" style={{ background: 'rgba(20,40,55,.55)' }} onClick={onClose}>
+      <div
+        className="panel-white mx-4 my-6 w-full max-w-md overflow-hidden"
+        style={{ borderRadius: 18, maxHeight: 'calc(100vh - 48px)', display: 'flex', flexDirection: 'column' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 顶部 */}
+        <div className="px-4 pt-4 pb-3 flex items-center" style={{ borderBottom: '1.5px solid #f5e8d0' }}>
+          <div className="font-900 text-base" style={{ color: '#3d2b10' }}>⚙️ 存档设置</div>
+          <button className="ml-auto top-icon-btn" style={{ width: 28, height: 28 }} onClick={onClose}>✕</button>
+        </div>
+
+        {/* 正文 */}
+        <div className="px-4 py-3 overflow-auto" style={{ flex: 1 }}>
+          {/* 状态卡片 */}
+          <div className="panel-orange p-3 mb-3" style={{ borderRadius: 14 }}>
+            <div className="flex items-center gap-2 text-xs" style={{ color: 'rgba(255,255,255,.92)' }}>
+              <span>📍 当前进度</span>
+              <span className="ml-auto font-900" style={{ color: 'white' }}>
+                🪙 {Math.floor(state.money).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-xs mt-1.5" style={{ color: 'rgba(255,255,255,.85)' }}>
+              <span>📦 货舱 {Object.values(state.cargo).reduce((s, c) => s + c.qty, 0)} 件</span>
+              <span className="ml-auto">{hasSave ? '✅ 已有存档' : '⚠️ 当前没有存档'}</span>
+            </div>
+            <div className="text-[11px] mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,.78)' }}>
+              💡 小红书容器每次进入都是新的浏览器窗口，<b style={{ color: 'white' }}>localStorage 不会自动保留</b>。建议每次退出前点「导出存档」，下次进入时再「导入」。
+            </div>
+          </div>
+
+          {/* 导出 */}
+          <Section title="📤 导出存档">
+            <BtnRow>
+              <button className="btn-orange flex-1 py-2.5 text-sm" onClick={handleExport}>
+                ⬇️ 下载 .json 文件
+              </button>
+              <button className="btn-ghost-orange px-3 py-2.5 text-sm" onClick={handleCopyOnly} title="复制到剪贴板">
+                📋 复制
+              </button>
+            </BtnRow>
+          </Section>
+
+          {/* 导入 */}
+          <Section title="📥 导入存档">
+            <BtnRow>
+              <button
+                className="btn-green flex-1 py-2.5 text-sm"
+                onClick={() => fileRef.current?.click()}
+              >
+                📂 选择文件
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json,.json,.txt"
+                className="hidden"
+                onChange={handleFileSelected}
+              />
+            </BtnRow>
+            <div className="text-[11px] mt-2 mb-1.5" style={{ color: '#a07030' }}>
+              或粘贴 JSON 文本：
+            </div>
+            <textarea
+              value={importText}
+              onChange={e => setImportText(e.target.value)}
+              placeholder='{"money":3000,"cityId":"china",…}'
+              className="w-full p-2 text-[11px] font-mono"
+              style={{
+                borderRadius: 10,
+                border: '1.5px solid #f0e2c8',
+                background: '#fff8f0',
+                color: '#3d2b10',
+                minHeight: 80,
+                resize: 'vertical',
+                outline: 'none',
+              }}
+            />
+            <button
+              className="btn-green w-full py-2 text-xs mt-2"
+              disabled={!importText.trim()}
+              style={{ opacity: !importText.trim() ? 0.45 : 1 }}
+              onClick={handlePasteImport}
+            >
+              🔁 导入并重启
+            </button>
+          </Section>
+
+          {/* 危险区 */}
+          <Section title="⚠️ 危险操作">
+            <button
+              className="w-full py-2.5 text-sm font-800"
+              style={{
+                borderRadius: 12,
+                background: '#fff0e8',
+                color: '#c05050',
+                border: '1.5px solid #f5c8b8',
+              }}
+              onClick={handleReset}
+            >
+              🗑️ 清空存档，重新开始
+            </button>
+          </Section>
+
+          {/* 状态消息 */}
+          {status && (
+            <div
+              className="text-xs p-2.5 mt-2"
+              style={{
+                borderRadius: 10,
+                background: status.kind === 'ok' ? '#e8f6ec' : status.kind === 'bad' ? '#fcecec' : '#fff5ec',
+                color: status.kind === 'ok' ? '#3f9d52' : status.kind === 'bad' ? '#c05050' : '#8a6a40',
+                border: `1.5px solid ${status.kind === 'ok' ? '#cce8d4' : status.kind === 'bad' ? '#f5c8c8' : '#f0e2c8'}`,
+              }}
+            >
+              {status.msg}
+            </div>
+          )}
+        </div>
+
+        {/* 底部 */}
+        <div className="px-4 py-3" style={{ borderTop: '1.5px solid #f5e8d0', background: '#fff8f0' }}>
+          <button
+            className="btn-ghost-orange w-full py-2.5 text-sm font-800"
+            onClick={onClose}
+          >
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="mb-4">
+      <div className="text-xs font-800 mb-2" style={{ color: '#8a6a40' }}>{title}</div>
+      {children}
+    </div>
+  )
+}
+
+function BtnRow({ children }: { children: ReactNode }) {
+  return <div className="flex items-center gap-2">{children}</div>
+}
