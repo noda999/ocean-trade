@@ -278,6 +278,12 @@ function xhsMinitoolCompat(enabled: boolean): Plugin {
           // 屏蔽浏览器自动 /favicon.ico 请求（容器里这个文件 404 会污染 console.error）。
           // 空 data URL 让浏览器记住 icon，但不会再发请求。
           .replace(/<\/head>/, '<link rel="icon" href="data:," />\n  </head>')
+          // 小红书容器会在 webview 顶部叠加状态栏 + 右上角胶囊按钮，盖住顶栏最上面一排。
+          // 这里注入额外顶部安全区；浏览器 / dev 预览不受影响（保持 0）。
+          .replace(
+            /<\/head>/,
+            '<style>:root{--safe-top-extra:44px}</style>\n  </head>',
+          )
       },
     },
     generateBundle(_options, bundle) {

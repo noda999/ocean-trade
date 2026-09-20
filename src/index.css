@@ -418,6 +418,19 @@ html, body, #root { height: 100%; margin: 0; }
 .font-800 { font-weight: 800; }
 .font-900 { font-weight: 900; }
 
+/* ── 顶部安全区 ─────────────────────────────────────────────────────────────
+   小红书容器会在 webview 之上叠加自己的状态栏 / 右上角胶囊按钮，正好盖住
+   顶栏最上面一排（标题 + 📡 / ⚙️），导致点不到。
+   --safe-top-extra 由 `npm run build:xhs` 注入（浏览器构建为 0，预览不受影响）。 */
+.top-bar {
+  flex-shrink: 0;
+  padding-top: calc(
+    12px
+    + var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+    + var(--safe-top-extra, 0px)
+  );
+}
+
 .app-title {
   font-weight: 900;
   font-size: 19px;

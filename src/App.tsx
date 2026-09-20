@@ -36,7 +36,7 @@ function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () =
   const nextTarget = MILESTONES.find(m => assets < m.target)?.target
 
   return (
-    <div className="relative z-30 px-3 pt-3 pb-2" style={{ background: 'linear-gradient(180deg,#2f9ec9,#4fb8dc)' }}>
+    <div className="top-bar relative z-30 px-3 pb-2" style={{ background: 'linear-gradient(180deg,#2f9ec9,#4fb8dc)' }}>
       <div className="flex items-center gap-2 mb-2">
         <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg" style={{ background: 'rgba(255,255,255,0.25)' }}>
           🧭
