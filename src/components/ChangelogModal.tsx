@@ -10,15 +10,11 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '📎', title: '新增「存档短链」', desc: '顶栏 ⚙️ 里多了「生成长链」—— 把当前进度编码成 URL 的一段，复制 → 发小红书私信/收藏给自己，下次点开链接自动载档。无需下载文件，适合小红书容器。' },
-  { icon: '⚙️', title: '新增「存档导入/导出」', desc: '小红书容器每次进入都是新的 webview，本地存档会丢 —— 现在顶栏 ⚙️ 一键下载 .json 备份，下次进入再导入即可继续。小红书容器屏蔽剪贴板时会自动降级到文件下载/上传。' },
-  { icon: '🛡️', title: '修复「产地反套利」漏洞', desc: '之前本港是产地时，玩家把特产运回本港仍可卖给本港出口商（spike 暴涨时无风险套利）—— 已在 v1.0.2 修复：产地不回购同种货，货舱/CargoView/MarketView 三处同步拦截。' },
-  { icon: '🔢', title: '强化买入/卖出数值校验', desc: '市场刷新或金币变化后，UI 数量和实际下单数量会自动夹紧到「stock / 货舱余量 / 金钱」三者最小，并拒绝 NaN / 负数 / 小数。' },
-  { icon: '🧭', title: '「最优卖港」不再误推荐本港', desc: 'bestSellHint 现在排除本港 —— 不会再出现「销往本港可卖 N 金」的误导提示，SELL 始终按本港价结算。' },
-  { icon: '🐛', title: '修复「市场」页面崩溃', desc: '切到「市场」标签会整页白屏 —— 已在 v1.0.1 修复。' },
-  { icon: '🛡️', title: '修复销地反套利漏洞', desc: '原本可以把紧缺港的进口货卖回给本港进口商 —— 已在 v1.0.1 修复。' },
-  { icon: '🧭', title: '新手导览上线', desc: '首次进入会带你跑一遍 启航 → 买卖 → 换船 → 领奖。' },
-  { icon: '📡', title: '小红书容器适配', desc: '脚本延迟加载、favicon 屏蔽、TDZ 修复。' },
+  { icon: '🔧', title: '修复自动存档失效', desc: 'TICK 每 200ms 打断 setTimeout，原 500ms 永远到不了 → localStorage 永远空、长链拿不到真实进度。现已 1.5s 兜底写入。' },
+  { icon: '🛡️', title: '小红书容器适配', desc: '顶栏避开容器胶囊/状态栏遮挡；favicon 不再 404；脚本 IIFE + TDZ 修复；离线字体栈。' },
+  { icon: '📎', title: '新增「存档短链」', desc: '顶栏 ⚙️ 一键把进度编码到 URL 片段，复制 → 发小红书私信/收藏给自己，下次点开自动载档，无需下载文件。' },
+  { icon: '⚙️', title: '新增「存档导入/导出」', desc: '小红书容器每次进入都是新 webview、存档会丢。现在 ⚙️ 一键下载 .json 备份，下次进入再导入即可继续。' },
+  { icon: '⛵', title: '核心玩法上线', desc: '15 座大航海港口 × 6 种特产 × 4 种贸易模式 × 8 艘船升级树，配新手导览。' },
 ]
 
 interface Props {
@@ -87,7 +83,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 正式版 · 新增 📎 存档短链
+                {CURRENT_VERSION} · 正式版 · 修复存档 & 小红书适配
               </div>
             </div>
           </div>
