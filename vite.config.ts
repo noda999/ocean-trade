@@ -275,6 +275,9 @@ function xhsMinitoolCompat(enabled: boolean): Plugin {
           .replace(/<script\s+src="([^"]+)"><\/script>/g, '<script defer src="$1"></script>')
           .replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
           .replace(/<meta name="viewport"[^>]*>/, VIEWPORT)
+          // 屏蔽浏览器自动 /favicon.ico 请求（容器里这个文件 404 会污染 console.error）。
+          // 空 data URL 让浏览器记住 icon，但不会再发请求。
+          .replace(/<\/head>/, '<link rel="icon" href="data:," />\n  </head>')
       },
     },
     generateBundle(_options, bundle) {

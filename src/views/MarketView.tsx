@@ -13,6 +13,17 @@ export default function MarketView() {
 
   const [viewCityId, setViewCityId] = useState(state.cityId)
 
+  // 派生量必须先于 useEffect 声明 —— effect deps 是同步求值的数组字面量，
+  // 若 cm 等在后面声明会被 ESBuild minify 后暴露成 TDZ（ReferenceError）。
+  const ship = shipOf(state.shipId)
+  const city = CITY_BY_ID[viewCityId]
+  const cm = state.markets[viewCityId]
+  const here = viewCityId === state.cityId
+  const held = cargoUnits(state.cargo)
+  const room = ship.cap - held
+  const sailing = state.voyage
+  const canTrade = here && !sailing
+
   // 自动夹住 qty：市场刷新或货舱变化导致可用上限缩小时，UI 数量跟着缩
   useEffect(() => {
     if (!open) return
@@ -24,15 +35,6 @@ export default function MarketView() {
 
   // 抵达新港口时自动切回本港
   useEffect(() => { setViewCityId(state.cityId) }, [state.cityId])
-
-  const ship = shipOf(state.shipId)
-  const city = CITY_BY_ID[viewCityId]
-  const cm = state.markets[viewCityId]
-  const here = viewCityId === state.cityId
-  const held = cargoUnits(state.cargo)
-  const room = ship.cap - held
-  const sailing = state.voyage
-  const canTrade = here && !sailing
 
   // 每个港口只经营自己的特产 + 紧缺货，其余不挂牌
   const tradedIds = [...city.exports, ...city.imports.filter(x => !city.exports.includes(x))]
