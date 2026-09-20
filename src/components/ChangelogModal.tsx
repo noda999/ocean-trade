@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v0.3.0-xhs'
+const CURRENT_VERSION = 'v1.0.1'
 
 interface ChangeItem {
   icon: string
@@ -10,9 +10,10 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🧭', title: '新手导览上线', desc: '首次进入会带你跑一遍 启航 → 买卖 → 换船 → 领奖，跟着箭头点就好。' },
+  { icon: '🐛', title: '修复「市场」页面崩溃', desc: '切到「市场」标签会整页白屏 —— 已在 v1.0.1 修复，请放心点进市场买卖货物。' },
+  { icon: '🛡️', title: '修复反向套利漏洞', desc: '原本可以把紧缺港的进口货原价卖回给本港进口商（白嫖差价）—— 已在 v1.0.1 修复，本港不回购紧缺品，一键清仓也会自动跳过。' },
+  { icon: '🧭', title: '新手导览上线', desc: '首次进入会带你跑一遍 启航 → 买卖 → 换船 → 领奖，跟着橙色脉冲环 + 箭头点就好。' },
   { icon: '📡', title: '小红书容器适配', desc: '脚本延迟加载、favicon 屏蔽、TDZ 修复 —— 在 小红书播夹里打开不再闪退/报错。' },
-  { icon: '🐛', title: '修复市场页面崩溃', desc: '之前切到「市场」会白屏 —— 已在 v0.3.0 修复，请放心点进市场买卖货物。' },
 ]
 
 interface Props {
@@ -81,7 +82,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 小红书容器首发版
+                {CURRENT_VERSION} · 正式版 · 修复两个关键 Bug
               </div>
             </div>
           </div>
