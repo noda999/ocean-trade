@@ -110,6 +110,56 @@ body {
   cursor: pointer;
   font-variant-numeric: tabular-nums;
 }
+/* ── v1.4.0: 球形地球画布（深空背景，地球浮在星空中） ────────────────────── */
+.globe-canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(180deg, #0b1e3a 0%, #102c50 55%, #154067 100%);
+}
+/* ── v1.4.0: 平面 ⇄ 地球 模式切换 ───────────────────────────────────────── */
+.map-mode-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255,255,255,0.92);
+  border: 1.5px solid rgba(245,145,58,0.4);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  z-index: 15;
+  pointer-events: auto;
+  user-select: none;
+}
+.map-mode-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  background: #fff8f0;
+  border-radius: 8px;
+  border: 1px solid rgba(245,145,58,0.25);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.12s, transform 0.1s, box-shadow 0.12s;
+  filter: grayscale(0.55);
+  opacity: 0.75;
+}
+.map-mode-btn.on {
+  filter: none;
+  opacity: 1;
+  background: linear-gradient(135deg, #ffe2b8, #ffd090);
+  box-shadow: 0 0 0 2px rgba(245,145,58,0.45);
+}
+.map-mode-btn:active { transform: scale(0.94); }
 .ocean-bg::before {
   content: '';
   position: absolute;
@@ -170,65 +220,62 @@ body {
   border: 2px solid white;
   box-shadow: 0 1px 4px rgba(0,0,0,0.35);
 }
-.city-side-label {
+/* ── v1.4.0: 城市标签浮层（不随地图缩放，自动避让） ──────────────────────── */
+.map-label-layer {
   position: absolute;
-  bottom: 44px;
-  background: white;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+}
+.city-tag {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.95);
   border: 2px solid #f5913a;
-  border-radius: 12px;
-  padding: 3px 9px;
+  border-radius: 10px;
+  padding: 2px 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.22);
   white-space: nowrap;
   user-select: none;
+  pointer-events: auto;
+  cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-  z-index: 2;
 }
-.city-side-label.on-right { left: 40px; }
-.city-side-label.on-left { right: 40px; }
-/* 指向建筑的小箭头 */
-.city-side-label::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  border: 5px solid transparent;
-}
-.city-side-label.on-right::before { left: -7px; border-right-color: #f5913a; }
-.city-side-label.on-left::before { right: -7px; border-left-color: #f5913a; }
-.city-hit:hover .city-side-label,
-.city-side-label.active {
-  transform: scale(1.07);
+.city-tag:hover, .city-tag.active {
+  transform: scale(1.06);
   box-shadow: 0 4px 14px rgba(245,145,58,0.5);
   border-color: #d97320;
 }
-.city-hit:hover .city-side-label.on-right::before,
-.city-side-label.active.on-right::before { border-right-color: #d97320; }
-.city-hit:hover .city-side-label.on-left::before,
-.city-side-label.active.on-left::before { border-left-color: #d97320; }
-.city-side-label.here { border-color: #4cba6a; }
-.city-side-label.here.on-right::before { border-right-color: #4cba6a; }
-.city-side-label.here.on-left::before { border-left-color: #4cba6a; }
-.city-side-label .pin-label {
+.city-tag.here { border-color: #4cba6a; }
+.city-tag.active { animation: pin-pulse 1.5s ease-in-out infinite; }
+/* 标签放在锚点左侧时的小连接点 */
+.city-tag .tag-tick {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #f5913a;
+  flex-shrink: 0;
+}
+.city-tag .pin-label {
   font-weight: 800;
-  font-size: 12px;
+  font-size: 11px;
   color: #3d2b10;
   line-height: 1.2;
 }
-.city-side-label .pin-sub {
-  font-size: 8px;
+.city-tag.compact { padding: 1px 7px; border-width: 1.5px; }
+.city-tag.compact .pin-label { font-size: 10px; }
+.city-tag .pin-sub {
+  font-size: 7.5px;
   font-weight: 700;
   color: #f5913a;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   line-height: 1.2;
 }
-.city-side-label.active { animation: pin-pulse 1.5s ease-in-out infinite; }
-/* 顶部徽标（所在位置 / 前往中） */
+/* 顶部徽标（所在位置 / 前往中）——v1.4.0 由内联坐标定位 */
 .city-badge {
   position: absolute;
-  bottom: 96px;
-  left: 0;
-  transform: translateX(-50%);
   white-space: nowrap;
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.3.0'
+const CURRENT_VERSION = 'v1.4.0'
 
 interface ChangeItem {
   icon: string
@@ -10,10 +10,10 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🏷️', title: '给船取名字', desc: '切到「船坞」点当前座舰名就能改名（最多 12 字符），名字会贴在地图上你船的下方，留空自动恢复「我的商船·船型」。' },
-  { icon: '🗺️', title: '地图可滑动看大图', desc: '现在地图是 2× 视口大小：单指/鼠标拖动平移，双指捏合或滚轮缩放（0.6×~2.5×），右下角有 +/- / 重置按钮。15 → 21 港一眼看不清？现在能拉近看。' },
-  { icon: '🌍', title: '6 个新港口', desc: '🇪🇸 西班牙（橄榄油）、🇳🇱 荷兰（奶酪·钟表）、🇴🇲 阿曼（乳香）、🇧🇳 婆罗洲（燕窝）、🇲🇬 马达加斯加（香草）、🇵🇦 巴拿马（烟草）。世界从 15 → 21 港，每港都有专属地标。' },
-  { icon: '📦', title: '7 种新商品', desc: '奶酪🧀、钟表⌚、燕窝🪺、香草🌿、乳香🌳、橄榄油🫒、烟草🍂。全球商品从 22 → 29 种，新港口专属特产 —— 跑新航线才有得买。' },
+  { icon: '🌍', title: '真·球形地球', desc: '地图右侧新增 🌍/🗺️ 切换按钮：地球模式下地球是圆的！拖动旋转（松手有惯性）、滚轮/双指缩放，航线沿球面大圆走，起航时镜头自动转到航线中点。' },
+  { icon: '🔓', title: '标签不再叠罗汉', desc: '21 个港口的名字做了碰撞避让：挤不下英文副标就只显示中文名，再挤不下只留地标圆点；放大缩小都会自动重新排版，点圆点或标签都能选港。' },
+  { icon: '🔍', title: '缩小时图标自适应', desc: '平面图缩小后地标建筑会跟着变小、不再堆成一团；标签移到不随缩放的浮层，无论放大多少倍字都清晰可读。' },
+  { icon: '⭐', title: '星空与大气层', desc: '地球模式下有深空星幕、大气光晕和晨昏光影，球体感拉满。你的选择会被记住，下次进来还是上次的模式。' },
 ]
 
 interface Props {
@@ -82,7 +82,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 船坞取名 · 6 港新航路 · 地图可缩放
+                {CURRENT_VERSION} · 球形地球 · 标签防重叠 · 图标自适应
               </div>
             </div>
           </div>
