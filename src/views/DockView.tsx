@@ -1,4 +1,5 @@
-import { SHIPS } from '../game/data'
+import { useState } from 'react'
+import { SHIPS, SHIP_NAME_MAX, shipDisplayName } from '../game/data'
 import { shipOf } from '../game/engine'
 import { useGame } from '../game/store'
 import { ShipSprite } from '../components/ShipSprite'
@@ -6,6 +7,17 @@ import { ShipSprite } from '../components/ShipSprite'
 export default function DockView() {
   const { state, dispatch } = useGame()
   const current = shipOf(state.shipId)
+  const [editingName, setEditingName] = useState(false)
+  const [draftName, setDraftName] = useState(state.shipName)
+
+  function commitName() {
+    dispatch({ type: 'SET_SHIP_NAME', name: draftName })
+    setEditingName(false)
+  }
+  function startEdit() {
+    setDraftName(state.shipName)
+    setEditingName(true)
+  }
 
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
@@ -16,9 +28,37 @@ export default function DockView() {
         {/* 当前座舰 */}
         <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
           <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="text-xs opacity-85 mb-0.5">当前座舰</div>
-              <div className="font-900 text-lg">{current.name}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs opacity-85 mb-0.5">当前座舰 · {current.name}</div>
+              {editingName ? (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="font-900 text-lg" style={{ color: 'white' }}>「</span>
+                  <input
+                    autoFocus
+                    type="text"
+                    maxLength={SHIP_NAME_MAX}
+                    value={draftName}
+                    placeholder="给船取个名字"
+                    onChange={e => setDraftName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitName()
+                      if (e.key === 'Escape') setEditingName(false)
+                    }}
+                    className="font-900 text-lg bg-transparent border-b-2 outline-none flex-1 min-w-0"
+                    style={{ color: 'white', borderColor: 'rgba(255,255,255,0.6)' }}
+                  />
+                  <span className="font-900 text-lg" style={{ color: 'white' }}>」</span>
+                </div>
+              ) : (
+                <button
+                  className="font-900 text-lg text-left flex items-center gap-1.5"
+                  onClick={startEdit}
+                  title="点我给船改名"
+                >
+                  「{shipDisplayName(state.shipName, current.name)}」
+                  <span className="text-xs opacity-80 font-700">✏️</span>
+                </button>
+              )}
               <div className="text-xs opacity-85 mt-1">
                 载重 {current.cap} · 航速 {current.speed}x · 利润 +{current.bonus}%
               </div>
@@ -27,6 +67,23 @@ export default function DockView() {
               <ShipSprite color={current.color} size={64} highlight />
             </div>
           </div>
+          {editingName && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="text-[11px] opacity-85">
+                {draftName.length}/{SHIP_NAME_MAX} · 留空恢复默认名
+              </div>
+              <button
+                className="ml-auto text-xs font-800 px-3 py-1.5"
+                style={{ borderRadius: 10, background: 'rgba(255,255,255,0.92)', color: '#d97320' }}
+                onClick={() => setEditingName(false)}
+              >取消</button>
+              <button
+                className="text-xs font-800 px-3 py-1.5"
+                style={{ borderRadius: 10, background: 'white', color: '#d97320' }}
+                onClick={commitName}
+              >✓ 确定</button>
+            </div>
+          )}
           <div className="flex gap-2 mt-3">
             <div className="flex-1 text-center rounded-xl py-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
               <div className="text-xs opacity-80">已拥有船只</div>

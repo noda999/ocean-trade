@@ -47,6 +47,8 @@ export interface GameState {
   markets: AllMarkets
   shipId: string
   ownedShips: string[]
+  /** 玩家给船取的名字（空字符串 = 显示默认名） */
+  shipName: string
   boost: number
   intelOwned: boolean
   visited: string[]
@@ -70,6 +72,7 @@ export type Action =
   | { type: 'SELL_ALL' }
   | { type: 'BUY_SHIP'; shipId: string }
   | { type: 'SELECT_SHIP'; shipId: string }
+  | { type: 'SET_SHIP_NAME'; name: string }
   | { type: 'USE_BOOST' }
   | { type: 'CLAIM'; id: string }
   | { type: 'BUY_INTEL' }
@@ -85,6 +88,7 @@ export function initialState(): GameState {
     markets: createMarkets(),
     shipId: 'sloop',
     ownedShips: ['sloop'],
+    shipName: '',
     boost: 3,
     intelOwned: false,
     visited: [START_CITY],
@@ -461,6 +465,20 @@ export function reducer(state: GameState, action: Action): GameState {
         return state
       }
       pushToast(s, '⚓', `已换乘 ${ship.name}`, 'info')
+      return s
+    }
+
+    // ── 给船取名 ─────────────────────────────────────────────────────────────
+    case 'SET_SHIP_NAME': {
+      // 去掉前后空白，夹紧到 12 字符，过滤掉 HTML/控制字符
+      const cleaned = action.name
+        .replace(/[ -]/g, '')   // 控制字符
+        .replace(/[<>"'&\\]/g, '') // 防止注入/引号
+        .trim()
+        .slice(0, 12)
+      if (cleaned === state.shipName) return state
+      const s: GameState = { ...state, shipName: cleaned }
+      if (cleaned) pushLog(s, `你给船取了个新名字：${cleaned}`, 'info')
       return s
     }
 

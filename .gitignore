@@ -10,6 +10,8 @@ vite.config.*.timestamp-*
 *-debug.log*
 logs/
 *.log
+vite-dev.out
+vite-dev.err
 .claude-replay.*
 .tmp-*
 *.zip

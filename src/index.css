@@ -52,6 +52,64 @@ body {
   overflow: hidden;
   background: linear-gradient(160deg, #a8e6f5 0%, #5bc8e8 35%, #3aadd4 70%, #2a8fba 100%);
 }
+/* v1.3.0: 可平移/缩放的地图层 + 叠加层 */
+.map-world {
+  /* transform 通过内联 style 设置；这里只锁住原点与性能 */
+  transform-origin: 0 0;
+  backface-visibility: hidden;
+}
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* 默认不拦截；具体子元素可单独打开 */
+}
+.map-overlay > * { pointer-events: auto; }
+.map-zoom-controls {
+  position: absolute;
+  right: 8px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.92);
+  border: 1.5px solid rgba(245,145,58,0.4);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  z-index: 15;
+  pointer-events: auto;
+  user-select: none;
+}
+.map-zoom-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 900;
+  color: #d97320;
+  background: #fff8f0;
+  border-radius: 8px;
+  border: 1px solid rgba(245,145,58,0.25);
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.12s, transform 0.1s;
+}
+.map-zoom-btn:active { background: #f5d8a8; transform: scale(0.94); }
+.map-zoom-reset { font-size: 16px; color: #8a6a40; margin-top: 2px; }
+.map-zoom-level {
+  font-size: 10px;
+  font-weight: 900;
+  color: #5a4020;
+  background: #fff8f0;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
 .ocean-bg::before {
   content: '';
   position: absolute;
@@ -490,6 +548,24 @@ html, body, #root { height: 100%; margin: 0; }
   margin-bottom: 1px;
   white-space: nowrap;
   box-shadow: 0 2px 5px rgba(217,115,32,0.5);
+}
+/* v1.3.0: 玩家船名标签（贴在船体下方） */
+.my-ship-name {
+  font-size: 9px;
+  font-weight: 800;
+  color: #5a3818;
+  background: rgba(255,255,255,0.94);
+  border: 1px solid rgba(245,145,58,0.55);
+  border-radius: 6px;
+  padding: 0 5px;
+  margin-top: 1px;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  direction: rtl; /* 中文截断更自然 */
+  text-align: left;
 }
 .wake-dots { display: flex; gap: 3px; margin-top: -2px; }
 .wake-dots span {

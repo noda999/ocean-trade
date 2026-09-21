@@ -605,6 +605,203 @@ export function LandmarkInca({ size = 96 }: Props) {
   )
 }
 
+/** 🇪🇸 西班牙 · 圆石风车（拉曼恰） */
+export function LandmarkSpain({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow />
+      <rect x="14" y="92" width="68" height="6" rx="2" fill="#d9c8a4" />
+      {/* 风车塔（圆柱） */}
+      <path d="M28 92 L32 30 Q48 22 64 30 L68 92 Z" fill="#f6e6cb" stroke="#d9c28a" strokeWidth="1.5" />
+      <rect x="30" y="40" width="36" height="2" fill="#c9a878" opacity="0.6" />
+      <rect x="30" y="56" width="36" height="2" fill="#c9a878" opacity="0.6" />
+      <rect x="30" y="72" width="36" height="2" fill="#c9a878" opacity="0.6" />
+      {/* 塔顶圆锥 */}
+      <path d="M32 30 Q48 22 64 30 L48 14 Z" fill="#a83c2c" />
+      <rect x="46" y="10" width="4" height="6" rx="1" fill="#7a2818" />
+      <circle cx="48" cy="9" r="2.2" fill="#3a1810" />
+      {/* 门 */}
+      <path d="M44 92 L44 76 Q48 72 52 76 L52 92 Z" fill="#7a3818" />
+      {/* 风车 4 叶 */}
+      <g transform="translate(48 30)">
+        <circle r="3" fill="#7a3818" />
+        <path d="M0 -2 L0 -28 L4 -26 L1 -2 Z" fill="#e0d0b0" />
+        <path d="M2 0 L28 0 L26 4 L2 1 Z" fill="#e0d0b0" />
+        <path d="M0 2 L0 28 L-4 26 L-1 2 Z" fill="#e0d0b0" />
+        <path d="M-2 0 L-28 0 L-26 -4 L-2 -1 Z" fill="#e0d0b0" />
+      </g>
+      {/* 橄榄枝点缀 */}
+      <ellipse cx="14" cy="86" rx="3" ry="1.6" fill="#5a8a3a" opacity="0.7" />
+      <ellipse cx="82" cy="86" rx="3" ry="1.6" fill="#5a8a3a" opacity="0.7" />
+    </svg>
+  )
+}
+
+/** 🇳🇱 荷兰 · 风车 + 郁金香田 */
+export function LandmarkNetherlands({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow />
+      {/* 草地 */}
+      <path d="M0 88 Q24 84 48 88 Q72 92 96 88 L96 104 L0 104 Z" fill="#6aaa4a" />
+      {/* 风车 */}
+      <rect x="40" y="92" width="16" height="2" fill="#7a5530" />
+      <path d="M38 90 L42 30 L54 30 L58 90 Z" fill="#f5e8c8" stroke="#c9a878" strokeWidth="1.2" />
+      <path d="M42 30 L54 30 L48 14 Z" fill="#b85040" />
+      <rect x="46" y="10" width="4" height="6" rx="1" fill="#7a2818" />
+      <g transform="translate(48 30)">
+        <circle r="3" fill="#7a2818" />
+        <path d="M0 -2 L0 -26 L4 -24 L1 -2 Z" fill="#fafafa" />
+        <path d="M2 0 L26 0 L24 4 L2 1 Z" fill="#fafafa" />
+        <path d="M0 2 L0 26 L-4 24 L-1 2 Z" fill="#fafafa" />
+        <path d="M-2 0 L-26 0 L-24 -4 L-2 -1 Z" fill="#fafafa" />
+      </g>
+      {/* 郁金香 */}
+      {[12, 22, 32, 64, 74, 84].map((x, i) => (
+        <g key={i}>
+          <line x1={x} y1="96" x2={x} y2="86" stroke="#3a7a2a" strokeWidth="1.4" />
+          <ellipse cx={x} cy="84" rx="3" ry="4" fill={i % 2 === 0 ? '#e83a5a' : '#f5b830'} />
+          <ellipse cx={x} cy="83" rx="1.2" ry="2" fill={i % 2 === 0 ? '#a8284a' : '#a8782a'} />
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+/** 🇴🇲 阿曼 · 乳香树 + 拱顶宣礼塔 */
+export function LandmarkOman({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow />
+      <rect x="14" y="92" width="68" height="6" rx="2" fill="#d9c8a4" />
+      {/* 主建筑 */}
+      <rect x="30" y="58" width="40" height="34" rx="2" fill="#f2e0c0" stroke="#c9a878" strokeWidth="1.2" />
+      <path d="M30 58 Q50 38 70 58 Z" fill="#d4a04a" />
+      <path d="M28 58 Q50 36 72 58" stroke="#a87838" strokeWidth="1.6" fill="none" />
+      {/* 拱门 */}
+      <path d="M42 92 L42 70 Q50 64 58 70 L58 92 Z" fill="#7a4818" />
+      <path d="M44 92 L44 71 Q50 66 56 71 L56 92 Z" fill="#3a2010" />
+      {/* 宣礼塔（细高） */}
+      <rect x="20" y="36" width="8" height="56" fill="#f2e0c0" stroke="#c9a878" strokeWidth="1" />
+      <rect x="18" y="32" width="12" height="6" fill="#d4a04a" />
+      <circle cx="24" cy="26" r="5" fill="#d4a04a" />
+      <path d="M21 26 Q24 22 27 26" stroke="#a87838" strokeWidth="1.4" fill="none" />
+      <circle cx="24" cy="20" r="2" fill="#a87838" />
+      {/* 拱形窗 */}
+      {[34, 66].map((x, i) => (
+        <path key={i} d={`M${x} 84 L${x} 74 Q${x + 3} 70 ${x + 6} 74 L${x + 6} 84 Z`} fill="#7a4818" />
+      ))}
+      {/* 乳香树（左侧） */}
+      <rect x="76" y="80" width="3" height="12" fill="#7a5530" />
+      <ellipse cx="78" cy="78" rx="10" ry="9" fill="#7aa84a" />
+      <ellipse cx="74" cy="74" rx="6" ry="5" fill="#a8c870" />
+      <circle cx="76" cy="80" r="1.4" fill="#f5e0a3" />
+      <circle cx="80" cy="82" r="1.4" fill="#f5e0a3" />
+    </svg>
+  )
+}
+
+/** 🇧🇳 婆罗洲 · 高脚屋 + 燕窝洞 */
+export function LandmarkBorneo({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow rx={36} />
+      {/* 雨林底色 */}
+      <path d="M0 88 Q24 84 48 88 Q72 92 96 88 L96 104 L0 104 Z" fill="#3a7a2a" />
+      {/* 高脚屋主体 */}
+      <rect x="28" y="58" width="40" height="22" rx="2" fill="#c8a070" stroke="#7a5530" strokeWidth="1.5" />
+      {/* 屋顶（金字塔形） */}
+      <path d="M22 60 L48 36 L74 60 Z" fill="#8a6038" />
+      <path d="M22 60 L48 36 L74 60 L70 58 L48 42 L26 58 Z" fill="#a87a48" />
+      {/* 高脚柱 */}
+      <rect x="32" y="80" width="3" height="14" fill="#5a3818" />
+      <rect x="61" y="80" width="3" height="14" fill="#5a3818" />
+      {/* 楼梯 */}
+      <path d="M44 94 L44 86 L52 86 L52 94" stroke="#5a3818" strokeWidth="2" fill="none" />
+      {/* 门 + 窗 */}
+      <rect x="44" y="68" width="8" height="12" fill="#5a3818" />
+      <rect x="34" y="66" width="6" height="6" fill="#3a2010" />
+      <rect x="56" y="66" width="6" height="6" fill="#3a2010" />
+      {/* 燕窝（屋檐下小窝） */}
+      <ellipse cx="48" cy="58" rx="4" ry="2" fill="#f6e6cb" />
+      <ellipse cx="48" cy="58" rx="2.4" ry="0.8" fill="#d9c290" />
+      {/* 棕榈叶点缀 */}
+      <path d="M14 92 Q12 80 18 76 Q14 78 16 84 Z" fill="#5a8a3a" />
+      <path d="M82 92 Q84 80 78 76 Q82 78 80 84 Z" fill="#5a8a3a" />
+      <path d="M6 88 Q4 78 8 74 Q6 76 8 80 Z" fill="#5a8a3a" />
+      <path d="M90 88 Q92 78 88 74 Q90 76 88 80 Z" fill="#5a8a3a" />
+    </svg>
+  )
+}
+
+/** 🇲🇬 马达加斯加 · 猴面包树 + 香草 */
+export function LandmarkMadagascar({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow rx={36} />
+      {/* 沙地 */}
+      <path d="M0 90 Q24 86 48 90 Q72 94 96 90 L96 104 L0 104 Z" fill="#e0c890" />
+      {/* 猴面包树（粗壮大树） */}
+      <path d="M44 92 L40 50 Q40 38 48 36 Q56 38 56 50 L52 92 Z" fill="#9a6840" />
+      <path d="M44 50 Q40 38 48 36 Q56 38 54 50" stroke="#6a4828" strokeWidth="1.4" fill="none" />
+      <path d="M42 60 L40 60 M44 60 L42 60 M50 60 L48 60 M54 60 L52 60" stroke="#6a4828" strokeWidth="1" fill="none" />
+      {/* 树冠（伞状） */}
+      <ellipse cx="48" cy="34" rx="26" ry="14" fill="#5a8a3a" />
+      <ellipse cx="40" cy="30" rx="14" ry="8" fill="#7aaa5a" />
+      <ellipse cx="58" cy="32" rx="14" ry="8" fill="#7aaa5a" />
+      <ellipse cx="48" cy="26" rx="12" ry="6" fill="#aac870" />
+      {/* 树枝 */}
+      <path d="M48 36 L36 28 M48 36 L60 28 M48 36 L48 22" stroke="#6a4828" strokeWidth="1.5" />
+      {/* 香草藤（右下） */}
+      <line x1="76" y1="94" x2="76" y2="68" stroke="#3a7a2a" strokeWidth="1.5" />
+      <line x1="76" y1="74" x2="82" y2="68" stroke="#3a7a2a" strokeWidth="1.2" />
+      <line x1="76" y1="80" x2="70" y2="74" stroke="#3a7a2a" strokeWidth="1.2" />
+      <ellipse cx="76" cy="64" rx="6" ry="3" fill="#f5e0a3" />
+      <ellipse cx="70" cy="72" rx="5" ry="2.5" fill="#f5e0a3" />
+      <ellipse cx="82" cy="66" rx="5" ry="2.5" fill="#f5e0a3" />
+      {/* 落日 */}
+      <circle cx="18" cy="40" r="6" fill="#f5b850" opacity="0.75" />
+    </svg>
+  )
+}
+
+/** 🇵🇦 巴拿马 · 运河双闸 + 帆船通过 */
+export function LandmarkPanama({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow />
+      {/* 水面 */}
+      <rect x="0" y="62" width="96" height="32" fill="#5bc8e8" />
+      <path d="M0 62 Q24 60 48 62 Q72 64 96 62 L96 64 L0 64 Z" fill="#3aadd4" />
+      {/* 左闸（双扇闸门） */}
+      <rect x="8" y="38" width="6" height="50" fill="#7a5530" />
+      <rect x="8" y="38" width="6" height="3" fill="#5a3818" />
+      <path d="M14 38 Q22 36 22 48 L22 84 L14 88 Z" fill="#c8a070" stroke="#7a5530" strokeWidth="1.4" />
+      <rect x="22" y="84" width="14" height="4" fill="#7a5530" />
+      {/* 右闸 */}
+      <rect x="60" y="84" width="14" height="4" fill="#7a5530" />
+      <path d="M74 38 L82 36 Q82 36 82 48 L82 84 L74 88 Z" fill="#c8a070" stroke="#7a5530" strokeWidth="1.4" />
+      <rect x="82" y="38" width="6" height="50" fill="#7a5530" />
+      <rect x="82" y="38" width="6" height="3" fill="#5a3818" />
+      {/* 控制塔 */}
+      <rect x="44" y="20" width="8" height="20" fill="#f6e6cb" />
+      <rect x="42" y="16" width="12" height="6" fill="#a83c2c" />
+      <rect x="44" y="10" width="8" height="6" fill="#f5b830" />
+      <circle cx="48" cy="8" r="2" fill="#a87838" />
+      {/* 通过的帆船 */}
+      <g transform="translate(36 70)">
+        <path d="M0 4 L20 4 L18 8 L2 8 Z" fill="#5a3818" />
+        <rect x="6" y="-6" width="1.6" height="10" fill="#7a5530" />
+        <path d="M7.6 -6 L7.6 -14 L14 -6 Z" fill="#fafafa" />
+        <path d="M7.6 -8 L7.6 -12 L11 -8 Z" fill="#f5b830" />
+      </g>
+      {/* 水波 */}
+      <path d="M2 84 Q8 82 14 84 Q20 86 26 84" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+      <path d="M70 78 Q76 76 82 78 Q88 80 94 78" stroke="white" strokeWidth="1.2" fill="none" opacity="0.6" />
+    </svg>
+  )
+}
+
 export const LANDMARKS: Record<string, (p: Props) => ReactElement> = {
   china: LandmarkChina,
   india: LandmarkIndia,
@@ -621,6 +818,13 @@ export const LANDMARKS: Record<string, (p: Props) => ReactElement> = {
   java: LandmarkJava,
   aztec: LandmarkAztec,
   inca: LandmarkInca,
+  // v1.3.0 新增 6 港地标
+  spain: LandmarkSpain,
+  netherlands: LandmarkNetherlands,
+  oman: LandmarkOman,
+  borneo: LandmarkBorneo,
+  madagascar: LandmarkMadagascar,
+  panama: LandmarkPanama,
 }
 
 /** 🪙→🔶 黄金货物图标：纯 SVG 金条（区别于 🪙 硬币） */

@@ -11,7 +11,7 @@ export interface Good {
   base: number
 }
 
-/** 22 种可交易货物，base 为全球基准价；每种只在部分港口流通 */
+/** 22 + 7 = 29 种可交易货物，base 为全球基准价；每种只在部分港口流通 */
 export const GOODS: Good[] = [
   { id: 'silk', name: '丝绸', icon: '🧣', base: 280 },
   { id: 'porcelain', name: '瓷器', icon: '🏺', base: 200 },
@@ -35,6 +35,14 @@ export const GOODS: Good[] = [
   { id: 'sword', name: '东洋刀', icon: '⚔️', base: 300 },
   { id: 'silver', name: '白银', icon: '🥈', base: 420 },
   { id: 'cacao', name: '可可', icon: '🍫', base: 95 },
+  // ── v1.3.0 新增 7 种商品 ──
+  { id: 'cheese', name: '奶酪', icon: '🧀', base: 50 },
+  { id: 'watch', name: '钟表', icon: '⌚', base: 480 },
+  { id: 'nest', name: '燕窝', icon: '🪺', base: 280 },
+  { id: 'vanilla', name: '香草', icon: '🌿', base: 220 },
+  { id: 'frankincense', name: '乳香', icon: '🌳', base: 320 },
+  { id: 'olive', name: '橄榄油', icon: '🫒', base: 75 },
+  { id: 'tobacco', name: '烟草', icon: '🍂', base: 130 },
 ]
 
 export const GOOD_BY_ID: Record<string, Good> = Object.fromEntries(
@@ -133,6 +141,37 @@ export const CITIES: City[] = [
     exports: ['gold', 'gem'], imports: ['sword', 'perfume', 'wool'],
     blurb: '云中之城，黄金与宝石之地',
   },
+  // ── v1.3.0 新增 6 个港口 ──
+  {
+    id: 'spain', name: '西班牙', sub: 'SPAIN', x: 8, y: 53, side: 'right',
+    exports: ['olive', 'wine'], imports: ['spice', 'silk', 'gold', 'cheese'],
+    blurb: '伊比利亚半岛，橄榄园与斗牛士的故土',
+  },
+  {
+    id: 'netherlands', name: '荷兰', sub: 'NETHERLANDS', x: 22, y: 25, side: 'right',
+    exports: ['cheese', 'watch'], imports: ['silk', 'tea', 'gem', 'wine'],
+    blurb: '低地之国，风车与郁金香，钟表匠之都',
+  },
+  {
+    id: 'oman', name: '阿曼', sub: 'OMAN', x: 42, y: 47, side: 'left',
+    exports: ['frankincense', 'pearl'], imports: ['timber', 'wine', 'porcelain', 'sword'],
+    blurb: '阿拉伯海之门，乳香与珍珠的产地',
+  },
+  {
+    id: 'borneo', name: '婆罗洲', sub: 'BORNEO', x: 79, y: 66, side: 'left',
+    exports: ['nest', 'timber'], imports: ['silk', 'wine', 'perfume', 'silver'],
+    blurb: '热带雨林深处，金丝燕燕窝与红木之乡',
+  },
+  {
+    id: 'madagascar', name: '马达加斯加', sub: 'MADAGASCAR', x: 44, y: 82, side: 'left',
+    exports: ['vanilla', 'coffee'], imports: ['silk', 'tea', 'sword', 'whisky'],
+    blurb: '印度洋上的香草之岛，猴面包树与狐猴',
+  },
+  {
+    id: 'panama', name: '巴拿马', sub: 'PANAMA', x: 72, y: 92, side: 'right',
+    exports: ['tobacco', 'silver'], imports: ['silk', 'wine', 'perfume', 'gem'],
+    blurb: '两洋咽喉，烟草与白银的新大陆港口',
+  },
 ]
 
 export const CITY_BY_ID: Record<string, City> = Object.fromEntries(
@@ -165,6 +204,17 @@ export const SHIPS: ShipClass[] = [
 export const SHIP_BY_ID: Record<string, ShipClass> = Object.fromEntries(
   SHIPS.map(s => [s.id, s]),
 )
+
+/** 船名未填写时的默认显示 */
+export const DEFAULT_SHIP_NAME = '我的商船'
+/** 显示用船名：玩家自定义为空时回退到默认名 */
+export function shipDisplayName(shipName: string, shipClassName?: string): string {
+  const n = shipName.trim()
+  if (n) return n
+  return shipClassName ? `${DEFAULT_SHIP_NAME}·${shipClassName}` : DEFAULT_SHIP_NAME
+}
+/** 取名最长字符数（中文/中文标点按 1 个字符计） */
+export const SHIP_NAME_MAX = 12
 
 /** 海面上其他商船 —— 沿固定航线循环航行 */
 export interface AiShip {

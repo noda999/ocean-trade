@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.2.0'
+const CURRENT_VERSION = 'v1.3.0'
 
 interface ChangeItem {
   icon: string
@@ -10,9 +10,10 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🪙', title: '黄金图标换金条', desc: '原来的 🪙 硬币容易和别的圆币搞混，现在改成纯手绘的金条图标（带 999 钢印 + 高光），一眼就知道是黄金。' },
-  { icon: '🕌', title: '阿拉伯图标重画', desc: '原版和印度泰姬陵太像 —— 都白圆顶+高塔。现在穹顶改成沙金色、双塔尖换成金色穹顶 + 顶着大新月，跟印度的纯白洋葱穹顶一眼能分清。' },
-  { icon: '📍', title: '城市标签防溢出', desc: '法国/阿拉伯标签方向重排：左侧城市标签朝右放（避免手机屏幕左边被截掉）；阿拉伯标签移到左边（避开印度建筑挡文字）。' },
+  { icon: '🏷️', title: '给船取名字', desc: '切到「船坞」点当前座舰名就能改名（最多 12 字符），名字会贴在地图上你船的下方，留空自动恢复「我的商船·船型」。' },
+  { icon: '🗺️', title: '地图可滑动看大图', desc: '现在地图是 2× 视口大小：单指/鼠标拖动平移，双指捏合或滚轮缩放（0.6×~2.5×），右下角有 +/- / 重置按钮。15 → 21 港一眼看不清？现在能拉近看。' },
+  { icon: '🌍', title: '6 个新港口', desc: '🇪🇸 西班牙（橄榄油）、🇳🇱 荷兰（奶酪·钟表）、🇴🇲 阿曼（乳香）、🇧🇳 婆罗洲（燕窝）、🇲🇬 马达加斯加（香草）、🇵🇦 巴拿马（烟草）。世界从 15 → 21 港，每港都有专属地标。' },
+  { icon: '📦', title: '7 种新商品', desc: '奶酪🧀、钟表⌚、燕窝🪺、香草🌿、乳香🌳、橄榄油🫒、烟草🍂。全球商品从 22 → 29 种，新港口专属特产 —— 跑新航线才有得买。' },
 ]
 
 interface Props {
@@ -81,7 +82,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 修复玩法 · 新手导览上线
+                {CURRENT_VERSION} · 船坞取名 · 6 港新航路 · 地图可缩放
               </div>
             </div>
           </div>

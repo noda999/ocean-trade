@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { AI_SHIPS, CITIES, CITY_BY_ID, GOOD_BY_ID, START_CITY } from '../game/data'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { AI_SHIPS, CITIES, CITY_BY_ID, GOOD_BY_ID, START_CITY, shipDisplayName } from '../game/data'
 import {
   cargoUnits, routePath, routePoint, shipOf, voyageSeconds,
 } from '../game/engine'
@@ -64,6 +64,136 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
   const { state, dispatch } = useGame()
   const [selected, setSelected] = useState<string | null>(null)
 
+  // ── 地图平移 / 缩放状态（v1.3.0）─────────────────────────────────────
+  const [pan, setPan] = useState({ x: 0, y: 0 }) // 平移，屏幕像素
+  const [zoom, setZoom] = useState(1)             // 缩放 0.6 .. 2.5
+  const worldRef = useRef<HTMLDivElement>(null)
+  // 活动指针集合：pointerId → {x, y}，支持双指缩放
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const dragRef = useRef<{
+    startX: number; startY: number
+    moved: number
+    isDragging: boolean
+    pinchStartDist: number | null
+    pinchStartZoom: number
+    pinchCenter: { x: number; y: number } | null
+  }>({ startX: 0, startY: 0, moved: 0, isDragging: false, pinchStartDist: null, pinchStartZoom: 1, pinchCenter: null })
+
+  const ZOOM_MIN = 0.6
+  const ZOOM_MAX = 2.5
+
+  function setZoomAround(newZoom: number, anchorX: number, anchorY: number) {
+    setZoom(prev => {
+      const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom))
+      if (z === prev) return prev
+      // 以 anchorX/Y 为锚点缩放（保持该点在世界坐标下不动）
+      setPan(p => ({
+        x: anchorX - (anchorX - p.x) * (z / prev),
+        y: anchorY - (anchorY - p.y) * (z / prev),
+      }))
+      return z
+    })
+  }
+  function resetView() {
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
+
+  function onPointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+    const target = e.target as HTMLElement
+    // 命中城市锚点 / 叠加层 → 不开始拖动（让城市自己的事件处理）
+    if (target.closest('.city-hit')) return
+    if (target.closest('.map-overlay')) return
+
+    e.currentTarget.setPointerCapture(e.pointerId)
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    if (pointersRef.current.size === 1) {
+      dragRef.current = {
+        startX: e.clientX, startY: e.clientY,
+        moved: 0, isDragging: false,
+        pinchStartDist: null, pinchStartZoom: zoom, pinchCenter: null,
+      }
+    } else if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()]
+      const d = Math.hypot(a.x - b.x, a.y - b.y)
+      const cx = (a.x + b.x) / 2
+      const cy = (a.y + b.y) / 2
+      const rect = worldRef.current?.getBoundingClientRect()
+      const localCx = rect ? cx - rect.left : cx
+      const localCy = rect ? cy - rect.top : cy
+      dragRef.current.pinchStartDist = d
+      dragRef.current.pinchStartZoom = zoom
+      dragRef.current.pinchCenter = { x: localCx, y: localCy }
+      dragRef.current.isDragging = true
+    }
+  }
+  function onPointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!pointersRef.current.has(e.pointerId)) return
+    const prev = pointersRef.current.get(e.pointerId)!
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    const list = [...pointersRef.current.values()]
+    if (list.length === 1) {
+      const ddx = e.clientX - prev.x
+      const ddy = e.clientY - prev.y
+      if (!dragRef.current.isDragging) {
+        const total = Math.hypot(
+          e.clientX - dragRef.current.startX,
+          e.clientY - dragRef.current.startY,
+        )
+        if (total < 6) return
+        dragRef.current.isDragging = true
+      }
+      setPan(p => ({ x: p.x + ddx, y: p.y + ddy }))
+    } else if (list.length === 2 && dragRef.current.pinchStartDist) {
+      const d = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y)
+      const newZoom = dragRef.current.pinchStartZoom * (d / dragRef.current.pinchStartDist)
+      const c = dragRef.current.pinchCenter!
+      setZoomAround(newZoom, c.x, c.y)
+    }
+  }
+  function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+    if (pointersRef.current.has(e.pointerId)) {
+      pointersRef.current.delete(e.pointerId)
+      try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
+    }
+    if (pointersRef.current.size === 0) {
+      if (!dragRef.current.isDragging) {
+        // 算作点击空海：取消高亮
+        setSelected(null)
+      }
+      dragRef.current = {
+        startX: 0, startY: 0, moved: 0, isDragging: false,
+        pinchStartDist: null, pinchStartZoom: zoom, pinchCenter: null,
+      }
+    }
+  }
+
+  // 滚轮缩放：必须用原生事件以便 preventDefault
+  useEffect(() => {
+    const el = worldRef.current
+    if (!el) return
+    function onWheel(ev: WheelEvent) {
+      ev.preventDefault()
+      const rect = el!.getBoundingClientRect()
+      const cx = ev.clientX - rect.left
+      const cy = ev.clientY - rect.top
+      const factor = ev.deltaY > 0 ? 0.88 : 1.14
+      // 通过 setZoomAround 的双闭包间接调用——直接拿当前 zoom
+      setZoom(prev => {
+        const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, prev * factor))
+        if (z === prev) return prev
+        setPan(p => ({
+          x: cx - (cx - p.x) * (z / prev),
+          y: cy - (cy - p.y) * (z / prev),
+        }))
+        return z
+      })
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
   const ship = shipOf(state.shipId)
   // 兜底：存档城市缺失时不崩，回到出生点
   const cur = CITY_BY_ID[state.cityId] ?? CITY_BY_ID[START_CITY]
@@ -80,13 +210,45 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
     ? routePoint(fromCity, toCity, progress)
     : { x: cur.x + 3.5, y: cur.y + 4 }
 
+  const displayedShipName = shipDisplayName(state.shipName, ship.name)
+
   function sailTo(cityId: string) {
     dispatch({ type: 'SAIL', cityId })
     setSelected(null)
   }
 
+  // 键盘 +/- 重置 也方便桌面端调试
+  useEffect(() => {
+    function onKey(ev: KeyboardEvent) {
+      if (ev.target instanceof HTMLInputElement) return
+      if (ev.key === '+' || ev.key === '=') setZoomAround(zoom * 1.15, window.innerWidth / 2, window.innerHeight / 2)
+      else if (ev.key === '-' || ev.key === '_') setZoomAround(zoom / 1.15, window.innerWidth / 2, window.innerHeight / 2)
+      else if (ev.key === '0') resetView()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [zoom])
+
   return (
-    <div className="map-canvas" onPointerDown={() => setSelected(null)}>
+    <div className="map-canvas">
+      {/* ── 可拖动可缩放的世界地图层（v1.3.0） ── */}
+      <div
+        ref={worldRef}
+        className="map-world"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: '0 0',
+          willChange: 'transform',
+          touchAction: 'none',
+          cursor: dragRef.current.isDragging ? 'grabbing' : 'grab',
+        }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
       {/* ── 背景世界地图 ── */}
       <svg
         className="absolute inset-0 w-full h-full"
@@ -269,6 +431,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
         <div className="flex flex-col items-center float-ship2">
           <div className="my-ship-tag">{sailing ? `${Math.ceil(remain)}s` : `${hold}/${ship.cap}`}</div>
           <ShipSprite color={ship.color} size={52} highlight />
+          <div className="my-ship-name" title={displayedShipName}>{displayedShipName}</div>
           {sailing && (
             <div className="wake-dots">
               <span /><span /><span />
@@ -290,37 +453,60 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
         </div>
       ))}
 
-      {/* ── 航行中横幅 ── */}
-      {sailing && fromCity && toCity && (
-        <div className="absolute left-3 right-3 z-20" style={{ top: 10 }}>
-          <div className="voyage-banner">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base">🧭</span>
-              <span className="text-xs font-800" style={{ color: '#ffe6c0' }}>
-                {fromCity.name} <span style={{ color: '#f5913a' }}>···→</span> {toCity.name}
-              </span>
-              <span className="ml-auto text-xs font-800" style={{ color: '#fdb870' }}>
-                剩余 {Math.ceil(remain)} 秒
-              </span>
-            </div>
-            <div className="voyage-track">
-              <div className="voyage-fill" style={{ width: `${progress * 100}%` }} />
-              <span className="voyage-ship" style={{ left: `calc(${progress * 100}% - 9px)` }}>🚢</span>
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-xs" style={{ color: 'rgba(255,220,150,0.75)' }}>
-                载货 {hold}/{ship.cap}
-              </span>
-              <button
-                className="speed-up-btn ml-auto px-3 py-1 text-xs"
-                onPointerDown={e => { e.stopPropagation(); dispatch({ type: 'USE_BOOST' }) }}
-              >
-                ⚡ 加速 · 剩 {state.boost}
-              </button>
+      </div>{/* ── /map-world ── */}
+
+      {/* ── 叠加层：缩放控制 / 选港抽屉 / 闲置提示 / 航行横幅（不随地图变换） ── */}
+      <div className="map-overlay">
+        {/* ── 航行中横幅（保持在视口顶部，不缩放） ── */}
+        {sailing && fromCity && toCity && (
+          <div className="absolute left-3 right-3 z-20" style={{ top: 10, pointerEvents: 'auto' }}>
+            <div className="voyage-banner">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-base">🧭</span>
+                <span className="text-xs font-800" style={{ color: '#ffe6c0' }}>
+                  {fromCity.name} <span style={{ color: '#f5913a' }}>···→</span> {toCity.name}
+                </span>
+                <span className="ml-auto text-xs font-800" style={{ color: '#fdb870' }}>
+                  剩余 {Math.ceil(remain)} 秒
+                </span>
+              </div>
+              <div className="voyage-track">
+                <div className="voyage-fill" style={{ width: `${progress * 100}%` }} />
+                <span className="voyage-ship" style={{ left: `calc(${progress * 100}% - 9px)` }}>🚢</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-xs" style={{ color: 'rgba(255,220,150,0.75)' }}>
+                  载货 {hold}/{ship.cap}
+                </span>
+                <button
+                  className="speed-up-btn ml-auto px-3 py-1 text-xs"
+                  onPointerDown={e => { e.stopPropagation(); dispatch({ type: 'USE_BOOST' }) }}
+                >
+                  ⚡ 加速 · 剩 {state.boost}
+                </button>
+              </div>
             </div>
           </div>
+        )}
+        {/* 缩放控制条 */}
+        <div className="map-zoom-controls">
+          <button
+            className="map-zoom-btn"
+            onClick={() => setZoomAround(zoom * 1.2, window.innerWidth / 2, window.innerHeight / 2)}
+            title="放大 (+)"
+          >＋</button>
+          <div className="map-zoom-level" title="点击重置视图">{(zoom * 100).toFixed(0)}%</div>
+          <button
+            className="map-zoom-btn"
+            onClick={() => setZoomAround(zoom / 1.2, window.innerWidth / 2, window.innerHeight / 2)}
+            title="缩小 (-)"
+          >－</button>
+          <button
+            className="map-zoom-btn map-zoom-reset"
+            onClick={resetView}
+            title="重置视图 (0)"
+          >⟳</button>
         </div>
-      )}
 
       {/* ── 已选港口底部抽屉 ── */}
       {sel && !sailing && (
@@ -417,6 +603,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
           </div>
         </div>
       )}
+      </div>{/* /map-overlay */}
     </div>
   )
 }
