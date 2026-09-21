@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CITIES, CITY_BY_ID, GOODS, GOOD_BY_ID, INTEL_PRICE } from '../game/data'
-import { cityTrades, estBuyPrice, estSellPrice, sellPrice, shipOf } from '../game/engine'
+import { cityTrades, estBuyPrice, estSellPrice, sellPrice } from '../game/engine'
+import { shipNow } from '../game/state'
 import { useGame } from '../game/store'
 
 interface Route {
@@ -20,7 +21,7 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<'routes' | 'prices'>('routes')
   const [goodId, setGoodId] = useState(GOODS[0].id)
 
-  const ship = shipOf(state.shipId)
+  const ship = shipNow(state)
   const known = (cid: string) => state.intelOwned || state.visited.includes(cid)
 
   /** 计算真实最赚商路（买入 → 卖出），只统计经营该货且已知的城市 */

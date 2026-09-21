@@ -12,6 +12,7 @@ import {
   type LonLat, type ScreenPoint,
 } from '../game/geo'
 import { globePill, placeLabels, type LabelRect } from '../game/labels'
+import { GEO_FEATURES, TERRAIN_SPOTS, type TerrainKind } from '../game/geoFeatures'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  球形地球视图（v1.4.0）
@@ -46,6 +47,58 @@ const STARS = Array.from({ length: 70 }, (_, i) => {
   }
   return { x: r(1) * 100, y: r(2) * 100, s: 0.6 + r(3) * 1.6, o: 0.25 + r(4) * 0.6 }
 })
+
+/** 球面地形贴纸：手绘小图（连绵雪山 / 沙丘 / 阔叶丛林 / 针叶林） */
+function TerrainSprite({ kind, w, h }: { kind: TerrainKind; w: number; h: number }) {
+  const box = { width: w, height: h, viewBox: '0 0 100 50' } as const
+  if (kind === 'mountain') {
+    return (
+      <svg {...box}>
+        <path d="M4,48 L20,16 L32,34 L48,6 L62,32 L76,18 L96,48 Z" fill="#6f8a5c" stroke="#55703f" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M14,48 L26,24 L38,42 L52,14 L66,40 L80,26 L94,48 Z" fill="#87a06e" opacity="0.85" />
+        <path d="M44,13 L48,6 L52,13 Z" fill="#ffffff" />
+        <path d="M18,21 L20,16 L22,21 Z" fill="#ffffff" opacity="0.8" />
+        <path d="M74,24 L76,18 L78,24 Z" fill="#ffffff" opacity="0.8" />
+      </svg>
+    )
+  }
+  if (kind === 'dune') {
+    return (
+      <svg {...box}>
+        <path d="M6,40 Q28,12 52,34 Q72,48 94,26 L94,48 L6,48 Z" fill="#ead9a8" stroke="#cdb67c" strokeWidth="1.2" />
+        <path d="M14,34 Q32,16 52,32" fill="none" stroke="#cdb67c" strokeWidth="2" opacity="0.7" />
+        <path d="M40,40 Q58,26 74,36" fill="none" stroke="#cdb67c" strokeWidth="2" opacity="0.5" />
+        <circle cx="84" cy="14" r="4" fill="#f2e3b8" />
+      </svg>
+    )
+  }
+  if (kind === 'jungle') {
+    return (
+      <svg {...box}>
+        <rect x="22" y="30" width="3.5" height="18" rx="1.5" fill="#7a5634" />
+        <rect x="58" y="34" width="3.5" height="14" rx="1.5" fill="#7a5634" />
+        <rect x="80" y="38" width="3" height="10" rx="1.5" fill="#7a5634" />
+        <circle cx="24" cy="22" r="12" fill="#3e8a46" />
+        <circle cx="34" cy="28" r="9" fill="#4fa057" />
+        <circle cx="60" cy="28" r="10" fill="#4fa057" />
+        <circle cx="82" cy="33" r="8" fill="#3e8a46" />
+        <circle cx="14" cy="32" r="7" fill="#35793c" />
+        <circle cx="48" cy="38" r="6" fill="#35793c" />
+      </svg>
+    )
+  }
+  return (
+    <svg {...box}>
+      <rect x="32" y="38" width="3" height="10" rx="1.5" fill="#6b4a2c" />
+      <rect x="58" y="40" width="3" height="8" rx="1.5" fill="#6b4a2c" />
+      <rect x="80" y="42" width="2.6" height="6" rx="1.3" fill="#6b4a2c" />
+      <path d="M33.5,4 L44,38 L23,38 Z" fill="#2f7a44" />
+      <path d="M59.5,12 L68,40 L51,40 Z" fill="#3c8a50" />
+      <path d="M81.3,18 L88,42 L74.6,42 Z" fill="#2f7a44" />
+      <path d="M31,10 L33.5,4 L36,10 Z" fill="#e8f4ec" opacity="0.9" />
+    </svg>
+  )
+}
 
 export default function GlobeWorld({ selected, setSelected }: Props) {
   const { state } = useGame()
@@ -241,10 +294,12 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
   }), [sphere])
 
   // ── 标签防重叠（full → compact，都放不下只画点） ───────────────────────────
+  // 注意：依赖里不能放整个 state.voyage（航行中每 200ms 都是新对象，会白算一次防重叠）
+  const voyageTo = state.voyage?.to
   const labels = useMemo(() => {
     if (!size.w || !size.h) return []
     const prio = (id: string) =>
-      id === state.cityId || id === selected || id === state.voyage?.to ? 1 : 0
+      id === state.cityId || id === selected || id === voyageTo ? 1 : 0
     const order = [...cityPts].sort((a, b) =>
       (prio(b.c.id) - prio(a.c.id)) || (b.p.z - a.p.z))
     const cands: LabelRect[] = []
@@ -261,7 +316,7 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
       if (prio(c.id)) force.add(`${c.id}:full:r`)
     }
     return placeLabels(cands, { x0: 6, y0: 56, x1: size.w - 6, y1: size.h - 60 }, { gap: 2, force })
-  }, [cityPts, size.w, size.h, state.cityId, state.voyage, selected])
+  }, [cityPts, size.w, size.h, state.cityId, voyageTo, selected])
 
   // ── 球面航线（大圆弧，只画正面） ──────────────────────────────────────────
   const routeD = useCallback((a: LonLat, b: LonLat, steps = 44): string => {
@@ -445,6 +500,45 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
         )
       })}
 
+      {/* 地理标注：海峡 / 大洋 / 沙漠 / 山脉（投影到球面，背面隐藏，近边缘淡出） */}
+      {GEO_FEATURES.map(f => {
+        const p = sphere.project(f.geo[0], f.geo[1])
+        if (p.z < 0.12) return null
+        const fade = Math.min(1, (p.z - 0.12) / 0.3)
+        return (
+          <div
+            key={`gw-geo-${f.name}`}
+            className={`geo-label geo-${f.kind}`}
+            style={{ left: p.x, top: p.y, zIndex: 2, opacity: 0.4 + 0.6 * fade, fontSize: `${Math.round(11 * (0.7 + 0.3 * p.z) * Math.max(1, zoomG * 0.85))}px` }}
+          >
+            {f.name}
+          </div>
+        )
+      })}
+
+      {/* 球面地形贴纸：雪山 / 沙丘 / 丛林 / 针叶林（随视角缩放淡出） */}
+      {TERRAIN_SPOTS.map((t, i) => {
+        const p = sphere.project(t.geo[0], t.geo[1])
+        if (p.z < 0.08) return null
+        const depth = 0.45 + 0.55 * p.z
+        const w = Math.round(46 * (t.s ?? 1) * depth * Math.max(1, zoomG * 0.8))
+        const h = Math.round(w * (t.kind === 'mountain' ? 0.52 : 0.44))
+        return (
+          <div
+            key={`gw-terrain-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: p.x, top: p.y,
+              transform: `translate(-50%, -${t.kind === 'mountain' ? 88 : 55}%)`,
+              zIndex: 3,
+              opacity: 0.3 + 0.7 * Math.min(1, p.z / 0.55),
+            }}
+          >
+            <TerrainSprite kind={t.kind} w={w} h={h} />
+          </div>
+        )
+      })}
+
       {/* ── 城市地标（HTML 层，背面自动隐藏） ── */}
       {cityPts.map(({ c, p, vis }) => {
         if (!vis) return null
@@ -504,7 +598,11 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
         >
           <div className="flex flex-col items-center float-ship2">
             <div className="my-ship-tag">{sailing ? `${Math.ceil(Math.max(0, (sailing.duration - sailing.elapsed)))}s` : `${hold}/${ship.cap}`}</div>
-            <ShipSprite color={ship.color} size={Math.round(38 * zoomG)} highlight />
+            <div className="relative my-ship-glow">
+              <span className="my-ship-ping" />
+              <span className="my-ship-ping is-late" />
+              <ShipSprite color={ship.color} size={Math.round(38 * zoomG)} highlight />
+            </div>
             <div className="my-ship-name" title={displayedShipName}>{displayedShipName}</div>
           </div>
         </div>

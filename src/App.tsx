@@ -179,7 +179,7 @@ function Game() {
     >
       <div className="app-shell">
         <TopBar onIntel={() => setIntelOpen(true)} onSettings={() => setSettingsOpen(true)} />
-        <div className="relative flex-1 overflow-hidden">
+        <div className={"relative flex-1 overflow-hidden" + (intelOpen || settingsOpen ? " world-off" : "")}>
           <ErrorBoundary>
             {tab === 'map' && <MapView onOpenIntel={() => setIntelOpen(true)} />}
             {tab === 'market' && <MarketView />}
@@ -192,7 +192,7 @@ function Game() {
           <Toasts />
         </div>
         <NavBar tab={tab} setTab={setTab} />
-        <OnboardingTour activeTab={tab} setActiveTab={setTab} />
+        <OnboardingTour activeTab={tab} setActiveTab={t => setTab(t as Tab)} />
         <ChangelogModal />
       </div>
     </div>

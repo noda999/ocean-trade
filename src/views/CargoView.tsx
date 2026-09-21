@@ -1,5 +1,6 @@
 import { CITY_BY_ID, GOOD_BY_ID } from '../game/data'
-import { cargoUnits, cargoValue, sellPrice, shipOf } from '../game/engine'
+import { cargoUnits, cargoValue, sellPrice } from '../game/engine'
+import { shipNow } from '../game/state'
 import { useGame } from '../game/store'
 
 function fmt(sec: number) {
@@ -10,7 +11,7 @@ function fmt(sec: number) {
 
 export default function CargoView() {
   const { state, dispatch } = useGame()
-  const ship = shipOf(state.shipId)
+  const ship = shipNow(state)
   const city = CITY_BY_ID[state.cityId]
   const cm = state.markets[state.cityId]
   const held = cargoUnits(state.cargo)

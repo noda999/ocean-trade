@@ -3,9 +3,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-  AI_SHIPS, CITY_BY_ID, GOOD_BY_ID, INTEL_PRICE, MARKET_CYCLE, MILESTONES,
+  AI_SHIPS, CITY_BY_ID, CREW_BY_ID, GOOD_BY_ID, INTEL_PRICE, MARKET_CYCLE, MILESTONES,
   SHIPS, SPICE_CYCLE, START_CITY, START_MONEY, VOYAGE_EVENTS,
-  type Milestone,
+  type Milestone, type ShipClass,
 } from './data'
 import {
   cargoUnits, clamp, createMarkets, evolveMarkets, rankFor, sellPrice, shipOf,
@@ -47,11 +47,17 @@ export interface GameState {
   markets: AllMarkets
   shipId: string
   ownedShips: string[]
+  /** 已雇佣的船员（id 列表，见 data.tsx CREW） */
+  hiredCrew: string[]
   /** 玩家给船取的名字（空字符串 = 显示默认名） */
   shipName: string
   boost: number
   intelOwned: boolean
   visited: string[]
+  /** 买过的商品（去重） */
+  goodsBought: string[]
+  /** 卖出过的商品（去重） */
+  goodsSold: string[]
   claimed: string[]
   stats: { trades: number; profit: number; distance: number; events: number; best: number }
   toasts: Toast[]
@@ -71,6 +77,7 @@ export type Action =
   | { type: 'SELL'; goodId: string; qty: number }
   | { type: 'SELL_ALL' }
   | { type: 'BUY_SHIP'; shipId: string }
+  | { type: 'HIRE_CREW'; crewId: string }
   | { type: 'SELECT_SHIP'; shipId: string }
   | { type: 'SET_SHIP_NAME'; name: string }
   | { type: 'USE_BOOST' }
@@ -78,6 +85,8 @@ export type Action =
   | { type: 'BUY_INTEL' }
   | { type: 'DROP_TOAST'; id: number }
   | { type: 'RESTART' }
+  /** 用存档覆盖整局状态（读档） */
+  | { type: 'HYDRATE'; state: GameState }
 
 export function initialState(): GameState {
   return {
@@ -88,10 +97,13 @@ export function initialState(): GameState {
     markets: createMarkets(),
     shipId: 'sloop',
     ownedShips: ['sloop'],
+    hiredCrew: [],
     shipName: '',
     boost: 3,
     intelOwned: false,
     visited: [START_CITY],
+    goodsBought: [],
+    goodsSold: [],
     claimed: [],
     stats: { trades: 0, profit: 0, distance: 0, events: 0, best: 0 },
     toasts: [],
@@ -119,6 +131,30 @@ function pushLog(s: GameState, text: string, kind: LogEntry['kind']): void {
 
 export function assetsOf(s: GameState): number {
   return totalAssets(s.money, s.cargo, s.cityId, s.markets, shipOf(s.shipId).bonus)
+}
+
+/** 船员带来的总加成：speed = 航速 %，trade = 利润 % */
+export function crewBonusOf(s: GameState): { speed: number; trade: number } {
+  let speed = 0
+  let trade = 0
+  for (const id of s.hiredCrew) {
+    const c = CREW_BY_ID[id]
+    if (!c) continue
+    speed += c.speed
+    trade += c.trade
+  }
+  return { speed, trade }
+}
+
+/** 含船员加成的「有效座舰」：航速 × (1 + speed%)，利润加成 + trade%（载重不变） */
+export function shipNow(s: GameState): ShipClass {
+  const ship = shipOf(s.shipId)
+  const cb = crewBonusOf(s)
+  return {
+    ...ship,
+    speed: Math.round(ship.speed * (1 + cb.speed / 100) * 100) / 100,
+    bonus: ship.bonus + cb.trade,
+  }
 }
 
 export function milestoneProgress(s: GameState, m: Milestone): number {
@@ -314,7 +350,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const from = CITY_BY_ID[s.cityId]
       const to = CITY_BY_ID[action.cityId]
       if (!from || !to) return state
-      const dur = voyageSeconds(from, to, shipOf(s.shipId))
+      const dur = voyageSeconds(from, to, shipNow(s))
       s.voyage = { from: from.id, to: to.id, elapsed: 0, duration: dur }
       s.eventTimer = 4 + Math.random() * 3
       pushToast(s, '⚓', `起航前往 ${to.name}，预计 ${dur} 秒`, 'info')
@@ -324,7 +360,7 @@ export function reducer(state: GameState, action: Action): GameState {
 
     // ── 买入 ──────────────────────────────────────────────────────────────────
     case 'BUY': {
-      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets } }
+      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets }, goodsBought: state.goodsBought }
       if (s.voyage) { pushToast(s, '⛔', '航行中无法交易', 'bad'); return s }
       const good = GOOD_BY_ID[action.goodId]
       const cm = s.markets[s.cityId]
@@ -355,13 +391,14 @@ export function reducer(state: GameState, action: Action): GameState {
         [good.id]: { ...m, stock: m.stock - qty, price: Math.round(m.price * (1 + qty * 0.012)) },
       }
       s.stats.trades += 1
+      if (!s.goodsBought.includes(good.id)) s.goodsBought = [...s.goodsBought, good.id]
       pushToast(s, '📥', `买入 ${good.name} ×${qty}，支出 ${cost.toLocaleString()} 金`, 'info')
       return s
     }
 
     // ── 卖出 ──────────────────────────────────────────────────────────────────
     case 'SELL': {
-      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets } }
+      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets }, goodsSold: state.goodsSold }
       if (s.voyage) { pushToast(s, '⛔', '航行中无法交易', 'bad'); return s }
       const good = GOOD_BY_ID[action.goodId]
       const cm = s.markets[s.cityId]
@@ -376,7 +413,7 @@ export function reducer(state: GameState, action: Action): GameState {
       }
       // 2) 销地（紧缺）：本港进口商买价高 → 只买不卖，玩家到这里就是要卖出赚钱
       //    （BUY 已在销地被拦截，所以不存在「同港买入再卖回」的套利空间）
-      const ship = shipOf(s.shipId)
+      const ship = shipNow(s)
       const held = s.cargo[good.id]
       if (!held || held.qty <= 0) { pushToast(s, '📦', `货舱里没有 ${good.name}`, 'bad'); return s }
       // 数值校验：禁止负数、NaN、非整数；并夹紧到货舱实际数量
@@ -401,6 +438,7 @@ export function reducer(state: GameState, action: Action): GameState {
         [good.id]: { ...m, stock: m.stock + qty, price: Math.max(8, Math.round(m.price * Math.max(0.72, 1 - qty * 0.012))) },
       }
       s.stats.trades += 1
+      if (!s.goodsSold.includes(good.id)) s.goodsSold = [...s.goodsSold, good.id]
       s.stats.profit += profit
       s.stats.best = Math.max(s.stats.best, profit)
       pushToast(
@@ -452,6 +490,32 @@ export function reducer(state: GameState, action: Action): GameState {
       s.shipId = ship.id
       pushToast(s, '🚢', `购入 ${ship.name}！`, 'good')
       pushLog(s, `购入新船：${ship.name}（载重 ${ship.cap}，利润 +${ship.bonus}%）`, 'good')
+      return s
+    }
+
+    // ── 雇佣船员 ──────────────────────────────────────────────────────────────
+    case 'HIRE_CREW': {
+      const c = CREW_BY_ID[action.crewId]
+      if (!c || state.hiredCrew.includes(c.id)) return state
+      // 招募限制：人必须亲自到对应港口的酒馆
+      if (state.cityId !== c.cityId) {
+        const s0: GameState = { ...state, toasts: [...state.toasts] }
+        pushToast(s0, '🚫', `${c.name} 只在 ${CITY_BY_ID[c.cityId].name} 的酒馆招募`, 'bad')
+        return s0
+      }
+      if (state.money < c.cost) {
+        const s0: GameState = { ...state, toasts: [...state.toasts] }
+        pushToast(s0, '🪙', `金币不足，还差 ${(c.cost - state.money).toLocaleString()} 金`, 'bad')
+        return s0
+      }
+      const s: GameState = {
+        ...state,
+        money: state.money - c.cost,
+        hiredCrew: [...state.hiredCrew, c.id],
+        toasts: [...state.toasts],
+      }
+      pushToast(s, '🤝', `${c.name} 登船了！${c.speed ? `航速+${c.speed}% ` : ''}${c.trade ? `利润+${c.trade}%` : ''}`.trim(), 'good')
+      pushLog(s, `在 ${CITY_BY_ID[c.cityId].name} 雇佣了${c.role}「${c.name}」`, 'good')
       return s
     }
 
@@ -526,6 +590,10 @@ export function reducer(state: GameState, action: Action): GameState {
 
     case 'RESTART':
       return initialState()
+
+    // ── 读档：直接换成存档里的状态（气泡清空，避免弹出旧提示） ─────────────────
+    case 'HYDRATE':
+      return { ...action.state, toasts: [] }
 
     default:
       return state

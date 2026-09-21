@@ -5,6 +5,7 @@ import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
 import { ShipSprite, TinyBoat } from '../components/ShipSprite'
 import { flatPill, placeLabels, type LabelRect } from '../game/labels'
+import { GEO_FEATURES } from '../game/geoFeatures'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  平面手绘世界地图（v1.3.0 引入，v1.4.0 增加标签防重叠）
@@ -407,6 +408,23 @@ export default function FlatWorld({ selected, setSelected }: Props) {
           )}
         </svg>
 
+        {/* ── 地理标注：平面图只留大洋与马六甲海峡（调淡），地形用图形 ── */}
+        {GEO_FEATURES.filter(f => f.flatText).map(f => (
+          <div
+            key={`geo-${f.name}`}
+            className={`geo-label geo-${f.kind}`}
+            style={{
+              left: `${f.flat.x}%`,
+              top: `${f.flat.y}%`,
+              transform: `translate(-50%, -50%) rotate(${f.flat.rotate}deg)`,
+              zIndex: 2,
+              opacity: 0.6,
+            }}
+          >
+            {f.name}
+          </div>
+        ))}
+
         {/* ── 城市锚点：建筑塔（标签移到不随缩放的浮层，自动避让） ── */}
         {CITIES.map(c => {
           const here = c.id === state.cityId
@@ -479,7 +497,11 @@ export default function FlatWorld({ selected, setSelected }: Props) {
         >
           <div className="flex flex-col items-center float-ship2">
             <div className="my-ship-tag">{sailing ? `${Math.ceil(Math.max(0, sailing.duration - sailing.elapsed))}s` : `${hold}/${ship.cap}`}</div>
-            <ShipSprite color={ship.color} size={52} highlight />
+            <div className="relative my-ship-glow">
+              <span className="my-ship-ping" />
+              <span className="my-ship-ping is-late" />
+              <ShipSprite color={ship.color} size={52} highlight />
+            </div>
             <div className="my-ship-name" title={displayedShipName}>{displayedShipName}</div>
             {sailing && (
               <div className="wake-dots">

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { CITIES, CITY_BY_ID, GOOD_BY_ID } from '../game/data'
 import {
-  anchorPrice, bestSellHint, cargoUnits, isScarce, sellPrice, shipOf,
+  anchorPrice, bestSellHint, cargoUnits, isScarce, sellPrice,
 } from '../game/engine'
+import { shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
 
@@ -15,7 +16,7 @@ export default function MarketView() {
 
   // 派生量必须先于 useEffect 声明 —— effect deps 是同步求值的数组字面量，
   // 若 cm 等在后面声明会被 ESBuild minify 后暴露成 TDZ（ReferenceError）。
-  const ship = shipOf(state.shipId)
+  const ship = shipNow(state)
   const city = CITY_BY_ID[viewCityId]
   const cm = state.markets[viewCityId]
   const here = viewCityId === state.cityId

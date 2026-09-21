@@ -1,4 +1,4 @@
-import { MILESTONES } from '../game/data'
+import { ACHIEVEMENTS, CITIES, GOODS, MILESTONES } from '../game/data'
 import { nextTitle, rankFor, titleFor } from '../game/engine'
 import { claimable, milestoneProgress } from '../game/state'
 import { useGame } from '../game/store'
@@ -10,6 +10,15 @@ export default function QuestView() {
   const next = nextTitle(assets)
   const rank = rankFor(assets)
 
+  // 成就进度：到达城市 / 买过 / 卖过 / 交易过（买卖并集）
+  const tradedCount = new Set([...state.goodsBought, ...state.goodsSold]).size
+  const achCount = (kind: string) =>
+    kind === 'visited' ? state.visited.length
+      : kind === 'bought' ? state.goodsBought.length
+        : kind === 'sold' ? state.goodsSold.length
+          : tradedCount
+  const unlocked = ACHIEVEMENTS.filter(a => achCount(a.kind) >= a.target).length
+
   const stats = [
     { label: '总资产', value: assets.toLocaleString(), icon: '💎' },
     { label: '交易笔数', value: state.stats.trades.toString(), icon: '🔁' },
@@ -17,6 +26,9 @@ export default function QuestView() {
     { label: '单笔最佳', value: state.stats.best > 0 ? `+${Math.round(state.stats.best).toLocaleString()}` : '—', icon: '🏅' },
     { label: '航行里程', value: `${state.stats.distance.toLocaleString()} 海里`, icon: '🧭' },
     { label: '海上事件', value: `${state.stats.events} 次`, icon: '🌊' },
+    { label: '到达城市', value: `${state.visited.length}/${CITIES.length}`, icon: '🏙️' },
+    { label: '买过商品', value: `${state.goodsBought.length}/${GOODS.length}`, icon: '📥' },
+    { label: '卖过商品', value: `${state.goodsSold.length}/${GOODS.length}`, icon: '📤' },
   ]
 
   return (
@@ -88,6 +100,40 @@ export default function QuestView() {
                 </div>
                 <div className="prog-track h-2">
                   <div className="prog-fill" style={{ width: `${p * 100}%`, background: done ? '#4cba6a' : undefined }} />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 贸易成就 */}
+        <div className="font-800 text-sm mb-2" style={{ color: '#3d2b10' }}>
+          贸易成就
+          <span className="ml-2 text-xs font-700" style={{ color: '#c0a070' }}>已解锁 {unlocked}/{ACHIEVEMENTS.length}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          {ACHIEVEMENTS.map(a => {
+            const cur = achCount(a.kind)
+            const done = cur >= a.target
+            const p = Math.min(1, cur / a.target)
+            return (
+              <div key={a.id} className="panel-white p-3" style={{ borderRadius: 14, opacity: done ? 1 : 0.88 }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                    style={{ background: done ? '#fff3d6' : '#f5f0e6', filter: done ? undefined : 'grayscale(0.7)' }}>
+                    {a.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-800 text-xs truncate" style={{ color: done ? '#a06a10' : '#3d2b10' }}>{a.label}</div>
+                    <div className="text-[10px] truncate" style={{ color: '#c0a070' }}>{a.desc}</div>
+                  </div>
+                  {done && <span className="text-xs">✅</span>}
+                </div>
+                <div className="prog-track h-1.5">
+                  <div className="prog-fill" style={{ width: `${p * 100}%`, background: done ? '#f0a83c' : undefined }} />
+                </div>
+                <div className="text-[10px] mt-1 text-right font-700" style={{ color: done ? '#4cba6a' : '#c0a070' }}>
+                  {done ? '已达成' : `${cur}/${a.target}`}
                 </div>
               </div>
             )

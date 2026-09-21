@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.0.2'
+const CURRENT_VERSION = 'v1.0.4'
 
 interface ChangeItem {
   icon: string
@@ -10,11 +10,12 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '📜', title: '贸易规则修正（关键）', desc: '最根本的玩法回来了：产地「只卖不买」——你只能在那里买入；销地「只买不卖」——你只能在紧缺港卖出，而且本港买价更高。之前紧缺港不买你的货，导致买了根本卖不掉，现在修好了。' },
-  { icon: '💰', title: '卖货按钮回来了', desc: '在紧缺港的市场里，缺货商品现在会显示「📤 卖出」按钮并按本港（高价）价结算；不能再买的港口不再显示「买入需」价格，避免误导。' },
-  { icon: '🛡️', title: '同港套利依然堵死', desc: '买入的港口卖不回去、卖出的港口买不进，所以「原地买入→卖出」白嫖船只利润加成的漏洞仍然不存在，赚差价只能靠跑远洋。' },
-  { icon: '🧀', title: '6 种商品补齐销地', desc: '钟表、燕窝、香草、乳香、橄榄油、烟草之前在任何港口都不是紧缺货——永远卖不掉。现在都给它们配了远洋高价市场（如钟表卖日本/中国/印加、燕窝卖中国/英国）。' },
-  { icon: '🔎', title: '情报页标注买卖方向', desc: '每个港口的价格旁会标「买入」或「卖出」，绿色最低买价、红色最高卖价，一眼看出该去哪儿进货、去哪儿出货。' },
+  { icon: '🍺', title: '酒馆开张', desc: '12 位航海好手散布在世界各港，船坞右上角切到「酒馆」，亲自到对应港口才能雇佣。' },
+  { icon: '👨‍✈️', title: '船员加成', desc: '雇佣的船员提供永久的航速或利润加成，船坞里可查看专属头像与身价。' },
+  { icon: '✨', title: '座舰高亮', desc: '你的船在地图上带金色发光 + 波纹光圈，一眼找到自己的船。' },
+  { icon: '🗺️', title: '地理标注', desc: '地图标注大洋与海峡，平面图还有喜马拉雅雪峰、撒哈拉沙丘等地形。' },
+  { icon: '🎓', title: '重看新手导览', desc: '设置 → 玩法简介里新增「重看新手导览」按钮，忘了玩法随时回炉。' },
+  { icon: '💾', title: '自动存档', desc: '进度每 3 秒自动保存，下次进入自动续上；设置里可手动存 / 读 / 删档。' },
 ]
 
 interface Props {
@@ -38,6 +39,11 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
         return
       }
       const seen = localStorage.getItem(STORAGE_KEY)
+      // 全新玩家：新手导览优先，跳过更新日志（避免两层遮罩叠住挡点击）
+      if (!localStorage.getItem('ocean-trade-onboarding-done')) {
+        localStorage.setItem(STORAGE_KEY, CURRENT_VERSION)
+        return
+      }
       if (seen !== CURRENT_VERSION) setOpen(true)
     } catch { setOpen(true) }
   }, [forceOpen])
@@ -83,7 +89,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 贸易规则修正 · 卖货回路打通 · 补齐销地
+                {CURRENT_VERSION} · 酒馆招募 · 座舰高亮
               </div>
             </div>
           </div>

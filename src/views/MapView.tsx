@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CITY_BY_ID, GOOD_BY_ID, START_CITY } from '../game/data'
-import { cargoUnits, voyageSeconds, shipOf } from '../game/engine'
+import { cargoUnits, voyageSeconds } from '../game/engine'
+import { shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
 import FlatWorld from './FlatWorld'
@@ -29,7 +30,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
     try { localStorage.setItem(MODE_KEY, m) } catch { /* ignore */ }
   }
 
-  const ship = shipOf(state.shipId)
+  const ship = shipNow(state)
   // 兜底：存档城市缺失时不崩，回到出生点
   const cur = CITY_BY_ID[state.cityId] ?? CITY_BY_ID[START_CITY]
   const sel = selected ? CITY_BY_ID[selected] : null

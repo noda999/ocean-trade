@@ -1,41 +1,45 @@
 import {
-  createContext, useContext, useEffect, useMemo, useReducer, type ReactNode,
+  createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState,
+  type ReactNode,
 } from 'react'
-import { CITIES, CITY_BY_ID } from './data'
 import { assetsOf, initialState, reducer, type Action, type GameState } from './state'
+import { clearSave, loadSave, saveGame } from './save'
 
 interface GameContextValue {
   state: GameState
   dispatch: React.Dispatch<Action>
   /** 当前总资产 */
   assets: number
-  /** 重新开始（清掉当前 state，回到初始） */
+  /** 重新开始（清掉当前 state + 清空存档） */
   reset: () => void
+  /** 手动存档，成功返回时间戳，失败返回 null */
+  save: () => number | null
+  /** 用存档覆盖当前进度，成功返回 true */
+  loadFromSave: () => boolean
+  /** 删除存档（不动当前进度） */
+  removeSave: () => void
+  /** 最近一次存档时间戳（null = 本局还没存过） */
+  lastSaved: number | null
 }
 
 const GameContext = createContext<GameContextValue | null>(null)
 
 const TICK_MS = 200
+/** 自动存档间隔：TICK 是 200ms 一跳，不能每跳都写盘 */
+const SAVE_EVERY_MS = 3000
 
-/** 严格校验 state 结构（防止渲染时炸白屏） */
-function isValidSave(saved: any): saved is GameState {
-  return !!saved
-    && typeof saved.money === 'number'
-    && typeof saved.cityId === 'string'
-    && !!CITY_BY_ID[saved.cityId]
-    && saved.markets
-    && CITIES.every(c => saved.markets[c.id]
-      && c.exports.every(g => saved.markets[c.id][g])
-      && c.imports.every(g => saved.markets[c.id][g]))
-    && saved.cargo
-    && Array.isArray(saved.aiShips)
-    && Array.isArray(saved.visited)
+/** 启动：有可用存档就用存档，否则新开局 */
+function boot(): { state: GameState; savedAt: number | null } {
+  const save = loadSave()
+  return save
+    ? { state: save.state, savedAt: save.savedAt || null }
+    : { state: initialState(), savedAt: null }
 }
 
 export function GameProvider({ children }: { children: ReactNode }) {
-  // ⚠️ 当前版本：游戏无存档——每次刷新都是全新一局。
-  // 玩家离开小红书 webview 后进度就丢失，属于已知体验限制。
-  const [state, dispatch] = useReducer(reducer, undefined, initialState)
+  const booted = useMemo(boot, [])
+  const [state, dispatch] = useReducer(reducer, booted.state)
+  const [lastSaved, setLastSaved] = useState<number | null>(booted.savedAt)
 
   // 游戏主循环：200ms 一跳
   useEffect(() => {
@@ -45,14 +49,73 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(id)
   }, [])
 
+  // ── 自动存档 ────────────────────────────────────────────────────────────────
+  const lastSaveRef = useRef(booted.savedAt ?? 0)
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  const flush = useCallback((): number | null => {
+    const at = saveGame(stateRef.current)
+    if (at) {
+      lastSaveRef.current = at
+      setLastSaved(at)
+    }
+    return at
+  }, [])
+
+  // 状态变化时节流写盘（每隔 SAVE_EVERY_MS 最多写一次）
+  useEffect(() => {
+    if (Date.now() - lastSaveRef.current < SAVE_EVERY_MS) return
+    flush()
+  }, [state, flush])
+
+  // 切后台 / 离开页面：立刻补写一次（webview 被挂起时这是最后的落盘机会）
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('pagehide', flush)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('pagehide', flush)
+    }
+  }, [flush])
+
   const assets = assetsOf(state)
+
+  const reset = useCallback(() => {
+    clearSave()
+    lastSaveRef.current = 0
+    setLastSaved(null)
+    dispatch({ type: 'RESTART' })
+  }, [])
+
+  const loadFromSave = useCallback(() => {
+    const save = loadSave()
+    if (!save) return false
+    lastSaveRef.current = save.savedAt || 0
+    setLastSaved(save.savedAt || null)
+    dispatch({ type: 'HYDRATE', state: save.state })
+    return true
+  }, [])
+
+  const removeSave = useCallback(() => {
+    clearSave()
+    lastSaveRef.current = 0
+    setLastSaved(null)
+  }, [])
 
   const value = useMemo<GameContextValue>(() => ({
     state,
     dispatch,
     assets,
-    reset: () => dispatch({ type: 'RESTART' }),
-  }), [state, assets])
+    reset,
+    save: flush,
+    loadFromSave,
+    removeSave,
+    lastSaved,
+  }), [state, assets, reset, flush, loadFromSave, removeSave, lastSaved])
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }
@@ -62,6 +125,3 @@ export function useGame(): GameContextValue {
   if (!ctx) throw new Error('useGame 必须在 GameProvider 内使用')
   return ctx
 }
-
-// 保留 isValidSave 以便未来恢复存档功能时直接复用
-export { isValidSave }

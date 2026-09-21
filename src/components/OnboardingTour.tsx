@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-onboarding-done'
 
-export type OnboardingStep = 'welcome' | 'sail' | 'trade' | 'dock' | 'quest' | 'finish'
+export type OnboardingStep = 'welcome' | 'sail' | 'mapmode' | 'trade' | 'dock' | 'tavern' | 'quest' | 'finish'
 
 interface Props {
   step?: OnboardingStep
@@ -13,15 +13,17 @@ interface Props {
 }
 
 const COPY: Record<OnboardingStep, { title: string; body: string; selector?: string | null; needTab?: string }> = {
-  welcome: { title: '欢迎船长', body: '你是新一任远洋贸易船长。地图上 21 座港口、29 种货物 —— 接下来 4 步带你跑通整条贸易回路。' },
+  welcome: { title: '欢迎船长', body: '你是新一任远洋贸易船长。地图上 21 座港口、29 种货物 —— 接下来 6 步带你跑通整条贸易回路。' },
   sail:    { title: '① 点城市启航',    body: '点地图上任意一座亮起的城市即可起航。航行途中不可买卖，抵达新港后右下角有"加速"按钮。',    selector: '.city-hit',                       needTab: 'map'    },
+  mapmode: { title: '地图双模式', body: '右上角可切换「平面地图 ⇄ 球形地球」。地球模式可以拖动旋转、双指/滚轮缩放，两种模式港口位置一致，随你喜好。', selector: '.map-mode-toggle', needTab: 'map' },
   trade:   { title: '② 市场低买高卖',   body: '切到「市场」：本港只经营特产 + 紧缺货。特产港只卖不买（你只能买入），紧缺港只买不卖（你只能卖出，本港买价高）—— 产地买、销地卖，跑差价。',   selector: '.nav-btn:nth-of-type(2)',         needTab: 'market' },
-  dock:    { title: '③ 船坞升级船只',    body: '切到「船坞」：赚够金币就换更大的船 —— 货舱容量翻倍，单趟利润暴涨。',    selector: '.nav-btn:nth-of-type(4)',         needTab: 'dock'   },
-  quest:   { title: '④ 功勋目标',   body: '切到「功勋」：达成总资产里程碑能领大奖（免费船 + 满载金币），红点亮起即可领取。',   selector: '.nav-btn:nth-of-type(5)',         needTab: 'quest'  },
+  dock:    { title: '③ 船坞升级与改名',    body: '切到「船坞」：赚够金币就换更大的船。点座舰名字旁的 ✏️ 可以给爱船取个响亮的名字。',    selector: '.nav-btn:nth-of-type(4)',         needTab: 'dock'   },
+  tavern:  { title: '④ 酒馆招募船员', body: '船坞右上角可切到「酒馆」：12 位航海好手散布在世界各港，亲自到对应港口才能雇佣，提供永久的航速或利润加成。', selector: '.tavern-toggle', needTab: 'dock' },
+  quest:   { title: '⑤ 功勋目标',   body: '切到「功勋」：达成总资产里程碑能领大奖（免费船 + 满载金币），红点亮起即可领取。',   selector: '.nav-btn:nth-of-type(5)',         needTab: 'quest'  },
   finish:  { title: '准备就绪',  body: '到这里：你的开局就是地图上跑商，别忘了盯紧货舱容量 —— 满载后买不了新货。' },
 }
 
-const ORDER: OnboardingStep[] = ['welcome', 'sail', 'trade', 'dock', 'quest', 'finish']
+const ORDER: OnboardingStep[] = ['welcome', 'sail', 'mapmode', 'trade', 'dock', 'tavern', 'quest', 'finish']
 
 function getRect(sel?: string | null): { top: number; left: number; width: number; height: number } | null {
   if (!sel) return null

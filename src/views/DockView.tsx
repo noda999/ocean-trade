@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import { SHIPS, SHIP_NAME_MAX, shipDisplayName } from '../game/data'
 import { shipOf } from '../game/engine'
+import { crewBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { ShipSprite } from '../components/ShipSprite'
+import TavernView from './TavernView'
 
 export default function DockView() {
   const { state, dispatch } = useGame()
   const current = shipOf(state.shipId)
+  const eff = shipNow(state)
+  const cb = crewBonusOf(state)
+  const [section, setSection] = useState<'ships' | 'tavern'>('ships')
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(state.shipName)
 
@@ -22,9 +27,36 @@ export default function DockView() {
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
       <div className="px-4 pt-4 pb-6">
-        <div className="font-900 text-xl mb-1" style={{ color: '#3d2b10' }}>⚓ 船坞</div>
-        <div className="text-xs mb-4" style={{ color: '#a07030' }}>更快的船省时间，更大的舱赚更多，更高的加成提高利润率</div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="font-900 text-xl" style={{ color: '#3d2b10' }}>{section === 'ships' ? '⚓ 船坞' : '🍺 酒馆'}</div>
+          <div className="ml-auto flex p-1 rounded-xl" style={{ background: '#efe2c8' }}>
+            <button
+              className="text-xs font-800 px-3 py-1.5 rounded-lg"
+              style={{
+                background: section === 'ships' ? '#fff' : 'transparent',
+                color: section === 'ships' ? '#d97320' : '#a07030',
+              }}
+              onClick={() => setSection('ships')}
+            >⚓ 船坞</button>
+            <button
+              className="tavern-toggle text-xs font-800 px-3 py-1.5 rounded-lg"
+              style={{
+                background: section === 'tavern' ? '#fff' : 'transparent',
+                color: section === 'tavern' ? '#d97320' : '#a07030',
+              }}
+              onClick={() => setSection('tavern')}
+            >🍺 酒馆{state.hiredCrew.length ? ` ${state.hiredCrew.length}` : ''}</button>
+          </div>
+        </div>
+        <div className="text-xs mb-4" style={{ color: '#a07030' }}>
+          {section === 'ships'
+            ? '更快的船省时间，更大的舱赚更多，更高的加成提高利润率'
+            : '招募航海好手，永久提供航速或利润加成'}
+        </div>
 
+        {section === 'tavern' && <TavernView />}
+
+        {section === 'ships' && (<>
         {/* 当前座舰 */}
         <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
           <div className="flex items-center gap-3">
@@ -60,7 +92,10 @@ export default function DockView() {
                 </button>
               )}
               <div className="text-xs opacity-85 mt-1">
-                载重 {current.cap} · 航速 {current.speed}x · 利润 +{current.bonus}%
+                载重 {current.cap} · 航速 {eff.speed}x · 利润 +{eff.bonus}%
+                {(cb.speed > 0 || cb.trade > 0) && (
+                  <span className="ml-1" style={{ color: '#fff3c4' }}>（含船员加成）</span>
+                )}
               </div>
             </div>
             <div style={{ transform: 'scale(0.9)' }}>
@@ -88,6 +123,10 @@ export default function DockView() {
             <div className="flex-1 text-center rounded-xl py-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
               <div className="text-xs opacity-80">已拥有船只</div>
               <div className="font-900 text-sm">{state.ownedShips.length} / {SHIPS.length}</div>
+            </div>
+            <div className="flex-1 text-center rounded-xl py-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
+              <div className="text-xs opacity-80">在船船员</div>
+              <div className="font-900 text-sm">{state.hiredCrew.length} 人</div>
             </div>
             <div className="flex-1 text-center rounded-xl py-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
               <div className="text-xs opacity-80">金币</div>
@@ -165,6 +204,7 @@ export default function DockView() {
             )
           })}
         </div>
+        </>)}
       </div>
     </div>
   )

@@ -205,6 +205,120 @@ export const SHIP_BY_ID: Record<string, ShipClass> = Object.fromEntries(
   SHIPS.map(s => [s.id, s]),
 )
 
+// ── 船员（酒馆招募）──────────────────────────────────────────────────────────
+
+/** Q 版形象配置（由 CrewAvatar 组件绘制） */
+export interface CrewLook {
+  skin: string
+  hair: string
+  hairStyle: 'short' | 'long' | 'bun' | 'bald'
+  hat: 'tricorn' | 'sailor' | 'bandana' | 'turban' | 'chef' | 'feather' | 'none'
+  hatColor: string
+  /** 帽子副色（三角帽帽冠 / 头巾羽毛 / 缠头巾浅层） */
+  hatColor2?: string
+  beardStyle?: 'full' | 'mustache'
+  beardColor?: string
+  accessory?: 'eyepatch' | 'pipe' | 'earring' | 'scar'
+}
+
+export interface CrewMember {
+  id: string
+  name: string
+  /** 职位：航海家 / 水手长 / 水手 / 大厨 / 炮手 / 瞭望手… */
+  role: string
+  /** 只能在这座城市招募 */
+  cityId: string
+  cost: number
+  /** 航速加成 %（乘算在船速上） */
+  speed: number
+  /** 卖出利润加成 %（叠加在船只加成上） */
+  trade: number
+  desc: string
+  look: CrewLook
+  /** 卡片主色 */
+  color: string
+}
+
+/** 12 位可雇佣的航海好手，散落在世界各港 */
+export const CREW: CrewMember[] = [
+  {
+    id: 'c_zheng', name: '郑一嫂', role: '航海家', cityId: 'china', cost: 9_000, speed: 10, trade: 0,
+    desc: '红旗帮当家，海图过目不忘，海盗见了都绕道',
+    color: '#d94141',
+    look: { skin: '#ffd9b3', hair: '#1a1a1a', hairStyle: 'long', hat: 'bandana', hatColor: '#d94141', accessory: 'earring' },
+  },
+  {
+    id: 'c_mary', name: '玛丽·雷德', role: '航海家', cityId: 'england', cost: 12_000, speed: 0, trade: 8,
+    desc: '曾是私掠船长，讨价还价从没输过',
+    color: '#c1452b',
+    look: { skin: '#ffd9b3', hair: '#c1452b', hairStyle: 'long', hat: 'tricorn', hatColor: '#3a2d20', hatColor2: '#241b13', accessory: 'eyepatch' },
+  },
+  {
+    id: 'c_sinbad', name: '辛巴达', role: '航海家', cityId: 'arabia', cost: 10_000, speed: 8, trade: 0,
+    desc: '七次远航的老船长，总能抢在风暴前进港',
+    color: '#c9a24b',
+    look: { skin: '#e0a878', hair: '#201510', hairStyle: 'short', hat: 'turban', hatColor: '#efe3c2', hatColor2: '#f8f0d8', beardStyle: 'full', beardColor: '#201510' },
+  },
+  {
+    id: 'c_zhenghe', name: '郑和', role: '大航海家', cityId: 'malacca', cost: 30_000, speed: 10, trade: 6,
+    desc: '七下西洋的舰队总帅，宝船队的传奇',
+    color: '#f0a83c',
+    look: { skin: '#ffd9b3', hair: '#1a1a1a', hairStyle: 'bun', hat: 'none', hatColor: '#f0a83c' },
+  },
+  {
+    id: 'c_raja', name: '拉吉·辛', role: '水手长', cityId: 'india', cost: 6_000, speed: 0, trade: 4,
+    desc: '装卸又快又稳，压舱货也能卖出好价钱',
+    color: '#4c9e5f',
+    look: { skin: '#b57a4a', hair: '#141414', hairStyle: 'short', hat: 'turban', hatColor: '#4c9e5f', hatColor2: '#7cc08d', accessory: 'earring' },
+  },
+  {
+    id: 'c_kotaro', name: '小太郎', role: '水手', cityId: 'japan', cost: 5_000, speed: 5, trade: 0,
+    desc: '桅杆上蹿下跳，收帆张帆只要一半时间',
+    color: '#4a6fa5',
+    look: { skin: '#ffd9b3', hair: '#141414', hairStyle: 'short', hat: 'bandana', hatColor: '#4a6fa5' },
+  },
+  {
+    id: 'c_john', name: '老约翰', role: '老水手', cityId: 'norway', cost: 4_000, speed: 4, trade: 0,
+    desc: '在北海漂了四十年，闭着眼都能认出洋流',
+    color: '#2e4057',
+    look: { skin: '#ffd9b3', hair: '#e8e8e8', hairStyle: 'bald', hat: 'tricorn', hatColor: '#2e4057', hatColor2: '#1f2d3d', beardStyle: 'full', beardColor: '#e8e8e8' },
+  },
+  {
+    id: 'c_pierre', name: '皮埃尔', role: '大厨', cityId: 'france', cost: 5_500, speed: 0, trade: 5,
+    desc: '一手好炖菜让港口官员心情大好，税费都少了',
+    color: '#9b6ee0',
+    look: { skin: '#ffd9b3', hair: '#6b4a2f', hairStyle: 'short', hat: 'chef', hatColor: '#9b6ee0', beardStyle: 'mustache', beardColor: '#6b4a2f' },
+  },
+  {
+    id: 'c_diaz', name: '迪亚士', role: '航海家', cityId: 'spain', cost: 8_000, speed: 6, trade: 0,
+    desc: '绕过好望角的狠人，最懂怎么走顺风航线',
+    color: '#6b2737',
+    look: { skin: '#e8b88a', hair: '#1d1710', hairStyle: 'short', hat: 'tricorn', hatColor: '#6b2737', hatColor2: '#4d1b27', accessory: 'pipe' },
+  },
+  {
+    id: 'c_katalina', name: '卡塔丽娜', role: '炮手', cityId: 'aztec', cost: 7_000, speed: 3, trade: 5,
+    desc: '红发炮神，商路安全她说了算',
+    color: '#b23a48',
+    look: { skin: '#c98a5a', hair: '#141414', hairStyle: 'long', hat: 'feather', hatColor: '#b23a48', hatColor2: '#e8542f', accessory: 'earring' },
+  },
+  {
+    id: 'c_kwame', name: '夸梅', role: '水手', cityId: 'africa', cost: 4_500, speed: 4, trade: 2,
+    desc: '好望角老水手，风浪越大他划得越欢',
+    color: '#3f9e8e',
+    look: { skin: '#8a5a3a', hair: '#141414', hairStyle: 'short', hat: 'bandana', hatColor: '#f5c830', accessory: 'scar' },
+  },
+  {
+    id: 'c_daisy', name: '范黛西', role: '瞭望手', cityId: 'netherlands', cost: 6_500, speed: 6, trade: 0,
+    desc: '站在桅顶就能望见十海里外的商机',
+    color: '#e8874a',
+    look: { skin: '#ffd9b3', hair: '#e8c96b', hairStyle: 'long', hat: 'sailor', hatColor: '#2b5e8f' },
+  },
+]
+
+export const CREW_BY_ID: Record<string, CrewMember> = Object.fromEntries(
+  CREW.map(c => [c.id, c]),
+)
+
 /** 船名未填写时的默认显示 */
 export const DEFAULT_SHIP_NAME = '我的商船'
 /** 显示用船名：玩家自定义为空时回退到默认名 */
@@ -255,6 +369,38 @@ export const MILESTONES: Milestone[] = [
   { id: 'm4', label: '海上商人', target: 150_000, gold: 20_000, boost: 3 },
   { id: 'm5', label: '东方富商', target: 400_000, gold: 50_000, boost: 5 },
   { id: 'm6', label: '大航海王', target: 1_000_000, gold: 120_000, boost: 10 },
+]
+
+/** 贸易成就：按到达城市数 / 买过商品数 / 卖过商品数 / 交易过商品数（买卖并集）解锁 */
+export interface AchievementDef {
+  id: string
+  label: string
+  icon: string
+  desc: string
+  target: number
+  kind: 'visited' | 'bought' | 'sold' | 'traded'
+}
+
+export const ACHIEVEMENTS: AchievementDef[] = [
+  // ── 足迹 ──
+  { id: 'av1', icon: '🧭', label: '初次远航', desc: '到达 2 座城市', target: 2, kind: 'visited' },
+  { id: 'av2', icon: '🗺️', label: '见识渐广', desc: '到达 6 座城市', target: 6, kind: 'visited' },
+  { id: 'av3', icon: '🌏', label: '环游四海', desc: '到达 12 座城市', target: 12, kind: 'visited' },
+  { id: 'av4', icon: '🌐', label: '世界尽头', desc: '到达 18 座城市', target: 18, kind: 'visited' },
+  { id: 'av5', icon: '🌍', label: '全球通', desc: '到达全部 21 座城市', target: 21, kind: 'visited' },
+  // ── 采购 ──
+  { id: 'ab1', icon: '📥', label: '尝鲜买家', desc: '买过 5 种商品', target: 5, kind: 'bought' },
+  { id: 'ab2', icon: '🛒', label: '收购达人', desc: '买过 12 种商品', target: 12, kind: 'bought' },
+  { id: 'ab3', icon: '📦', label: '万货通', desc: '买过 20 种商品', target: 20, kind: 'bought' },
+  { id: 'ab4', icon: '💎', label: '全品收购家', desc: '买过全部 29 种商品', target: 29, kind: 'bought' },
+  // ── 出售 ──
+  { id: 'as1', icon: '💰', label: '第一桶金', desc: '卖出过 5 种商品', target: 5, kind: 'sold' },
+  { id: 'as2', icon: '🤝', label: '销售行家', desc: '卖出过 12 种商品', target: 12, kind: 'sold' },
+  { id: 'as3', icon: '📈', label: '大批发商', desc: '卖出过 20 种商品', target: 20, kind: 'sold' },
+  { id: 'as4', icon: '👑', label: '垄断商人', desc: '卖出过全部 29 种商品', target: 29, kind: 'sold' },
+  // ── 买过且卖过（并集）──
+  { id: 'at1', icon: '⚖️', label: '两头通吃', desc: '交易过（买或卖）10 种商品', target: 10, kind: 'traded' },
+  { id: 'at2', icon: '🔄', label: '全链路商人', desc: '交易过（买或卖）全部 29 种商品', target: 29, kind: 'traded' },
 ]
 
 export const TITLES: { min: number; name: string }[] = [

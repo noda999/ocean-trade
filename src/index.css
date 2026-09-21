@@ -118,6 +118,10 @@ body {
   touch-action: none;
   background: linear-gradient(180deg, #0b1e3a 0%, #102c50 55%, #154067 100%);
 }
+/* v1.0.3：情报/设置等全屏面板打开时暂停地图渲染——
+   球形地球的渐变 SVG + 持续动画在低端 webview 上叠一层面板就会被系统杀掉（闪退），
+   面板打开期间彻底 display:none，关掉面板自动恢复（ResizeObserver 会重新上报尺寸） */
+.world-off .map-canvas { display: none; }
 
 /* ── v1.5.0: 地球装饰 —— 罗盘 / 信风 / 小月亮 ──────────────────────────── */
 @keyframes gw-spin {
@@ -466,6 +470,50 @@ body {
 }
 .float-ship2 { animation: float-ship2 3.5s ease-in-out infinite; }
 
+/* v1.0.3: 玩家船定位光圈 —— 椭圆雷达波纹，一眼找到自己的船 */
+@keyframes my-ship-ping {
+  0%   { transform: scale(0.35); opacity: 1; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+.my-ship-ping {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 64px;
+  height: 22px;
+  margin-left: -32px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(253,230,80,0.95);
+  box-shadow: 0 0 14px rgba(253,230,80,0.8), inset 0 0 6px rgba(253,230,80,0.4);
+  animation: my-ship-ping 1.6s ease-out infinite;
+  pointer-events: none;
+}
+.my-ship-ping.is-late { animation-delay: 0.8s; }
+
+/* 玩家船整体金色发光 —— 船体本体高亮，任何背景下都能一眼找到 */
+@keyframes my-ship-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(253,224,71,0.95)) drop-shadow(0 0 14px rgba(250,204,21,0.6)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(253,224,71,1)) drop-shadow(0 0 22px rgba(250,204,21,0.85)); }
+}
+.my-ship-glow { animation: my-ship-glow 1.8s ease-in-out infinite; }
+
+/* v1.0.4: 地理标注 —— 海峡 / 大洋 / 海湾 / 沙漠 / 山脉，手绘地图式斜体注记 */
+.geo-label {
+  position: absolute;
+  pointer-events: none;
+  white-space: nowrap;
+  font-style: italic;
+  font-weight: 800;
+  user-select: none;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+  font-family: 'Trebuchet MS', 'PingFang SC', sans-serif;
+}
+.geo-ocean    { font-size: 15px; color: rgba(23,78,118,0.78); letter-spacing: 0.32em; }
+.geo-sea      { font-size: 11.5px; color: rgba(28,88,132,0.85); letter-spacing: 0.2em; }
+.geo-strait   { font-size: 10px; color: rgba(28,88,132,0.9); letter-spacing: 0.12em; }
+.geo-desert   { font-size: 11px; color: rgba(148,106,46,0.8); letter-spacing: 0.24em; }
+.geo-mountain { font-size: 10.5px; color: rgba(96,102,76,0.9); letter-spacing: 0.2em; }
+
 /* Wave lines */
 @keyframes wave {
   0% { transform: translateX(0); }
@@ -648,21 +696,22 @@ html, body, #root { height: 100%; margin: 0; }
 }
 .my-ship-tag {
   font-size: 9px; font-weight: 900;
-  color: #fff;
-  background: linear-gradient(135deg, #f5913a, #d97320);
+  color: #4a2e0a;
+  background: linear-gradient(135deg, #ffe066, #f5b914);
+  border: 1px solid rgba(245,185,20,0.9);
   border-radius: 8px;
   padding: 1px 6px;
   margin-bottom: 1px;
   white-space: nowrap;
-  box-shadow: 0 2px 5px rgba(217,115,32,0.5);
+  box-shadow: 0 0 6px rgba(250,204,21,0.85), 0 2px 5px rgba(180,120,10,0.4);
 }
 /* v1.3.0: 玩家船名标签（贴在船体下方） */
 .my-ship-name {
   font-size: 9px;
   font-weight: 800;
-  color: #5a3818;
-  background: rgba(255,255,255,0.94);
-  border: 1px solid rgba(245,145,58,0.55);
+  color: #4a2e0a;
+  background: rgba(255,240,190,0.95);
+  border: 1.5px solid rgba(245,185,20,0.95);
   border-radius: 6px;
   padding: 0 5px;
   margin-top: 1px;
@@ -670,7 +719,7 @@ html, body, #root { height: 100%; margin: 0; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  box-shadow: 0 0 5px rgba(250,204,21,0.7), 0 1px 3px rgba(0,0,0,0.15);
   direction: rtl; /* 中文截断更自然 */
   text-align: left;
 }
