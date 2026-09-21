@@ -78,8 +78,8 @@ export default function CargoView() {
               const unit = mk ? sellPrice(g, cm, ship.bonus) : null
               const value = unit !== null ? unit * c.qty : null
               const itemProfit = value !== null ? value - c.cost : null
-              // 核心规则（v1.5.0）：同一种货本港「只卖不买」（产地）或「只收不卖」（销地）
-              // 卖出只在非产地成立 —— 销地（紧缺）是高价收购地，正是该卖出赚钱的地方
+              // 核心规则：同一种货本港「只卖不买」（产地）或「只买不卖」（销地）
+              // 卖出只在非产地成立 —— 销地（紧缺）本港买价高，正是该卖出赚钱的地方
               const isExportGood = city.exports.includes(gid)
               const isImportGood = city.imports.includes(gid)
               const canSellHere = unit !== null && !isExportGood
@@ -97,7 +97,7 @@ export default function CargoView() {
                           ? <> · 本地卖价 <b style={{ color: '#f5913a' }}>{unit}</b>
                             {isImportGood && <span style={{ color: '#4cba6a' }}>（销地高价）</span>}</>
                           : isExportGood
-                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购（产地）</span></>
+                            ? <> · <span style={{ color: '#c9b394' }}>本港不买（产地）</span></>
                             : <> · <span style={{ color: '#c9b394' }}>本港不经营</span></>}
                       </div>
                     </div>
@@ -118,7 +118,7 @@ export default function CargoView() {
                         </>
                       ) : (
                         <div className="font-800 text-xs" style={{ color: '#c9b394' }}>
-                          {isExportGood ? '本港不回购（产地）' : unit === null ? '本港不经营' : '需运往别港'}
+                          {isExportGood ? '本港不买（产地）' : unit === null ? '本港不经营' : '需运往别港'}
                         </div>
                       )}
                     </div>

@@ -265,13 +265,13 @@ export default function MarketView() {
                       : <span>买入需 <b style={{ color: '#3d2b10' }}>{(Math.min(qty, roomUse) * m.price).toLocaleString()}</b> 金</span>}
                     <span className="ml-auto">
                       {isExport
-                        ? <span style={{ color: '#c9b394' }}>本港不回购（产地）</span>
+                        ? <span style={{ color: '#c9b394' }}>本港不买（产地）</span>
                         : <>卖出得 <b style={{ color: '#4cba6a' }}>{(Math.min(qty, mine?.qty ?? 0) * unit).toLocaleString()}</b> 金</>}
                     </span>
                   </div>
 
                   <div className="flex gap-2">
-                    {/* 产地（特产）：本港只卖不买 → 玩家只能买入（出口商不回购自己的货） */}
+                    {/* 产地（特产）：本港只卖不买 → 玩家只能买入（本港不买自己产的货） */}
                     {!isImport && (
                       <button
                         className="btn-green flex-1 py-2.5 text-sm"
@@ -282,7 +282,7 @@ export default function MarketView() {
                         📥 买入 {Math.min(qty, roomUse)}
                       </button>
                     )}
-                    {/* 销地（紧缺）：本港只收不卖 → 玩家只能卖出，且本港高价收购 */}
+                    {/* 销地（紧缺）：本港只买不卖 → 玩家只能卖出，且本港买价高 */}
                     {!isExport && (
                       <button
                         className="btn-red flex-1 py-2.5 text-sm"
@@ -295,14 +295,14 @@ export default function MarketView() {
                     )}
                   </div>
 
-                  {/* 规则提示：同一种货，本港只卖不买（产地）或只收不卖（销地） */}
+                  {/* 规则提示：同一种货，本港只卖不买（产地）或只买不卖（销地） */}
                   {(isExport || isImport) && (
                     <div
                       className="mt-2 py-2 text-xs text-center rounded-xl"
                       style={{ background: '#fff5ec', color: '#a07030', border: '1.5px dashed #f0e2c8' }}
                     >
-                      {isExport && !isImport && '🏭 产地：本港只卖不买 —— 你只买不卖（特产＝低价出货）'}
-                      {isImport && !isExport && '🚢 销地：本港只收不卖 —— 你只卖不买（紧缺＝高价收购）'}
+                      {isExport && !isImport && '🏭 产地：本港只卖不买 —— 你只买不卖（特产＝买价低）'}
+                      {isImport && !isExport && '🚢 销地：本港只买不卖 —— 你只卖不买（紧缺＝卖价高）'}
                       {isExport && isImport && '⚓ 本港既产也销：仅供查看'}
                     </div>
                   )}

@@ -228,7 +228,7 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
               </div>
               <div className="text-xs mt-2" style={{ color: '#a07030' }}>
                 <span style={{ color: '#4cba6a' }}>买入</span> ＝ 特产港（本港只卖不买）·
-                <span style={{ color: '#d97320' }}> 卖出</span> ＝ 紧缺港（本港只收不卖，高价收购）·
+                <span style={{ color: '#d97320' }}> 卖出</span> ＝ 紧缺港（本港只买不卖，卖价高）·
                 <span style={{ color: '#4cba6a' }}> 绿色</span> 最低买价 ·
                 <span style={{ color: '#e05050' }}> 红色</span> 最高卖价 ·
                 <span style={{ color: '#c9bda8' }}> 不流通 = 该港不经营此货</span>

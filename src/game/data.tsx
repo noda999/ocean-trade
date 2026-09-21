@@ -60,7 +60,7 @@ export interface City {
   side: 'left' | 'right'
   /** 特产（本地便宜，多为唯一产地） */
   exports: string[]
-  /** 紧缺（本地昂贵，高价收购） */
+  /** 紧缺（本地昂贵，本港只买不卖 → 卖价高） */
   imports: string[]
   blurb: string
 }

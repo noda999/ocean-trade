@@ -3,7 +3,7 @@
 //
 //  核心规则（最根本的玩法，别改错）：
 //    · 产地（特产）：本港只卖不买 —— 玩家只能「买入」，卖不回去（出口商不回购）
-//    · 销地（紧缺）：本港只收不卖 —— 玩家只能「卖出」，买不到（进口商不零售）
+//    · 销地（紧缺）：本港只买不卖 —— 玩家只能「卖出」，买不到（进口商不零售）
 //    · 唯一赚钱回路：产地低价买入 → 装船出海 → 销地高价卖出
 //    · 因此「同港买入再卖回」在任何港口都不成立（白嫖船只利润加成的套利被堵死）
 //
@@ -74,8 +74,8 @@ try {
     check(r.cargo[gid]?.qty === 10 && r.money === s0.money, '产地卖出被拒（只卖不买）', `货仍 ${r.cargo[gid]?.qty} 件`)
   }
 
-  // ── 3. 销地（只收不卖）：能卖出，且按本港价结算 ─────────────────────────────
-  section('2) 销地（紧缺）＝ 本港只收不卖')
+  // ── 3. 销地（只买不卖）：能卖出，且按本港价结算 ─────────────────────────────
+  section('2) 销地（紧缺）＝ 本港只买不卖')
   {
     const s0 = { ...base(), cityId: to.id, cargo: { [gid]: { qty: 10, cost: 100 } } }
     const good = GOODS.find(g => g.id === gid)
@@ -87,7 +87,7 @@ try {
   {
     const s0 = { ...base(), cityId: to.id }
     const r = reducer(s0, { type: 'BUY', goodId: gid, qty: 10 })
-    check((r.cargo[gid]?.qty ?? 0) === 0 && r.money === s0.money, '销地买入被拒（只收不卖）', `货 ${r.cargo[gid]?.qty ?? 0} 件`)
+    check((r.cargo[gid]?.qty ?? 0) === 0 && r.money === s0.money, '销地买入被拒（只买不卖）', `货 ${r.cargo[gid]?.qty ?? 0} 件`)
   }
 
   // ── 4. 同港搬运套利被彻底堵死 ──────────────────────────────────────────────
@@ -124,7 +124,7 @@ try {
     const r1 = reducer({ ...base(), cityId: to.id, cargo: { [gid]: { qty: 5, cost: 100 } } }, { type: 'SELL_ALL' })
     check((r1.cargo[gid]?.qty ?? 0) === 0, '销地一键清仓：紧缺货全部卖出')
     const r2 = reducer({ ...base(), cityId: from.id, cargo: { [gid]: { qty: 5, cost: 100 } } }, { type: 'SELL_ALL' })
-    check(r2.cargo[gid]?.qty === 5, '产地一键清仓：不回购的货保留', `保留 ${r2.cargo[gid]?.qty} 件`)
+    check(r2.cargo[gid]?.qty === 5, '产地一键清仓：本港不买的货保留', `保留 ${r2.cargo[gid]?.qty} 件`)
   }
 
   // ── 7. 数值校验：NaN / 负数 / 超量 ─────────────────────────────────────────
@@ -154,7 +154,7 @@ try {
         if (c.imports.includes(gid2)) ambiguous.push(`${c.name}:${gid2}`)
       }
     }
-    check(ambiguous.length === 0, '没有「同港既产也销」的歧义货（只卖不买/只收不卖互斥）', ambiguous.join('、') || '全部 OK')
+    check(ambiguous.length === 0, '没有「同港既产也销」的歧义货（只卖不买/只买不卖互斥）', ambiguous.join('、') || '全部 OK')
   }
 } finally {
   await server.close()

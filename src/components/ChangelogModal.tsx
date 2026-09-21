@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.5.0'
+const CURRENT_VERSION = 'v1.0.2'
 
 interface ChangeItem {
   icon: string
@@ -10,7 +10,7 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '📜', title: '贸易规则修正（关键）', desc: '最根本的玩法回来了：产地「只卖不买」——你只能在那里买入；销地「只收不卖」——你只能在紧缺港卖出，而且本港高价收购。之前销地会拒收紧缺货，导致买了根本卖不掉，现在修好了。' },
+  { icon: '📜', title: '贸易规则修正（关键）', desc: '最根本的玩法回来了：产地「只卖不买」——你只能在那里买入；销地「只买不卖」——你只能在紧缺港卖出，而且本港买价更高。之前紧缺港不买你的货，导致买了根本卖不掉，现在修好了。' },
   { icon: '💰', title: '卖货按钮回来了', desc: '在紧缺港的市场里，缺货商品现在会显示「📤 卖出」按钮并按本港（高价）价结算；不能再买的港口不再显示「买入需」价格，避免误导。' },
   { icon: '🛡️', title: '同港套利依然堵死', desc: '买入的港口卖不回去、卖出的港口买不进，所以「原地买入→卖出」白嫖船只利润加成的漏洞仍然不存在，赚差价只能靠跑远洋。' },
   { icon: '🧀', title: '6 种商品补齐销地', desc: '钟表、燕窝、香草、乳香、橄榄油、烟草之前在任何港口都不是紧缺货——永远卖不掉。现在都给它们配了远洋高价市场（如钟表卖日本/中国/印加、燕窝卖中国/英国）。' },
