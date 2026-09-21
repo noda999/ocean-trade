@@ -130,9 +130,9 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                   </div>
                   <div className="text-xs mb-1" style={{ color: '#a07030' }}>{sel.blurb}</div>
                   <div className="text-xs" style={{ color: '#8a6a40' }}>
-                    特产 <b style={{ color: '#4cba6a' }}>{sel.exports.map(g => GOOD_BY_ID[g].name).join('·')}</b>
+                    特产（可买入） <b style={{ color: '#4cba6a' }}>{sel.exports.map(g => GOOD_BY_ID[g].name).join('·')}</b>
                     {' · '}
-                    紧缺 <b style={{ color: '#e05050' }}>{sel.imports.slice(0, 3).map(g => GOOD_BY_ID[g].name).join('·')}</b>
+                    紧缺（可卖出） <b style={{ color: '#e05050' }}>{sel.imports.slice(0, 3).map(g => GOOD_BY_ID[g].name).join('·')}</b>
                   </div>
                 </div>
                 <button

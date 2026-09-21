@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.4.0'
+const CURRENT_VERSION = 'v1.5.0'
 
 interface ChangeItem {
   icon: string
@@ -10,10 +10,11 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🌍', title: '真·球形地球', desc: '地图右侧新增 🌍/🗺️ 切换按钮：地球模式下地球是圆的！拖动旋转（松手有惯性）、滚轮/双指缩放，航线沿球面大圆走，起航时镜头自动转到航线中点。' },
-  { icon: '🔓', title: '标签不再叠罗汉', desc: '21 个港口的名字做了碰撞避让：挤不下英文副标就只显示中文名，再挤不下只留地标圆点；放大缩小都会自动重新排版，点圆点或标签都能选港。' },
-  { icon: '🔍', title: '缩小时图标自适应', desc: '平面图缩小后地标建筑会跟着变小、不再堆成一团；标签移到不随缩放的浮层，无论放大多少倍字都清晰可读。' },
-  { icon: '⭐', title: '星空与大气层', desc: '地球模式下有深空星幕、大气光晕和晨昏光影，球体感拉满。你的选择会被记住，下次进来还是上次的模式。' },
+  { icon: '📜', title: '贸易规则修正（关键）', desc: '最根本的玩法回来了：产地「只卖不买」——你只能在那里买入；销地「只收不卖」——你只能在紧缺港卖出，而且本港高价收购。之前销地会拒收紧缺货，导致买了根本卖不掉，现在修好了。' },
+  { icon: '💰', title: '卖货按钮回来了', desc: '在紧缺港的市场里，缺货商品现在会显示「📤 卖出」按钮并按本港（高价）价结算；不能再买的港口不再显示「买入需」价格，避免误导。' },
+  { icon: '🛡️', title: '同港套利依然堵死', desc: '买入的港口卖不回去、卖出的港口买不进，所以「原地买入→卖出」白嫖船只利润加成的漏洞仍然不存在，赚差价只能靠跑远洋。' },
+  { icon: '🧀', title: '6 种商品补齐销地', desc: '钟表、燕窝、香草、乳香、橄榄油、烟草之前在任何港口都不是紧缺货——永远卖不掉。现在都给它们配了远洋高价市场（如钟表卖日本/中国/印加、燕窝卖中国/英国）。' },
+  { icon: '🔎', title: '情报页标注买卖方向', desc: '每个港口的价格旁会标「买入」或「卖出」，绿色最低买价、红色最高卖价，一眼看出该去哪儿进货、去哪儿出货。' },
 ]
 
 interface Props {
@@ -82,7 +83,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 球形地球 · 标签防重叠 · 图标自适应
+                {CURRENT_VERSION} · 贸易规则修正 · 卖货回路打通 · 补齐销地
               </div>
             </div>
           </div>

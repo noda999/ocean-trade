@@ -203,6 +203,13 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                       ) : isKnown && m ? (
                         <>
                           <span className="text-xs" style={{ color: '#a07030' }}>库存 {m.stock}</span>
+                          {/* 交易方向：特产＝此处可买入；紧缺＝此处可卖出（v1.5.0 规则） */}
+                          <span
+                            className="text-xs font-800"
+                            style={{ color: isExp ? '#4cba6a' : '#d97320', minWidth: 26, textAlign: 'center' }}
+                          >
+                            {isExp ? '买入' : '卖出'}
+                          </span>
                           <span
                             className="text-sm font-900"
                             style={{ color: m.price === pmin ? '#4cba6a' : m.price === pmax ? '#e05050' : '#3d2b10' }}
@@ -220,8 +227,10 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                 })}
               </div>
               <div className="text-xs mt-2" style={{ color: '#a07030' }}>
-                <span style={{ color: '#4cba6a' }}>绿色</span> 为最低买价 ·
-                <span style={{ color: '#e05050' }}> 红色</span> 为最高价 ·
+                <span style={{ color: '#4cba6a' }}>买入</span> ＝ 特产港（本港只卖不买）·
+                <span style={{ color: '#d97320' }}> 卖出</span> ＝ 紧缺港（本港只收不卖，高价收购）·
+                <span style={{ color: '#4cba6a' }}> 绿色</span> 最低买价 ·
+                <span style={{ color: '#e05050' }}> 红色</span> 最高卖价 ·
                 <span style={{ color: '#c9bda8' }}> 不流通 = 该港不经营此货</span>
               </div>
             </div>

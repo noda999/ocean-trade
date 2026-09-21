@@ -1,7 +1,7 @@
 {
   "name": "figma-make-app",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "pack:all": "npm run build:all && npm run pack:xhs",
     "preview:xhs": "node scripts/serve-xhs.cjs",
     "preview": "vite preview",
+    "test:rules": "node scripts/test-trade-rules.mjs",
     "format": "oxfmt"
   },
   "dependencies": {

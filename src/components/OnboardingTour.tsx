@@ -13,9 +13,9 @@ interface Props {
 }
 
 const COPY: Record<OnboardingStep, { title: string; body: string; selector?: string | null; needTab?: string }> = {
-  welcome: { title: '欢迎船长', body: '你是新一任远洋贸易船长。地图上 15 座港口、6 种货物 —— 接下来 4 步带你跑通整条贸易回路。' },
+  welcome: { title: '欢迎船长', body: '你是新一任远洋贸易船长。地图上 21 座港口、29 种货物 —— 接下来 4 步带你跑通整条贸易回路。' },
   sail:    { title: '① 点城市启航',    body: '点地图上任意一座亮起的城市即可起航。航行途中不可买卖，抵达新港后右下角有"加速"按钮。',    selector: '.city-hit',                       needTab: 'map'    },
-  trade:   { title: '② 市场低买高卖',   body: '切到「市场」：本港只经营特产 + 紧缺货。特产价低、紧缺价高—— 跨城倒卖赚差价。',   selector: '.nav-btn:nth-of-type(2)',         needTab: 'market' },
+  trade:   { title: '② 市场低买高卖',   body: '切到「市场」：本港只经营特产 + 紧缺货。特产港只卖不买（你只能买入），紧缺港只收不卖（你只能卖出，本港高价收购）—— 产地买、销地卖，跑差价。',   selector: '.nav-btn:nth-of-type(2)',         needTab: 'market' },
   dock:    { title: '③ 船坞升级船只',    body: '切到「船坞」：赚够金币就换更大的船 —— 货舱容量翻倍，单趟利润暴涨。',    selector: '.nav-btn:nth-of-type(4)',         needTab: 'dock'   },
   quest:   { title: '④ 功勋目标',   body: '切到「功勋」：达成总资产里程碑能领大奖（免费船 + 满载金币），红点亮起即可领取。',   selector: '.nav-btn:nth-of-type(5)',         needTab: 'quest'  },
   finish:  { title: '准备就绪',  body: '到这里：你的开局就是地图上跑商，别忘了盯紧货舱容量 —— 满载后买不了新货。' },

@@ -78,10 +78,11 @@ export default function CargoView() {
               const unit = mk ? sellPrice(g, cm, ship.bonus) : null
               const value = unit !== null ? unit * c.qty : null
               const itemProfit = value !== null ? value - c.cost : null
-              // 本港是否禁止卖出：销地不向本港进口商回购 / 产地不向本港出口商回购（双向反套利）
-              const isBlockedByImport = city.imports.includes(gid)
-              const isBlockedByExport = city.exports.includes(gid)
-              const canSellHere = unit !== null && !isBlockedByImport && !isBlockedByExport
+              // 核心规则（v1.5.0）：同一种货本港「只卖不买」（产地）或「只收不卖」（销地）
+              // 卖出只在非产地成立 —— 销地（紧缺）是高价收购地，正是该卖出赚钱的地方
+              const isExportGood = city.exports.includes(gid)
+              const isImportGood = city.imports.includes(gid)
+              const canSellHere = unit !== null && !isExportGood
               return (
                 <div key={gid} className="panel-white p-3" style={{ borderRadius: 14 }}>
                   <div className="flex items-center gap-3">
@@ -93,12 +94,11 @@ export default function CargoView() {
                       <div className="text-xs" style={{ color: '#a07030' }}>
                         成本 {(c.cost / c.qty).toFixed(0)}
                         {canSellHere
-                          ? <> · 本地卖价 <b style={{ color: '#f5913a' }}>{unit}</b></>
-                          : isBlockedByImport
-                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购（销地）</span></>
-                            : isBlockedByExport
-                              ? <> · <span style={{ color: '#c9b394' }}>本港不回购（产地）</span></>
-                              : <> · <span style={{ color: '#c9b394' }}>本港不收购</span></>}
+                          ? <> · 本地卖价 <b style={{ color: '#f5913a' }}>{unit}</b>
+                            {isImportGood && <span style={{ color: '#4cba6a' }}>（销地高价）</span>}</>
+                          : isExportGood
+                            ? <> · <span style={{ color: '#c9b394' }}>本港不回购（产地）</span></>
+                            : <> · <span style={{ color: '#c9b394' }}>本港不经营</span></>}
                       </div>
                     </div>
                     <div className="text-right">
@@ -118,7 +118,7 @@ export default function CargoView() {
                         </>
                       ) : (
                         <div className="font-800 text-xs" style={{ color: '#c9b394' }}>
-                          {isBlockedByImport ? '本港不回购（销地）' : isBlockedByExport ? '本港不回购（产地）' : '需运往别港'}
+                          {isExportGood ? '本港不回购（产地）' : unit === null ? '本港不经营' : '需运往别港'}
                         </div>
                       )}
                     </div>

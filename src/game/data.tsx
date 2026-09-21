@@ -73,17 +73,17 @@ export const CITIES: City[] = [
   },
   {
     id: 'england', name: '英国', sub: 'ENGLAND', x: 7, y: 30, side: 'right',
-    exports: ['wool', 'whisky'], imports: ['tea', 'spice', 'fur', 'carpet'],
+    exports: ['wool', 'whisky'], imports: ['tea', 'spice', 'fur', 'carpet', 'nest', 'frankincense'],
     blurb: '雾都港埠，羊毛与麦芽威士忌之乡',
   },
   {
     id: 'france', name: '法国', sub: 'FRANCE', x: 17, y: 43, side: 'right',
-    exports: ['wine', 'perfume'], imports: ['wool', 'fur', 'silk', 'coffee'],
+    exports: ['wine', 'perfume'], imports: ['wool', 'fur', 'silk', 'coffee', 'vanilla', 'olive'],
     blurb: '塞纳河畔，葡萄酒与香水的国度',
   },
   {
     id: 'egypt', name: '埃及', sub: 'EGYPT', x: 29, y: 49, side: 'right',
-    exports: ['cotton', 'grain'], imports: ['timber', 'wine', 'silver', 'spice'],
+    exports: ['cotton', 'grain'], imports: ['timber', 'wine', 'silver', 'spice', 'frankincense'],
     blurb: '尼罗河畔的粮仓，长绒棉之乡',
   },
   {
@@ -98,7 +98,7 @@ export const CITIES: City[] = [
   },
   {
     id: 'india', name: '印度', sub: 'INDIA', x: 53, y: 29, side: 'right',
-    exports: ['spice', 'cotton'], imports: ['carpet', 'gem', 'silver', 'clove'],
+    exports: ['spice', 'cotton'], imports: ['carpet', 'gem', 'silver', 'clove', 'frankincense'],
     blurb: '香料与棉花的帝国',
   },
   {
@@ -108,12 +108,12 @@ export const CITIES: City[] = [
   },
   {
     id: 'china', name: '中国', sub: 'CHINA', x: 76, y: 14, side: 'left',
-    exports: ['silk', 'porcelain', 'tea'], imports: ['pearl', 'clove', 'rose', 'wine'],
+    exports: ['silk', 'porcelain', 'tea'], imports: ['pearl', 'clove', 'rose', 'wine', 'nest', 'watch'],
     blurb: '丝绸与瓷器之乡，海内最富',
   },
   {
     id: 'japan', name: '日本', sub: 'JAPAN', x: 94, y: 34, side: 'left',
-    exports: ['sword', 'silver'], imports: ['silk', 'tea', 'cotton', 'gem'],
+    exports: ['sword', 'silver'], imports: ['silk', 'tea', 'cotton', 'gem', 'watch', 'tobacco'],
     blurb: '樱花之国，锻造与白银之邦',
   },
   {
@@ -133,12 +133,12 @@ export const CITIES: City[] = [
   },
   {
     id: 'aztec', name: '阿兹特克', sub: 'AZTEC', x: 85, y: 89, side: 'left',
-    exports: ['silver', 'cacao'], imports: ['silk', 'tea', 'wine'],
+    exports: ['silver', 'cacao'], imports: ['silk', 'tea', 'wine', 'vanilla'],
     blurb: '新大陆的白银王国',
   },
   {
     id: 'inca', name: '印加', sub: 'INCA', x: 63, y: 97, side: 'left',
-    exports: ['gold', 'gem'], imports: ['sword', 'perfume', 'wool'],
+    exports: ['gold', 'gem'], imports: ['sword', 'perfume', 'wool', 'watch', 'olive'],
     blurb: '云中之城，黄金与宝石之地',
   },
   // ── v1.3.0 新增 6 个港口 ──
@@ -149,7 +149,7 @@ export const CITIES: City[] = [
   },
   {
     id: 'netherlands', name: '荷兰', sub: 'NETHERLANDS', x: 22, y: 25, side: 'right',
-    exports: ['cheese', 'watch'], imports: ['silk', 'tea', 'gem', 'wine'],
+    exports: ['cheese', 'watch'], imports: ['silk', 'tea', 'gem', 'wine', 'vanilla', 'tobacco'],
     blurb: '低地之国，风车与郁金香，钟表匠之都',
   },
   {

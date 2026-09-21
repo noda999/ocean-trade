@@ -331,10 +331,10 @@ export function reducer(state: GameState, action: Action): GameState {
       const m = cm?.[good.id]
       if (!m) { pushToast(s, '🚫', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，去原产地看看`, 'bad'); return s }
       const city = CITY_BY_ID[s.cityId]
-      // 销地 = 本港是进口商：进口商只收货不出售（他们是来买货的，不是卖货的）。
+      // 销地 = 本港是进口商：只收不卖 —— 紧缺即高价收购，玩家只能在此卖出；买入请去产地。
       // 玩家应去产地 BUY 装船出海，再运到销地 SELL，这才是海上贸易的正确流向。
       if (city.imports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 紧缺 ${good.name}，本港进口商只收货不出售`, 'bad'); return s
+        pushToast(s, '🚫', `${city.name} 紧缺 ${good.name}，本港只收不卖，此处只能卖出`, 'bad'); return s
       }
       const ship = shipOf(s.shipId)
       const room = ship.cap - cargoUnits(s.cargo)
@@ -368,15 +368,14 @@ export function reducer(state: GameState, action: Action): GameState {
       const m = cm?.[good.id]
       if (!m) { pushToast(s, '🚫', `${CITY_BY_ID[s.cityId].name} 不收购 ${good.name}，运往别处看看`, 'bad'); return s }
       const city = CITY_BY_ID[s.cityId]
-      // 销地 = 本港是进口商：不该让玩家把紧缺货卖回本港进口商（防止反向套利）
-      if (city.imports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 紧缺 ${good.name}，本港进口商不回购`, 'bad'); return s
-      }
-      // 产地 = 本港是出口商：出口商本身就在卖同种货，不会以本港价反向回购玩家货物
-      // （防止玩家从销地运特产到本港，靠 spike 暴涨时套利）
+      // ── 核心贸易规则（v1.5.0 修正）：同一种货，本港要么「只卖不买」，要么「只收不卖」──
+      // 1) 产地（特产）：本港出口商自己就在卖这种货 → 只卖不买，不回购玩家手里的货
+      //    （否则可在产地「买入 → 原地卖回」，白嫖船只利润加成）
       if (city.exports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 是 ${good.name} 的产地，本港出口商不回购`, 'bad'); return s
+        pushToast(s, '🚫', `${city.name} 是 ${good.name} 的产地，本港只卖不买，不回购`, 'bad'); return s
       }
+      // 2) 销地（紧缺）：本港进口商高价收购 → 只收不卖，玩家到这里就是要卖出赚钱
+      //    （BUY 已在销地被拦截，所以不存在「同港买入再卖回」的套利空间）
       const ship = shipOf(s.shipId)
       const held = s.cargo[good.id]
       if (!held || held.qty <= 0) { pushToast(s, '📦', `货舱里没有 ${good.name}`, 'bad'); return s }
@@ -426,9 +425,9 @@ export function reducer(state: GameState, action: Action): GameState {
       }
       const sellable = ids.filter(gid => {
         if (!s.cargo[gid] || !s.markets[s.cityId]?.[gid]) return false
-        // 销地不向本港进口商回购；产地不向本港出口商回购（同反向套利校验）
+        // 只有产地不回购（本港只卖不买）；销地是紧缺高价收购地，能卖就卖
         const c = CITY_BY_ID[s.cityId]
-        if (c.imports.includes(gid) || c.exports.includes(gid)) return false
+        if (c.exports.includes(gid)) return false
         return true
       })
       const blocked = ids.filter(gid => !sellable.includes(gid))
@@ -437,7 +436,7 @@ export function reducer(state: GameState, action: Action): GameState {
       }
       if (blocked.length) {
         s = { ...s, toasts: [...s.toasts] }
-        pushToast(s, '📦', `${blocked.map(g => GOOD_BY_ID[g].name).join('、')} 本港不收购，已保留`, 'info')
+        pushToast(s, '📦', `${blocked.map(g => GOOD_BY_ID[g].name).join('、')} 本港不回购（产地），已保留`, 'info')
       }
       return s
     }
