@@ -23,6 +23,16 @@ const GZ_MIN = 0.75
 const GZ_MAX = 2.6
 const LAT_LIMIT = 80
 
+/** 海面信风点缀：屏幕坐标随视角脉动，pointer-events: none 让点击穿透到下面的城市/船只 */
+const WIND_ARROWS: { lat: number; lon: number }[] = [
+  { lat: 18, lon: -30 },
+  { lat: -22, lon: 65 },
+  { lat: 35, lon: 130 },
+  { lat: -38, lon: -85 },
+  { lat: 8, lon: 95 },
+  { lat: 50, lon: -160 },
+]
+
 interface Props {
   selected: string | null
   setSelected: (v: string | null) => void
@@ -122,7 +132,7 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
   }, [stopInertia])
 
   // ── 投影几何 ──────────────────────────────────────────────────────────────
-  const R = Math.min(size.w, size.h) * 0.42 * zoomG
+  const R = Math.min(size.w, size.h) * 0.46 * zoomG
   const cx = size.w / 2
   const cy = size.h / 2
   const sphere = useMemo(
@@ -176,10 +186,10 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
   }
 
   function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
-    if (pointersRef.current.has(e.pointerId)) {
-      pointersRef.current.delete(e.pointerId)
-      try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
-    }
+    // 不是从地球根节点起的手势（例如点中 .city-hit / .city-tag 后冒泡上来的 pointerup）→ 不处理
+    if (!pointersRef.current.has(e.pointerId)) return
+    pointersRef.current.delete(e.pointerId)
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
     if (pointersRef.current.size === 0) {
       if (!dragRef.current.isDragging) setSelected(null)
       else kickInertia(inertiaRef.current.vLon, inertiaRef.current.vLat)
@@ -360,7 +370,8 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
         ))}
 
         {/* 大气光晕 */}
-        <circle cx={cx} cy={cy} r={R + 7} fill="none" stroke="rgba(160,220,255,0.35)" strokeWidth="10" />
+        <circle cx={cx} cy={cy} r={R + 18} fill="none" stroke="rgba(120,180,230,0.16)" strokeWidth="20" />
+        <circle cx={cx} cy={cy} r={R + 8} fill="none" stroke="rgba(160,220,255,0.45)" strokeWidth="11" />
         <circle cx={cx} cy={cy} r={R + 2} fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.4" />
 
         {/* 海洋球体 */}
@@ -402,6 +413,37 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
             stroke="rgba(245,145,58,0.9)" strokeWidth="1.8" strokeDasharray="4,3" />
         )}
       </svg>
+
+      {/* ── 地球周围装饰：轨道小月亮 + N/S/E/W 罗盘 + 海面信风 ── */}
+      {/* 小月亮：CSS keyframe 绕地心匀速公转 */}
+      <div className="gw-orbit-pointer" style={{ left: cx, top: cy }}>
+        <div className="gw-moon-orbit" style={{ '--gw-r': `${R + 14}px` } as React.CSSProperties}>
+          <div className="gw-moon-dot" />
+        </div>
+      </div>
+
+      {/* 罗盘字母：钉在地平线上，跟着视角永远显示在屏幕四边 */}
+      <div className="gw-compass font-900 select-none">
+        <span style={{ left: cx, top: cy - R - 14 }}>N</span>
+        <span style={{ left: cx, top: cy + R + 14 }}>S</span>
+        <span style={{ left: cx + R + 14, top: cy }}>E</span>
+        <span style={{ left: cx - R - 14, top: cy }}>W</span>
+      </div>
+
+      {/* 海面信风箭头（点缀用，屏幕坐标随视角脉动） */}
+      {WIND_ARROWS.map((a, i) => {
+        const p = sphere.project(a.lon, a.lat)
+        if (p.z < 0.05) return null
+        return (
+          <div key={`gw-wind-${i}`} className="gw-wind-pin" style={{ left: p.x, top: p.y }}>
+            <div className="gw-wind-arrow" style={{ animationDelay: `${i * 0.7}s` }}>
+              <svg width="24" height="9" viewBox="0 0 24 9">
+                <path d="M0 4.5 L20 4.5 M16 1 L21 4.5 L16 8" stroke="rgba(255,255,255,0.85)" strokeWidth="1.1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          </div>
+        )
+      })}
 
       {/* ── 城市地标（HTML 层，背面自动隐藏） ── */}
       {cityPts.map(({ c, p, vis }) => {

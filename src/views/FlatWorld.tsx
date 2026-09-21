@@ -175,10 +175,10 @@ export default function FlatWorld({ selected, setSelected }: Props) {
     }
   }
   function onPointerUp(e: ReactPointerEvent<HTMLDivElement>) {
-    if (pointersRef.current.has(e.pointerId)) {
-      pointersRef.current.delete(e.pointerId)
-      try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
-    }
+    // 不是从地图根节点起的手势（例如点中 .city-hit / .city-tag 后冒泡上来的 pointerup）→ 不处理
+    if (!pointersRef.current.has(e.pointerId)) return
+    pointersRef.current.delete(e.pointerId)
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* ignore */ }
     if (pointersRef.current.size === 0) {
       if (!dragRef.current.isDragging) {
         // 算作点击空海：取消高亮
