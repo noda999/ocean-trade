@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.1.0'
+const CURRENT_VERSION = 'v1.2.0'
 
 interface ChangeItem {
   icon: string
@@ -10,8 +10,9 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🛠️', title: '修复玩法漏洞', desc: '产地反套利：在特产港低价买入再在同港卖出可刷钱的漏洞已堵；BUY/SELL 数值校验更严，越界不会丢金币；「最佳出货」提示已排除本港，避免把货卖回产地。' },
-  { icon: '🧭', title: '上线新手导览', desc: '5 步带高亮指引：起航 → 市场买卖 → 船坞升级 → 功勋目标，从 0 跑通整条贸易回路，第一次玩也不会迷路。' },
+  { icon: '🪙', title: '黄金图标换金条', desc: '原来的 🪙 硬币容易和别的圆币搞混，现在改成纯手绘的金条图标（带 999 钢印 + 高光），一眼就知道是黄金。' },
+  { icon: '🕌', title: '阿拉伯图标重画', desc: '原版和印度泰姬陵太像 —— 都白圆顶+高塔。现在穹顶改成沙金色、双塔尖换成金色穹顶 + 顶着大新月，跟印度的纯白洋葱穹顶一眼能分清。' },
+  { icon: '📍', title: '城市标签防溢出', desc: '法国/阿拉伯标签方向重排：左侧城市标签朝右放（避免手机屏幕左边被截掉）；阿拉伯标签移到左边（避开印度建筑挡文字）。' },
 ]
 
 interface Props {

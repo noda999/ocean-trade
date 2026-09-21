@@ -2,10 +2,12 @@
 //  远洋贸易 · 静态配置数据
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { GoldBar } from '../components/Landmarks'
+
 export interface Good {
   id: string
   name: string
-  icon: string
+  icon: string | React.ReactElement
   base: number
 }
 
@@ -17,7 +19,7 @@ export const GOODS: Good[] = [
   { id: 'spice', name: '香料', icon: '🌶️', base: 120 },
   { id: 'cotton', name: '棉花', icon: '☁️', base: 45 },
   { id: 'pearl', name: '珍珠', icon: '⚪', base: 350 },
-  { id: 'gold', name: '黄金', icon: '🪙', base: 520 },
+  { id: 'gold', name: '黄金', icon: <GoldBar size={18} />, base: 520 },
   { id: 'clove', name: '丁香', icon: '🌿', base: 160 },
   { id: 'timber', name: '木材', icon: '🪵', base: 80 },
   { id: 'coffee', name: '咖啡', icon: '☕', base: 110 },
@@ -67,7 +69,7 @@ export const CITIES: City[] = [
     blurb: '雾都港埠，羊毛与麦芽威士忌之乡',
   },
   {
-    id: 'france', name: '法国', sub: 'FRANCE', x: 17, y: 43, side: 'left',
+    id: 'france', name: '法国', sub: 'FRANCE', x: 17, y: 43, side: 'right',
     exports: ['wine', 'perfume'], imports: ['wool', 'fur', 'silk', 'coffee'],
     blurb: '塞纳河畔，葡萄酒与香水的国度',
   },
@@ -82,7 +84,7 @@ export const CITIES: City[] = [
     blurb: '丝路古国，玫瑰与地毯的故乡',
   },
   {
-    id: 'arabia', name: '阿拉伯', sub: 'ARABIA', x: 38, y: 34, side: 'right',
+    id: 'arabia', name: '阿拉伯', sub: 'ARABIA', x: 38, y: 34, side: 'left',
     exports: ['pearl', 'coffee'], imports: ['timber', 'grain', 'silk', 'porcelain'],
     blurb: '沙漠商路的中心，珍珠汇聚之地',
   },

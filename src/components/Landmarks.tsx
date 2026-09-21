@@ -145,7 +145,7 @@ export function LandmarkSriLanka({ size = 96 }: Props) {
   )
 }
 
-/** 🇸🇦 阿拉伯 · 清真寺与双尖塔 */
+/** 🇸🇦 阿拉伯 · 清真寺 + 沙金色大穹顶 + 大新月（区别于印度纯白圆顶） */
 export function LandmarkArabia({ size = 96 }: Props) {
   return (
     <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
@@ -156,31 +156,38 @@ export function LandmarkArabia({ size = 96 }: Props) {
       <rect x="20" y="58" width="56" height="32" rx="3" fill="#fbf3e2" />
       <rect x="20" y="58" width="56" height="6" rx="3" fill="#ece0c6" />
       {/* 拱门 */}
-      <path d="M42 90 L42 72 Q48 64 54 72 L54 90 Z" fill="#8d6a4a" opacity="0.8" />
-      <path d="M28 90 L28 78 Q31 74 34 78 L34 90 Z" fill="#b99a72" opacity="0.7" />
-      <path d="M62 90 L62 78 Q65 74 68 78 L68 90 Z" fill="#b99a72" opacity="0.7" />
-      {/* 大穹顶 */}
-      <path d="M48 22 Q72 34 66 58 L30 58 Q24 34 48 22 Z" fill="#fdf8ee" />
-      <path d="M48 22 Q64 32 62 52 L48 55 Z" fill="#fffdf7" opacity="0.8" />
-      <path d="M36 48 Q40 36 48 30" stroke="white" strokeWidth="4" strokeLinecap="round" opacity="0.35" fill="none" />
-      {/* 新月 */}
-      <circle cx="48" cy="16" r="5" fill="#f5c830" />
-      <circle cx="50.5" cy="14" r="3.6" fill="#fdf8ee" />
-      {/* 双尖塔 */}
+      <path d="M42 90 L42 72 Q48 64 54 72 L54 90 Z" fill="#8d6a4a" opacity="0.85" />
+      <path d="M28 90 L28 78 Q31 74 34 78 L34 90 Z" fill="#b99a72" opacity="0.75" />
+      <path d="M62 90 L62 78 Q65 74 68 78 L68 90 Z" fill="#b99a72" opacity="0.75" />
+      {/* 大穹顶（沙金色，区别于印度纯白） */}
+      <path d="M48 22 Q72 34 66 58 L30 58 Q24 34 48 22 Z" fill="#c98c45" />
+      <path d="M48 22 Q64 32 62 52 L48 55 Z" fill="#e0a560" opacity="0.85" />
+      <path d="M36 48 Q40 36 48 30" stroke="#fff5cc" strokeWidth="3.5" strokeLinecap="round" opacity="0.4" fill="none" />
+      {/* 穹顶底金边 + 几何纹带 */}
+      <rect x="30" y="57" width="36" height="3" fill="#7a5a2a" />
+      <rect x="30" y="60" width="36" height="1.4" fill="#7a5a2a" opacity="0.55" />
+      {/* 大新月（伊斯兰标志） */}
+      <circle cx="48" cy="13" r="7.5" fill="#fff5cc" />
+      <circle cx="51.5" cy="11" r="5.5" fill="#c98c45" />
+      {/* 顶金光柱 */}
+      <rect x="47" y="2" width="2" height="6" rx="1" fill="#e3b566" />
+      <circle cx="48" cy="2" r="1.8" fill="#f5c830" />
+      {/* 双宣礼塔（沙白塔身 + 金色塔尖） */}
       {[12, 84].map((x, i) => (
         <g key={i}>
           <rect x={x - 5} y="38" width="10" height="52" rx="2" fill="#f8efdb" />
           <rect x={x - 7} y="72" width="14" height="4" rx="2" fill="#e8dbc0" />
           <rect x={x - 7} y="58" width="14" height="4" rx="2" fill="#e8dbc0" />
           <rect x={x - 7} y="44" width="14" height="4" rx="2" fill="#e8dbc0" />
-          <path d={`M${x} 30 Q${x + 8} 34 ${x + 6} 40 L${x - 6} 40 Q${x - 8} 34 ${x} 30 Z`} fill="#fdf8ee" />
-          <path d={`M${x} 22 Q${x + 5} 26 ${x + 4} 31 L${x - 4} 31 Q${x - 5} 26 ${x} 22 Z`} fill="#fdf8ee" />
-          <rect x={x - 1} y="14" width="2" height="9" rx="1" fill="#e3b566" />
-          <circle cx={x} cy="13" r="2.4" fill="#f5c830" />
+          {/* 塔顶小金顶（区别于印度纯白塔尖） */}
+          <path d={`M${x} 30 Q${x + 7} 34 ${x + 5} 40 L${x - 5} 40 Q${x - 7} 34 ${x} 30 Z`} fill="#c98c45" />
+          <path d={`M${x} 22 Q${x + 5} 26 ${x + 4} 31 L${x - 4} 31 Q${x - 5} 26 ${x} 22 Z`} fill="#e0a560" />
+          {/* 塔尖新月 */}
+          <rect x={x - 1} y="14" width="2" height="8" rx="1" fill="#e3b566" />
+          <circle cx={x} cy="14" r="3" fill="#fff5cc" />
+          <circle cx={x + 1.2} cy="13" r="2.2" fill="#c98c45" />
         </g>
       ))}
-      {/* 旌旗 */}
-      <path d="M48 6 L48 2" stroke="#e3b566" strokeWidth="1.5" />
     </svg>
   )
 }
@@ -614,6 +621,22 @@ export const LANDMARKS: Record<string, (p: Props) => ReactElement> = {
   java: LandmarkJava,
   aztec: LandmarkAztec,
   inca: LandmarkInca,
+}
+
+/** 🪙→🔶 黄金货物图标：纯 SVG 金条（区别于 🪙 硬币） */
+export function GoldBar({ size = 18 }: Props) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={{ verticalAlign: '-3px' }}>
+      {/* 高光面 */}
+      <rect x="2" y="7" width="20" height="12" rx="2.5" fill="#f5c830" stroke="#a87520" strokeWidth="1.4" />
+      <rect x="2" y="7" width="20" height="3.4" fill="#fff0b0" />
+      <rect x="2" y="15.6" width="20" height="3.4" fill="#c98c45" />
+      {/* 999 钢印 */}
+      <text x="12" y="15.4" fontSize="6" fontWeight="900" textAnchor="middle" fill="#7a5a1a" fontFamily="Georgia, serif" letterSpacing="0.5">999</text>
+      {/* 高光 */}
+      <rect x="4" y="8.4" width="3" height="1.4" rx="0.7" fill="#fff8d8" opacity="0.85" />
+    </svg>
+  )
 }
 
 export function CityLandmark({ id, size = 96 }: { id: string; size?: number }) {
