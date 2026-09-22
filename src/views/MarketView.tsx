@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { CITIES, CITY_BY_ID, GOOD_BY_ID } from '../game/data'
+import { CITIES, CITY_BY_ID, CITY_EVENT_INFO, GOOD_BY_ID, SECRET_OF_CITY, isSecretGood, repTierName } from '../game/data'
 import {
-  anchorPrice, bestSellHint, cargoUnits, isScarce, sellPrice,
+  anchorPrice, bestSellHint, cargoUnits, eventBuyMult, eventSellMult, isBlockaded, isScarce, sellPrice,
 } from '../game/engine'
-import { shipNow } from '../game/state'
+import { cityEventOf, investBonusOf, repBonusOf, repOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
+import BankView from './BankView'
 
 export default function MarketView() {
   const { state, dispatch } = useGame()
@@ -23,7 +24,15 @@ export default function MarketView() {
   const held = cargoUnits(state.cargo)
   const room = ship.cap - held
   const sailing = state.voyage
-  const canTrade = here && !sailing
+  // 商情事件（v1.3.0）：封锁中本港禁止交易
+  const viewEv = cityEventOf(state, viewCityId)
+  const viewBlockaded = isBlockaded(viewEv)
+  const canTrade = here && !sailing && !viewBlockaded
+  const investBonus = here ? investBonusOf(state, viewCityId) : { buy: 0, sell: 0, dividend: 0 }
+  // 快报只播报已探明港口（未探明的行情需先买情报网络或亲自到访）
+  const newsList = Object.entries(state.cityEvents)
+    .filter(([cid, ev]) => ev.until > state.clock && (state.intelOwned || state.visited.includes(cid)))
+    .sort((a, b) => a[1].until - b[1].until)
 
   // 自动夹住 qty：市场刷新或货舱变化导致可用上限缩小时，UI 数量跟着缩
   useEffect(() => {
@@ -37,8 +46,14 @@ export default function MarketView() {
   // 抵达新港口时自动切回本港
   useEffect(() => { setViewCityId(state.cityId) }, [state.cityId])
 
-  // 每个港口只经营自己的特产 + 紧缺货，其余不挂牌
-  const tradedIds = [...city.exports, ...city.imports.filter(x => !city.exports.includes(x))]
+  // 每个港口只经营自己的特产 + 紧缺货，其余不挂牌；
+  // 隐藏特产（v1.4.0）在本港投资 ≥ 1 级解锁后才挂牌
+  const secretId = SECRET_OF_CITY[city.id]
+  const unlockedHere = secretUnlocked(state, city.id)
+  const tradedIds = [
+    ...city.exports.filter(id => id !== secretId || unlockedHere),
+    ...city.imports.filter(x => !city.exports.includes(x)),
+  ]
 
   /** 是否掌握该城市实时行情 */
   const isKnown = (cid: string) => state.intelOwned || state.visited.includes(cid)
@@ -80,8 +95,28 @@ export default function MarketView() {
                 : <span className="badge-orange">仅查看</span>}
             </div>
             <div className="text-xs" style={{ color: '#a07030' }}>
-              特产 <b style={{ color: '#4cba6a' }}>{city.exports.map(g => GOOD_BY_ID[g].name).join('·')}</b>
+              特产 <b style={{ color: '#4cba6a' }}>
+                {city.exports.filter(g => g !== secretId || unlockedHere).map(g => GOOD_BY_ID[g].name).join('·')}
+              </b>
               {' · '}行情 <b style={{ color: '#e05050' }}>{refreshIn}s</b> 后刷新
+            </div>
+            {secretId && !unlockedHere && (
+              <div className="text-xs font-800 mt-0.5" style={{ color: '#b07830' }}>
+                🔒 传闻本地还藏着一件「{GOOD_BY_ID[secretId].name}」…投资 1 级「商会伙伴」即可解锁
+              </div>
+            )}
+            <div className="text-xs mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: '#8a6a40' }}>
+              <span>🤝 声望 <b style={{ color: '#a06a10' }}>{repTierName(repOf(state, viewCityId))}</b>（{repOf(state, viewCityId)}）</span>
+              {repBonusOf(state, viewCityId) > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md font-800" style={{ background: '#fff3d6', color: '#a06a10', fontSize: 10 }}>
+                  本港买入 -{repBonusOf(state, viewCityId)}% · 卖出 +{repBonusOf(state, viewCityId)}%
+                </span>
+              )}
+              {investBonus.buy > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md font-800" style={{ background: '#e8f7ec', color: '#3a8a52', fontSize: 10 }}>
+                  🏛️ 投资 -{investBonus.buy}% / +{investBonus.sell}%
+                </span>
+              )}
             </div>
           </div>
           <div className="stat-pill flex-shrink-0">
@@ -100,6 +135,49 @@ export default function MarketView() {
             <div className="prog-fill" style={{ width: `${(held / ship.cap) * 100}%` }} />
           </div>
         </div>
+
+        {/* 港口银行（v1.4.0）：借贷与交易同属"钱"的场所，默认折叠成一行；仅本港可办理 */}
+        {here && <BankView />}
+
+        {/* 商情快报（v1.3.0）：全图进行中的丰产 / 抢购 / 封锁 */}
+        {newsList.length > 0 && (
+          <div className="panel-white p-2.5 mb-3" style={{ borderRadius: 14 }}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className="text-xs font-800" style={{ color: '#3d2b10' }}>📣 商情快报</span>
+              <span className="text-[10px] ml-auto" style={{ color: '#c0a070' }}>每 30 秒左右更新</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-0.5">
+              {newsList.map(([cid, ev]) => {
+                const info = CITY_EVENT_INFO[ev.kind]
+                const isHere = cid === viewCityId
+                const bad = ev.kind === 'blockade'
+                return (
+                  <div
+                    key={cid}
+                    className="flex-shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-800"
+                    style={{
+                      background: isHere ? (bad ? '#fdeaea' : '#e8f7ec') : '#fff5ec',
+                      border: isHere ? `1.5px solid ${bad ? '#e05050' : '#4cba6a'}` : '1.5px dashed #f0e2c8',
+                      color: '#8a6a40',
+                    }}
+                  >
+                    {info.icon} {CITY_BY_ID[cid].name}
+                    {isHere && <b style={{ color: bad ? '#e05050' : '#4cba6a' }}>（本港）</b>}
+                    {ev.goodId ? ` ${GOOD_BY_ID[ev.goodId].name}` : ''}
+                    {' · '}{Math.ceil(ev.until - state.clock)}s
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* 本港封锁横幅 */}
+        {here && viewBlockaded && (
+          <div className="panel-white px-3 py-2 mb-3 flex items-center gap-2 text-xs font-800" style={{ borderRadius: 14, border: '1.5px solid #e05050', color: '#c05050' }}>
+            🚑 {city.name}瘟疫封锁中，暂时无法交易（约 {Math.ceil((viewEv?.until ?? 0) - state.clock)} 秒后解除）
+          </div>
+        )}
 
         {/* 城市行情切换：本港可交易，其他已探明城市仅可查看 */}
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -168,7 +246,12 @@ export default function MarketView() {
           const isImport = city.imports.includes(g.id)
           const mine = state.cargo[g.id]
           const best = bestSellHint(g.id, state.markets, ship.bonus, isKnown, state.cityId)
-          const unit = sellPrice(g, cm, ship.bonus)
+          const buyMult = eventBuyMult(viewEv, g.id)
+          const sellMult = eventSellMult(viewEv, g.id)
+          // 显示价 = 真实结算价：含丰产/抢购、声望与投资折扣
+          const repDisc = repBonusOf(state, viewCityId)
+          const buyUnit = Math.max(8, Math.round(m.price * buyMult * (1 - repDisc / 100) * (1 - investBonus.buy / 100)))
+          const unit = Math.round(sellPrice(g, cm, ship.bonus + repDisc + investBonus.sell) * sellMult)
           const margin = Math.round(((best.price - m.price) / m.price) * 100)
           const expanded = open === g.id
           const roomUse = Math.max(0, Math.min(room, m.stock))
@@ -187,8 +270,14 @@ export default function MarketView() {
                     <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       <span className="font-800 text-sm" style={{ color: '#3d2b10' }}>{g.name}</span>
                       {isExport && <span className="badge-green">特产</span>}
+                      {isExport && isSecretGood(g.id) && (
+                        <span className="px-1.5 py-0.5 rounded-md font-800 text-[10px]" style={{ background: '#f3e8ff', color: '#8a4fc9' }}>隐藏特产</span>
+                      )}
+                      {g.id === 'relic' && <span className="px-1.5 py-0.5 rounded-md font-800 text-[10px]" style={{ background: '#f3e8ff', color: '#8a4fc9' }}>秘藏</span>}
                       {isImport && <span className="badge-orange">紧缺</span>}
                       {scarce && <span className="badge-red">行情暴涨</span>}
+                      {buyMult < 1 && <span className="badge-green">🌾 丰产 -45%</span>}
+                      {sellMult > 1 && <span className="badge-red">🔥 抢购 ×2.2</span>}
                       {m.momentum > 0.02 && <span className="text-xs" style={{ color: '#4cba6a' }}>▲</span>}
                       {m.momentum < -0.02 && <span className="text-xs" style={{ color: '#e05050' }}>▼</span>}
                     </div>
@@ -204,7 +293,7 @@ export default function MarketView() {
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="font-900 text-base" style={{ color: '#f5913a' }}>{m.price}</div>
+                    <div className="font-900 text-base" style={{ color: '#f5913a' }}>{buyUnit}</div>
                     <div className="text-xs" style={{ color: '#a07030' }}>金/件</div>
                   </div>
                 </div>
@@ -240,7 +329,9 @@ export default function MarketView() {
                         >{n}</button>
                       ))}
                       <button
-                        onClick={() => setQty(Math.max(1, Math.min(roomUse, Math.floor(state.money / m.price))))}
+                        onClick={() => setQty(Math.max(1, isImport
+                          ? (mine?.qty ?? 0)
+                          : Math.min(roomUse, Math.floor(state.money / buyUnit))))}
                         className="text-xs font-800 px-2.5 py-1 rounded-lg"
                         style={{ background: '#fff5ec', color: '#a07030' }}
                       >MAX</button>
@@ -263,7 +354,7 @@ export default function MarketView() {
                   <div className="flex items-center gap-2 mb-2 text-xs" style={{ color: '#8a6a40' }}>
                     {isImport
                       ? <span style={{ color: '#c9b394' }}>本港不卖（销地）</span>
-                      : <span>买入需 <b style={{ color: '#3d2b10' }}>{(Math.min(qty, roomUse) * m.price).toLocaleString()}</b> 金</span>}
+                      : <span>买入需 <b style={{ color: '#3d2b10' }}>{(Math.min(qty, roomUse) * buyUnit).toLocaleString()}</b> 金</span>}
                     <span className="ml-auto">
                       {isExport
                         ? <span style={{ color: '#c9b394' }}>本港不买（产地）</span>

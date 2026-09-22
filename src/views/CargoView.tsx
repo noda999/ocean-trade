@@ -1,6 +1,6 @@
-import { CITY_BY_ID, GOOD_BY_ID } from '../game/data'
-import { cargoUnits, cargoValue, sellPrice } from '../game/engine'
-import { shipNow } from '../game/state'
+import { CITY_BY_ID, CITY_EVENT_INFO, GOOD_BY_ID } from '../game/data'
+import { cargoUnits, cargoValue, eventSellMult, isBlockaded, sellPrice } from '../game/engine'
+import { cityEventOf, investBonusOf, repBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 
 function fmt(sec: number) {
@@ -19,6 +19,11 @@ export default function CargoView() {
   const worth = cargoValue(state.cargo, state.cityId, state.markets, ship.bonus)
   const profit = worth - invested
   const sailing = !!state.voyage
+  // 商情（v1.3.0）：封锁时市集关闭，本地卖价含抢购加成与声望/投资加成
+  const cityEv = cityEventOf(state, state.cityId)
+  const blockaded = isBlockaded(cityEv)
+  const canTradeHere = !sailing && !blockaded
+  const priceBonus = ship.bonus + repBonusOf(state, state.cityId) + investBonusOf(state, state.cityId).sell
 
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
@@ -76,7 +81,7 @@ export default function CargoView() {
             {Object.entries(state.cargo).map(([gid, c]) => {
               const g = GOOD_BY_ID[gid]
               const mk = cm?.[gid]
-              const unit = mk ? sellPrice(g, cm, ship.bonus) : null
+              const unit = mk ? Math.round(sellPrice(g, cm, priceBonus) * eventSellMult(cityEv, gid)) : null
               const value = unit !== null ? unit * c.qty : null
               const itemProfit = value !== null ? value - c.cost : null
               // 核心规则：同一种货本港「只卖不买」（产地）或「只买不卖」（销地）
@@ -110,8 +115,8 @@ export default function CargoView() {
                           </div>
                           <button
                             className="btn-orange text-xs px-3 py-1 mt-1"
-                            disabled={sailing}
-                            style={{ opacity: sailing ? 0.45 : 1 }}
+                            disabled={!canTradeHere}
+                            style={{ opacity: canTradeHere ? 1 : 0.45 }}
                             onClick={() => dispatch({ type: 'SELL', goodId: gid, qty: c.qty })}
                           >
                             卖出
@@ -129,12 +134,17 @@ export default function CargoView() {
             })}
             <button
               className="btn-orange w-full py-3 text-base font-900"
-              style={{ borderRadius: 16, opacity: sailing ? 0.45 : 1 }}
-              disabled={sailing}
+              style={{ borderRadius: 16, opacity: canTradeHere ? 1 : 0.45 }}
+              disabled={!canTradeHere}
               onClick={() => dispatch({ type: 'SELL_ALL' })}
             >
               💰 一键全部卖出
             </button>
+            {blockaded && (
+              <div className="text-xs text-center mt-1" style={{ color: '#c05050' }}>
+                🚑 {city.name}在市集封锁期（{CITY_EVENT_INFO.blockade.name}），暂时无法卖出
+              </div>
+            )}
           </div>
         )}
 

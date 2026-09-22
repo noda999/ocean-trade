@@ -1,7 +1,7 @@
 import { Component, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
-import { MILESTONES } from './game/data'
+import { CREW_QUESTS, LEGENDS, MILESTONES, seasonOf } from './game/data'
 import { shipOf } from './game/engine'
-import { claimable } from './game/state'
+import { claimable, crewQuestClaimable, legendClaimable } from './game/state'
 import { GameProvider, useGame } from './game/store'
 import MarketView from './views/MarketView'
 import CargoView from './views/CargoView'
@@ -42,6 +42,18 @@ function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () =
           🧭
         </div>
         <div className="app-title">远洋贸易</div>
+        {(() => {
+          const season = seasonOf(state.clock)
+          return (
+            <div
+              className="text-[10px] font-800 px-1.5 py-1 rounded-lg"
+              style={{ background: 'rgba(255,255,255,0.22)', color: 'white', whiteSpace: 'nowrap', flexShrink: 0 }}
+              title={`${season.name}｜${season.desc}`}
+            >
+              {season.icon}
+            </div>
+          )
+        })()}
         <div className="ml-auto flex items-center gap-1.5">
           <div className="stat-pill">
             <span style={{ fontSize: 13 }}>🪙</span>
@@ -66,6 +78,10 @@ function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () =
         <div className="flex items-center gap-3 text-xs" style={{ color: '#a07030' }}>
           <span>🍱 货物库存刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.marketTimer)}</b></span>
           <span className="ml-auto">📈 紧缺行情刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.spiceTimer)}</b></span>
+        </div>
+        <div className="text-xs mt-1" style={{ color: '#a07030' }}>
+          {seasonOf(state.clock).icon} <b style={{ color: '#8a6a40' }}>{seasonOf(state.clock).name}</b>
+          {' · '}{seasonOf(state.clock).desc}
         </div>
       </div>
     </div>
@@ -96,7 +112,12 @@ function Toasts() {
 function NavBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   const { state, dispatch } = useGame()
   const cargoCount = Object.values(state.cargo).reduce((s, c) => s + c.qty, 0)
-  const canClaim = useMemo(() => MILESTONES.some(m => claimable(state, m)), [state])
+  const canClaim = useMemo(
+    () => MILESTONES.some(m => claimable(state, m))
+      || LEGENDS.some(l => legendClaimable(state, l))
+      || CREW_QUESTS.some(q => crewQuestClaimable(state, q)),
+    [state],
+  )
   void dispatch
 
   return (

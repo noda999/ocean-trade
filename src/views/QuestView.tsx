@@ -1,11 +1,17 @@
-import { ACHIEVEMENTS, CITIES, GOODS, MILESTONES } from '../game/data'
+import { useState } from 'react'
+import { ACHIEVEMENTS, CITIES, CREW, CREW_QUESTS, GOODS, LEGENDS, LEGEND_TITLE, MILESTONES } from '../game/data'
 import { nextTitle, rankFor, titleFor } from '../game/engine'
-import { claimable, milestoneProgress } from '../game/state'
+import {
+  allLegendsDone, claimable, crewQuestClaimable, crewQuestProgress, crewQuestTarget,
+  crewQuestValue, crewQuestVisible, legendClaimable, legendProgress, legendValue, milestoneProgress,
+} from '../game/state'
 import { useGame } from '../game/store'
 import { fmt } from './CargoView'
+import ShareCard from '../components/ShareCard'
 
 export default function QuestView() {
   const { state, dispatch, assets, reset } = useGame()
+  const [shareOpen, setShareOpen] = useState(false)
   const title = titleFor(assets)
   const next = nextTitle(assets)
   const rank = rankFor(assets)
@@ -18,6 +24,10 @@ export default function QuestView() {
         : kind === 'sold' ? state.goodsSold.length
           : tradedCount
   const unlocked = ACHIEVEMENTS.filter(a => achCount(a.kind) >= a.target).length
+  const legendDone = state.legendsClaimed.length
+  const legendComplete = allLegendsDone(state)
+  const questDone = state.crewQuestsClaimed.length
+  const hiredCrewList = CREW.filter(c => state.hiredCrew.includes(c.id))
 
   const stats = [
     { label: '总资产', value: assets.toLocaleString(), icon: '💎' },
@@ -44,7 +54,7 @@ export default function QuestView() {
             </div>
             <div className="flex-1">
               <div className="text-xs opacity-85">当前称号</div>
-              <div className="font-900 text-xl">{title}</div>
+              <div className="font-900 text-xl">{legendComplete ? LEGEND_TITLE : title}</div>
               <div className="text-xs opacity-85 mt-0.5">
                 {rank ? `全球排名 第 ${rank} 位` : '资产达到 12,000 即可上榜'}
               </div>
@@ -106,6 +116,153 @@ export default function QuestView() {
           })}
         </div>
 
+        {/* 传奇功勋 */}
+        <div className="font-800 text-sm mb-2 flex items-center gap-2" style={{ color: '#3d2b10' }}>
+          传奇功勋
+          <span className="text-xs font-700" style={{ color: '#c0a070' }}>通关后的长线目标 · 已达成 {legendDone}/{LEGENDS.length}</span>
+        </div>
+        {legendComplete && (
+          <div
+            className="panel-white p-3 mb-2 flex items-center gap-3"
+            style={{ borderRadius: 14, background: 'linear-gradient(135deg,#fff8e8,#ffefc9)', border: '1.5px solid #f0d89a' }}
+          >
+            <span className="text-2xl">👑</span>
+            <div className="flex-1">
+              <div className="font-900 text-sm" style={{ color: '#8a5a08' }}>{LEGEND_TITLE}</div>
+              <div className="text-xs" style={{ color: '#a07030' }}>十项传奇功勋全数达成，你的名字将传遍七海</div>
+            </div>
+            <span className="text-lg">✅</span>
+          </div>
+        )}
+        <div className="flex flex-col gap-2 mb-4">
+          {LEGENDS.map(l => {
+            const done = state.legendsClaimed.includes(l.id)
+            const can = legendClaimable(state, l)
+            const cur = legendValue(state, l)
+            const p = legendProgress(state, l)
+            return (
+              <div key={l.id} className="panel-white p-3" style={{ borderRadius: 14, opacity: done ? 0.72 : 1 }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                    style={{ background: done ? '#e6f6e9' : can ? '#fff3d6' : '#fff5ec' }}
+                  >
+                    {done ? '✅' : l.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>{l.label}</div>
+                    <div className="text-xs" style={{ color: '#a07030' }}>
+                      {l.desc} · 奖励 {l.gold.toLocaleString()} 金 + 加速卡 ×{l.boost}
+                    </div>
+                  </div>
+                  {can ? (
+                    <button className="btn-orange text-xs px-3 py-1.5" onClick={() => dispatch({ type: 'CLAIM_LEGEND', id: l.id })}>
+                      领取
+                    </button>
+                  ) : (
+                    <span className="text-xs font-800 whitespace-nowrap" style={{ color: done ? '#4cba6a' : '#c0a070' }}>
+                      {done ? '已领取' : `${Math.round(p * 100)}%`}
+                    </span>
+                  )}
+                </div>
+                <div className="prog-track h-2">
+                  <div
+                    className="prog-fill"
+                    style={{ width: `${p * 100}%`, background: done ? '#4cba6a' : 'linear-gradient(90deg,#f0a83c,#ffd97a)' }}
+                  />
+                </div>
+                {!done && (
+                  <div className="text-[10px] mt-1 text-right font-700" style={{ color: '#c0a070' }}>
+                    {cur.toLocaleString()} / {l.target.toLocaleString()}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 船员委托 */}
+        <div className="font-800 text-sm mb-2 flex items-center gap-2" style={{ color: '#3d2b10' }}>
+          船员委托
+          <span className="text-xs font-700" style={{ color: '#c0a070' }}>招募船员解锁 · 已完成 {questDone}/{CREW_QUESTS.length}</span>
+        </div>
+        {hiredCrewList.length === 0 && (
+          <div className="panel-white p-3 mb-4 text-xs" style={{ borderRadius: 14, color: '#a07030' }}>
+            🍺 船坞 → 酒馆：12 位航海好手散布在世界各港，登船后每人带来 3 段专属委托
+          </div>
+        )}
+        {hiredCrewList.length > 0 && (
+          <div className="flex flex-col gap-2 mb-4">
+            {hiredCrewList.map(crew => {
+              const crewQuests = CREW_QUESTS.filter(q => q.crewId === crew.id)
+              const crewDone = crewQuests.filter(q => state.crewQuestsClaimed.includes(q.id)).length
+              const current = crewQuests.filter(q => crewQuestVisible(state, q))
+              const q = current[0]
+              const can = q ? crewQuestClaimable(state, q) : false
+              const p = q ? crewQuestProgress(state, q) : 1
+              return (
+                <div key={crew.id} className="panel-white p-3" style={{ borderRadius: 14 }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0"
+                      style={{ background: `${crew.color}22`, color: crew.color, fontWeight: 900 }}
+                    >
+                      {crew.name.slice(0, 1)}
+                    </div>
+                    <span className="font-800 text-xs" style={{ color: '#3d2b10' }}>{crew.name}</span>
+                    <span className="text-[10px]" style={{ color: '#c0a070' }}>{crew.role}</span>
+                    <span className="ml-auto text-[10px] font-800" style={{ color: crewDone === 3 ? '#4cba6a' : '#c0a070' }}>
+                      {crewDone === 3 ? '全部完成 ✅' : `${crewDone}/3`}
+                    </span>
+                  </div>
+                  {q ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-800 text-xs" style={{ color: can ? '#a06a10' : '#3d2b10' }}>
+                            第{q.stage}段 · {q.title}
+                            {can && ' 🎁'}
+                          </div>
+                          <div className="text-[10px]" style={{ color: '#a07030' }}>{q.desc}</div>
+                        </div>
+                        {can ? (
+                          <button
+                            className="btn-orange text-xs px-3 py-1.5 flex-shrink-0"
+                            onClick={() => dispatch({ type: 'CLAIM_CREW_QUEST', id: q.id })}
+                          >领取</button>
+                        ) : (
+                          <span className="text-xs font-800 flex-shrink-0" style={{ color: '#c0a070' }}>
+                            {Math.round(p * 100)}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="prog-track h-1.5 mt-2">
+                        <div
+                          className="prog-fill"
+                          style={{ width: `${p * 100}%`, background: can ? '#f0a83c' : undefined }}
+                        />
+                      </div>
+                      {!can && (
+                        <div className="text-[10px] mt-1 text-right font-700" style={{ color: '#c0a070' }}>
+                          {crewQuestValue(state, q).toLocaleString()} / {crewQuestTarget(q).toLocaleString()}
+                          {' '}· 奖励 {q.gold.toLocaleString()} 金
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-xs" style={{ color: '#4cba6a' }}>三段委托全部完成，{crew.name}向你举杯 🍻</div>
+                  )}
+                </div>
+              )
+            })}
+            {hiredCrewList.length < CREW.length && (
+              <div className="text-[10px] text-center" style={{ color: '#c0a070' }}>
+                还有 {CREW.length - hiredCrewList.length} 位船员散布在各港酒馆，招募后解锁专属委托
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 贸易成就 */}
         <div className="font-800 text-sm mb-2" style={{ color: '#3d2b10' }}>
           贸易成就
@@ -151,6 +308,17 @@ export default function QuestView() {
             </div>
           ))}
         </div>
+
+        <button
+          className="btn-orange w-full py-3 text-sm font-900 mb-4"
+          style={{ borderRadius: 14 }}
+          onClick={() => setShareOpen(true)}
+        >
+          📸 生成我的航海生涯分享图
+        </button>
+        {shareOpen && (
+          <ShareCard state={state} assets={assets} title={legendComplete ? LEGEND_TITLE : title} onClose={() => setShareOpen(false)} />
+        )}
 
         <div className="panel-white p-3 mb-3" style={{ borderRadius: 14 }}>
           <div className="flex items-center gap-2 mb-1">

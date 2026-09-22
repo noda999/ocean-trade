@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>远洋贸易 · 小红书宣传图</title>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif; color: #2a1a08; background: #2a1a08; }
+  .deck { display: flex; flex-direction: column; gap: 24px; padding: 24px; }
+  .card { width: 540px; height: 720px; position: relative; overflow: hidden; background: #f8f0e0; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+  .num { position: absolute; top: 22px; right: 26px; font-size: 13px; font-weight: 700; letter-spacing: 1px; color: rgba(60,40,15,0.45); z-index: 5; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .badge-orange { background: #f5913a; color: #fff; }
+  .badge-gold { background: #f5b914; color: #4a2e0a; }
+
+  /* ============ 卡片 1 · 封面 ============ */
+  .c1 { display: flex; flex-direction: column; }
+  .c1 .top { flex: 0 0 auto; padding: 34px 36px 0; }
+  .c1 .ver { display: inline-block; padding: 4px 12px; border-radius: 999px; background: #f5913a; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 20px; }
+  .c1 h1 { font-size: 50px; line-height: 1.14; margin: 0 0 14px; font-weight: 900; letter-spacing: -1.5px; }
+  .c1 h1 .accent { color: #f5913a; }
+  .c1 .sub { font-size: 15px; line-height: 1.6; color: #6a4820; font-weight: 600; margin: 0 0 16px; max-width: 430px; }
+  .c1 .tags { display: flex; gap: 7px; }
+  .c1 .tag { padding: 5px 10px; background: #fff; border: 1.5px solid #ecd9b4; border-radius: 999px; font-size: 11px; font-weight: 700; color: #6a4820; }
+  .c1 .stage { flex: 1; background: linear-gradient(180deg, #16233c 0%, #0d1526 100%); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  .c1 .hero { width: 258px; height: 268px; border-radius: 24px; overflow: hidden; transform: rotate(-2.5deg); box-shadow: 0 16px 40px rgba(0,0,0,0.55), 0 0 0 5px #fff; }
+  .c1 .hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; }
+  .c1 .url { font-size: 12px; font-weight: 700; color: #f5b914; letter-spacing: 0.8px; }
+
+  /* ============ 卡片 2 · 双地图 ============ */
+  .c2 .head { padding: 26px 34px 0; }
+  .c2 h2 { font-size: 33px; margin: 12px 0 4px; font-weight: 900; line-height: 1.18; letter-spacing: -0.5px; }
+  .c2 .lead { font-size: 12.5px; color: #6a4820; margin: 0 0 12px; line-height: 1.55; }
+  .c2 .row { display: flex; gap: 13px; padding: 0 34px; }
+  .c2 .col { flex: 1; }
+  .c2 .phone { border-radius: 18px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.16); border: 3px solid #fff; height: 372px; }
+  .c2 .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .c2 .cap { font-size: 11.5px; font-weight: 800; text-align: center; margin-top: 7px; }
+  .c2 .cap.flat { color: #f5913a; }
+  .c2 .cap.globe { color: #4a8fc5; }
+  .c2 .feat { padding: 12px 34px 0; font-size: 12.5px; color: #3d2b10; line-height: 1.75; margin: 0; }
+  .c2 .feat .b { background: #f5913a; color: #fff; padding: 1px 6px; border-radius: 5px; font-weight: 700; }
+  .c2 .strip { position: absolute; bottom: 0; left: 0; right: 0; display: flex; background: #fff; border-top: 1.5px solid #ecd9b4; }
+  .c2 .stat { flex: 1; text-align: center; padding: 12px 0; }
+  .c2 .stat + .stat { border-left: 1.5px solid #f0e3c8; }
+  .c2 .stat .n { font-size: 19px; font-weight: 900; color: #f5913a; line-height: 1.1; }
+  .c2 .stat .l { font-size: 10.5px; color: #8a6a30; margin-top: 2px; }
+
+  /* ============ 卡片 3 · 贸易回路 ============ */
+  .c3 { background: #fdf6e7; }
+  .c3 .head { padding: 24px 34px 0; }
+  .c3 h2 { font-size: 31px; margin: 12px 0 5px; font-weight: 900; line-height: 1.18; letter-spacing: -0.5px; }
+  .c3 .lead { font-size: 12.5px; color: #6a4820; margin: 0 0 10px; line-height: 1.5; }
+  .c3 .flow { display: flex; gap: 6px; padding: 4px 28px 0; align-items: stretch; }
+  .c3 .step { flex: 1; background: #fff; border-radius: 13px; padding: 10px 8px; text-align: center; box-shadow: 0 3px 8px rgba(0,0,0,0.06); }
+  .c3 .step .emoji { font-size: 24px; line-height: 1.2; }
+  .c3 .step .t { font-size: 11.5px; font-weight: 800; color: #3d2b10; margin-top: 3px; }
+  .c3 .step .t .hl { color: #f5913a; }
+  .c3 .step .d { font-size: 9.5px; color: #8a6a30; margin-top: 3px; line-height: 1.35; }
+  .c3 .arrow { font-size: 18px; color: #f5913a; align-self: center; font-weight: 900; }
+  .c3 .shot { margin: 12px 34px 0; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.14); border: 3px solid #fff; }
+  .c3 .shot img { width: 100%; display: block; }
+  .c3 .tip { padding: 10px 34px 0; font-size: 11.5px; color: #6a4820; line-height: 1.55; margin: 0; }
+  .c3 .tip .red { color: #e05050; font-weight: 800; }
+  .c3 .tip .or { color: #f5913a; font-weight: 800; }
+  /* 真实行情对比条（数据取自游戏内茶叶实时行情） */
+  .c3 .deal { margin: 12px 34px 0; background: #2a1810; border-radius: 14px; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
+  .c3 .deal .side { flex: 1; text-align: center; }
+  .c3 .deal .side .k { font-size: 10px; color: rgba(248,240,224,0.6); }
+  .c3 .deal .side .v { font-size: 19px; font-weight: 900; color: #f8f0e0; line-height: 1.25; }
+  .c3 .deal .side .v small { font-size: 10px; font-weight: 600; color: rgba(248,240,224,0.5); }
+  .c3 .deal .mid { font-size: 16px; color: #f5913a; font-weight: 900; }
+  .c3 .deal .gain { text-align: center; padding-left: 12px; border-left: 1.5px solid rgba(245,185,20,0.35); }
+  .c3 .deal .gain .k { font-size: 10px; color: rgba(248,240,224,0.6); }
+  .c3 .deal .gain .v { font-size: 22px; font-weight: 900; color: #f5b914; line-height: 1.2; }
+
+  /* ============ 卡片 4 · 酒馆招募 ============ */
+  .c4 { background: linear-gradient(165deg, #f8f0e0 0%, #f8f0e0 60%, #fff 60%); }
+  .c4 .head { padding: 26px 32px 0; }
+  .c4 h2 { font-size: 33px; margin: 12px 0 5px; font-weight: 900; line-height: 1.18; letter-spacing: -0.5px; }
+  .c4 .lead { font-size: 12.5px; color: #6a4820; margin: 0 0 12px; line-height: 1.55; max-width: 450px; }
+  .c4 .quote { font-size: 13px; color: #4a2e0a; padding: 10px 14px; background: rgba(245,185,20,0.18); border-left: 3px solid #f5b914; border-radius: 0 10px 10px 0; margin: 0 32px 12px; line-height: 1.6; }
+  .c4 .quote .who { color: #a07030; font-size: 11.5px; }
+  .c4 .shot { margin: 0 32px; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 26px rgba(0,0,0,0.2); border: 4px solid #fff; }
+  .c4 .shot img { width: 100%; display: block; }
+  .c4 .bot { padding: 13px 32px 0; display: flex; justify-content: space-between; align-items: center; }
+  .c4 .num2 { font-size: 10.5px; font-weight: 800; color: #a07030; letter-spacing: 1px; }
+  .c4 .locs { font-size: 11.5px; color: #6a4820; }
+  .c4 .locs b { color: #f5913a; font-weight: 800; }
+
+  /* ============ 卡片 5 · 行动号召 ============ */
+  .c5 { background: #2a1810; color: #f8f0e0; }
+  .c5 .wrap { padding: 56px 38px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+  .c5 .tag5 { display: inline-block; padding: 5px 14px; border-radius: 999px; background: #f5913a; color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1px; align-self: flex-start; }
+  .c5 h2 { font-size: 56px; margin: 20px 0 12px; font-weight: 900; line-height: 1.1; letter-spacing: -1.5px; color: #fff; }
+  .c5 h2 .g { color: #f5b914; }
+  .c5 .desc { font-size: 15px; line-height: 1.6; color: rgba(248,240,224,0.85); max-width: 430px; margin: 0; }
+  .c5 .urlbox { padding: 16px 20px; background: rgba(245,185,20,0.12); border: 2px solid #f5b914; border-radius: 16px; font-size: 17px; font-weight: 800; color: #f5b914; letter-spacing: 0.5px; }
+  .c5 .perks { display: flex; gap: 16px; margin-top: 10px; }
+  .c5 .perk { font-size: 11.5px; color: rgba(248,240,224,0.7); }
+  .c5 .perk::before { content: '✓ '; color: #f5b914; font-weight: 900; }
+  .c5 .footer { display: flex; justify-content: space-between; align-items: flex-end; font-size: 11.5px; color: rgba(248,240,224,0.55); }
+  .c5 .footer .sign { font-weight: 700; color: #f5b914; }
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 封面 -->
+  <section class="card c1">
+    <span class="num">01 / 05</span>
+    <div class="top">
+      <span class="ver">v1.0.4 · 大航海经商模拟</span>
+      <h1>我用 AI 做了个<br><span class="accent">航海贸易</span>游戏</h1>
+      <p class="sub">从中国港口出发，环游 21 座历史名城，跨洋低买高卖，登顶海上功勋榜。</p>
+      <div class="tags">
+        <span class="tag">🌍 21 座城市</span>
+        <span class="tag">📦 29 种货物</span>
+        <span class="tag">⛵ 12 位船员</span>
+      </div>
+    </div>
+    <div class="stage">
+      <div class="hero"><img src="./shots/02-globe.png" alt=""></div>
+      <span class="url">ocean-trade-sigma.vercel.app</span>
+    </div>
+  </section>
+
+  <!-- 双地图 -->
+  <section class="card c2">
+    <span class="num">02 / 05</span>
+    <div class="head">
+      <span class="badge badge-orange">🗺️ 地图</span>
+      <h2>两种视角，看同一片海</h2>
+      <p class="lead">真实标注马六甲、好望角等大洋要冲，山脉沙丘全是手绘。</p>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="phone"><img src="./shots/01-map-flat.png" alt=""></div>
+        <div class="cap flat">▸ 平面 · 跑商视图</div>
+      </div>
+      <div class="col">
+        <div class="phone"><img src="./shots/02-globe.png" alt=""></div>
+        <div class="cap globe">▸ 地球 · 沉浸视角</div>
+      </div>
+    </div>
+    <p class="feat">
+      · 你的座舰自带<span class="b">金色光晕</span>，大海上一眼锁定<br>
+      · 航线按真实大圆距离算，船越快到港越快<br>
+      · 地球模式可拖动旋转，转到背面自动隐藏标签
+    </p>
+    <div class="strip">
+      <div class="stat"><div class="n">21</div><div class="l">座历史港口</div></div>
+      <div class="stat"><div class="n">2</div><div class="l">种地图视角</div></div>
+      <div class="stat"><div class="n">6</div><div class="l">大洲航线</div></div>
+    </div>
+  </section>
+
+  <!-- 贸易回路 -->
+  <section class="card c3">
+    <span class="num">03 / 05</span>
+    <div class="head">
+      <span class="badge badge-gold">📈 贸易</span>
+      <h2>产地买，销地卖<br>差价就是利润</h2>
+      <p class="lead">每座港口只卖自己的特产、只收紧缺货。新手先跑通单条路线。</p>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="emoji">🍵</div>
+        <div class="t"><span class="hl">产地 · 中国</span></div>
+        <div class="d">丝绸 / 瓷器 / 茶叶<br>低价收货</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="emoji">⛵</div>
+        <div class="t"><span class="hl">跨洋航行</span></div>
+        <div class="d">3~8 天航程<br>可能遇风暴</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="step">
+        <div class="emoji">💰</div>
+        <div class="t"><span class="hl">销地 · 挪威</span></div>
+        <div class="d">溢价收购茶叶<br>+150% 起步</div>
+      </div>
+    </div>
+    <div class="shot"><img src="./shots/03-market-crop.png" alt=""></div>
+    <div class="deal">
+      <div class="side">
+        <div class="k">中国买入 · 茶叶</div>
+        <div class="v">37<small> 金/件</small></div>
+      </div>
+      <span class="mid">→</span>
+      <div class="side">
+        <div class="k">挪威卖出 · 茶叶</div>
+        <div class="v">93<small> 金/件</small></div>
+      </div>
+      <div class="gain">
+        <div class="k">单件利润</div>
+        <div class="v">+151%</div>
+      </div>
+    </div>
+    <p class="tip">
+      每座港行情 <span class="red">6 秒刷新</span>，还会随机出现<span class="or">「紧缺行情」</span>暴涨暴跌 —— 提前囤货最赚。
+    </p>
+  </section>
+
+  <!-- 酒馆 -->
+  <section class="card c4">
+    <span class="num">04 / 05</span>
+    <div class="head">
+      <span class="badge badge-orange">🍺 酒馆</span>
+      <h2>全球招募你的航海好手</h2>
+      <p class="lead">12 位船员分散在世界各港，想挖谁就得亲自把船开到那个码头。</p>
+    </div>
+    <div class="quote">
+      「曾是私掠船长，讨价还价从没输过。」<br>
+      <span class="who">—— 玛丽·雷德 · 需前往英国才能招募</span>
+    </div>
+    <div class="shot"><img src="./shots/05-tavern-crop.png" alt=""></div>
+    <div class="bot">
+      <span class="num2">CREW · 12 名</span>
+      <span class="locs">加成：<b>航速</b> / <b>利润</b> · 永久生效</span>
+    </div>
+  </section>
+
+  <!-- 行动号召 -->
+  <section class="card c5">
+    <span class="num" style="color:rgba(248,240,224,0.4)">05 / 05</span>
+    <div class="wrap">
+      <span class="tag5">⛵ 现在就出海</span>
+      <div>
+        <h2>打开浏览器<br>就是你的<span class="g">大航海</span></h2>
+        <p class="desc">不用下载、不用注册。手机电脑都能玩，每 3 秒自动存档，关掉浏览器进度也不丢。</p>
+      </div>
+      <div>
+        <div class="urlbox">ocean-trade-sigma.vercel.app</div>
+        <div class="perks">
+          <span class="perk">完全免费</span>
+          <span class="perk">无内购</span>
+          <span class="perk">无广告</span>
+        </div>
+      </div>
+      <div class="footer">
+        <span>v1.0.4 · 2026.09</span>
+        <span class="sign">#独立游戏 #我用AI做游戏 #大航海</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

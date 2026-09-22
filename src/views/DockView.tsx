@@ -5,15 +5,30 @@ import { crewBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { ShipSprite } from '../components/ShipSprite'
 import TavernView from './TavernView'
+import WorkshopView from './WorkshopView'
+import HallView from './HallView'
+import AdmiraltyView from './AdmiraltyView'
+
+/** 港口内的 5 个设施分区：船坞 / 酒馆 / 工坊 / 市政厅 / 海事署 */
+const SECTIONS = [
+  { id: 'ships', icon: '⚓', label: '船坞', hint: '更快的船省时间，更大的舱赚更多，更高的加成提高利润率' },
+  { id: 'tavern', icon: '🍺', label: '酒馆', hint: '招募航海好手：永久加成 + 每人 3 段专属委托（去功勋页领取奖励）' },
+  { id: 'workshop', icon: '🛠️', label: '工坊', hint: '船具永久生效，补给在海上事件里自动派上用场' },
+  { id: 'hall', icon: '🏛️', label: '市政厅', hint: '投资港口享永久折扣与分红，2 级起关税减半；委托板限期送货，报酬丰厚' },
+  { id: 'navy', icon: '🏴‍☠️', label: '海事署', hint: '接通缉令出击海盗领赏金；集齐藏宝图碎片挖掘深海秘藏' },
+] as const
+
+type SectionId = typeof SECTIONS[number]['id']
 
 export default function DockView() {
   const { state, dispatch } = useGame()
   const current = shipOf(state.shipId)
   const eff = shipNow(state)
   const cb = crewBonusOf(state)
-  const [section, setSection] = useState<'ships' | 'tavern'>('ships')
+  const [section, setSection] = useState<SectionId>('ships')
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(state.shipName)
+  const cur = SECTIONS.find(x => x.id === section) ?? SECTIONS[0]
 
   function commitName() {
     dispatch({ type: 'SET_SHIP_NAME', name: draftName })
@@ -27,34 +42,38 @@ export default function DockView() {
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
       <div className="px-4 pt-4 pb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="font-900 text-xl" style={{ color: '#3d2b10' }}>{section === 'ships' ? '⚓ 船坞' : '🍺 酒馆'}</div>
-          <div className="ml-auto flex p-1 rounded-xl" style={{ background: '#efe2c8' }}>
-            <button
-              className="text-xs font-800 px-3 py-1.5 rounded-lg"
-              style={{
-                background: section === 'ships' ? '#fff' : 'transparent',
-                color: section === 'ships' ? '#d97320' : '#a07030',
-              }}
-              onClick={() => setSection('ships')}
-            >⚓ 船坞</button>
-            <button
-              className="tavern-toggle text-xs font-800 px-3 py-1.5 rounded-lg"
-              style={{
-                background: section === 'tavern' ? '#fff' : 'transparent',
-                color: section === 'tavern' ? '#d97320' : '#a07030',
-              }}
-              onClick={() => setSection('tavern')}
-            >🍺 酒馆{state.hiredCrew.length ? ` ${state.hiredCrew.length}` : ''}</button>
-          </div>
+        <div className="font-900 text-xl mb-2" style={{ color: '#3d2b10' }}>
+          {cur.icon} {cur.label}
         </div>
-        <div className="text-xs mb-4" style={{ color: '#a07030' }}>
-          {section === 'ships'
-            ? '更快的船省时间，更大的舱赚更多，更高的加成提高利润率'
-            : '招募航海好手，永久提供航速或利润加成'}
+        {/* 设施切换：5 个分区，窄屏可横向滚动 */}
+        <div className="flex gap-0.5 p-1 rounded-xl mb-2 overflow-x-auto" style={{ background: '#efe2c8' }}>
+          {SECTIONS.map(x => {
+            const badge = x.id === 'tavern' ? state.hiredCrew.length : x.id === 'workshop' ? state.equipOwned.length : 0
+            const active = section === x.id
+            return (
+              <button
+                key={x.id}
+                className={`${x.id}-toggle flex-shrink-0 text-xs font-800 px-2.5 py-1.5 rounded-lg`}
+                style={{
+                  background: active ? '#fff' : 'transparent',
+                  color: active ? '#d97320' : '#a07030',
+                }}
+                onClick={() => setSection(x.id)}
+              >
+                {x.icon} {x.label}{badge > 0 ? ` ${badge}` : ''}
+              </button>
+            )
+          })}
         </div>
+        <div className="text-xs mb-4" style={{ color: '#a07030' }}>{cur.hint}</div>
 
         {section === 'tavern' && <TavernView />}
+
+        {section === 'workshop' && <WorkshopView />}
+
+        {section === 'hall' && <HallView />}
+
+        {section === 'navy' && <AdmiraltyView />}
 
         {section === 'ships' && (<>
         {/* 当前座舰 */}
@@ -92,9 +111,9 @@ export default function DockView() {
                 </button>
               )}
               <div className="text-xs opacity-85 mt-1">
-                载重 {current.cap} · 航速 {eff.speed}x · 利润 +{eff.bonus}%
-                {(cb.speed > 0 || cb.trade > 0) && (
-                  <span className="ml-1" style={{ color: '#fff3c4' }}>（含船员加成）</span>
+                载重 {eff.cap} · 航速 {eff.speed}x · 利润 +{eff.bonus}%
+                {(cb.speed > 0 || cb.trade > 0 || eff.cap !== current.cap) && (
+                  <span className="ml-1" style={{ color: '#fff3c4' }}>（含船员与船具加成）</span>
                 )}
               </div>
             </div>

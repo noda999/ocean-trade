@@ -79,6 +79,31 @@ export function createMarkets(): AllMarkets {
   return all
 }
 
+/** 存档市场补齐：版本更新给城市新增的进出口商品，在旧存档里没有市场条目——按初始规则补上。
+ *  没有缺失时原样返回（引用不变），避免无谓的新对象。 */
+export function ensureMarkets(prev: AllMarkets): AllMarkets {
+  let changed = false
+  const next: AllMarkets = {}
+  for (const city of CITIES) {
+    const cm: CityMarket = { ...(prev[city.id] ?? {}) }
+    const ids = new Set([...city.exports, ...city.imports])
+    for (const gid of ids) {
+      if (cm[gid]) continue
+      changed = true
+      const good = GOOD_BY_ID[gid]
+      const anchor = anchorPrice(city, good)
+      cm[gid] = {
+        price: Math.round(anchor * (0.92 + Math.random() * 0.16)),
+        stock: Math.round(stockBase(city, gid) * (0.7 + Math.random() * 0.6)),
+        momentum: (Math.random() - 0.5) * 0.1,
+        spike: 0,
+      }
+    }
+    next[city.id] = cm
+  }
+  return changed ? next : prev
+}
+
 /** 推进一个市场周期：随机游走 + 均值回归 + 紧缺衰减 */
 export function evolveMarkets(prev: AllMarkets): AllMarkets {
   const next: AllMarkets = {}
@@ -124,6 +149,33 @@ export function buyPrice(city: City, good: Good, cm: CityMarket): number {
 /** 卖出单价（含船只利润加成） */
 export function sellPrice(good: Good, cm: CityMarket, shipBonus: number): number {
   return Math.round(cm[good.id].price * (1 + shipBonus / 100))
+}
+
+// ── 港口商情（v1.3.0）：丰产 / 抢购 / 封锁 ────────────────────────────────────
+
+export interface CityEvent {
+  kind: 'boom' | 'shortage' | 'blockade'
+  /** 受影响的商品（封锁无目标商品，为空串） */
+  goodId: string
+  /** 结束时刻（游戏时钟秒） */
+  until: number
+}
+
+/** 丰产季：该商品在本港的买入价乘数 */
+export function eventBuyMult(ev: CityEvent | undefined, goodId: string): number {
+  if (ev && ev.kind === 'boom' && ev.goodId === goodId) return 0.55
+  return 1
+}
+
+/** 抢购潮：该商品在本港的卖出价乘数 */
+export function eventSellMult(ev: CityEvent | undefined, goodId: string): number {
+  if (ev && ev.kind === 'shortage' && ev.goodId === goodId) return 2.2
+  return 1
+}
+
+/** 封锁中：本港禁止交易 */
+export function isBlockaded(ev: CityEvent | undefined): boolean {
+  return ev?.kind === 'blockade'
 }
 
 /** 某货品在全球的最高卖价城市（用于情报与利润提示） */

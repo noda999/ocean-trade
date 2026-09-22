@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { CITIES, CITY_BY_ID, GOODS, GOOD_BY_ID, INTEL_PRICE } from '../game/data'
-import { cityTrades, estBuyPrice, estSellPrice, sellPrice } from '../game/engine'
-import { shipNow } from '../game/state'
+import { CITIES, CITY_BY_ID, CITY_EVENT_INFO, GOODS, GOOD_BY_ID, INTEL_PRICE, SECRET_OF_CITY, isSecretGood } from '../game/data'
+import { cityTrades, estBuyPrice, estSellPrice, eventSellMult, isBlockaded, sellPrice } from '../game/engine'
+import { investBonusOf, repBonusOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 
 interface Route {
@@ -24,22 +24,31 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
   const ship = shipNow(state)
   const known = (cid: string) => state.intelOwned || state.visited.includes(cid)
 
+  /** 该港卖价加成：船只 + 声望 + 港口投资 + 抢购潮 */
+  const sellBonusOf = (cid: string) => ship.bonus + repBonusOf(state, cid) + investBonusOf(state, cid).sell
+
   /** 计算真实最赚商路（买入 → 卖出），只统计经营该货且已知的城市 */
   const routes = useMemo<Route[]>(() => {
     const out: Route[] = []
     for (const g of GOODS) {
       for (const a of CITIES) {
-        if (!cityTrades(a, g.id)) continue
+        // 买入端必须是产地（销地只买不卖，BUY 会被拦）；隐藏特产还要本港投资解锁
+        if (!a.exports.includes(g.id)) continue
+        if (isSecretGood(g.id) && SECRET_OF_CITY[a.id] === g.id && !secretUnlocked(state, a.id)) continue
         const buyKnown = state.intelOwned || state.visited.includes(a.id)
         const buy = buyKnown ? state.markets[a.id][g.id].price : estBuyPrice(g.id, a.id)
         if (buyKnown && state.markets[a.id][g.id].stock < 5) continue
         for (const b of CITIES) {
           if (a.id === b.id) continue
-          if (!cityTrades(b, g.id)) continue
+          // 卖出端必须是销地（产地只卖不买，SELL 会被拦）
+          if (!b.imports.includes(g.id)) continue
+          // 封锁中的港口卖不了货，不参与商路推荐
+          if (isBlockaded(state.cityEvents[b.id])) continue
           const sellKnown = state.intelOwned || state.visited.includes(b.id)
+          const bonus = sellBonusOf(b.id) + (eventSellMult(state.cityEvents[b.id], g.id) - 1) * 100
           const sell = sellKnown
-            ? sellPrice(g, state.markets[b.id], ship.bonus)
-            : estSellPrice(g.id, b.id, ship.bonus)
+            ? sellPrice(g, state.markets[b.id], bonus)
+            : estSellPrice(g.id, b.id, bonus)
           if (sell <= buy) continue
           out.push({
             goodId: g.id,
@@ -59,7 +68,7 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
       .sort((x, y) => (Number(x.estimated) - Number(y.estimated)) || (y.profit - x.profit))
       .slice(0, 6)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.markets, state.visited, state.intelOwned, ship.bonus])
+  }, [state.markets, state.visited, state.intelOwned, state.rep, state.invest, state.cityEvents, ship.bonus])
 
   const g = GOOD_BY_ID[goodId]
 
@@ -157,6 +166,10 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                       <span className="price-chip buy">买入 {r.buy}</span>
                       <span style={{ color: '#c9b394' }}>→</span>
                       <span className="price-chip sell">卖出 {r.sell}</span>
+                      {isBlockaded(state.cityEvents[to.id]) && <span className="badge-red">🚑 封锁中</span>}
+                      {state.cityEvents[to.id]?.kind === 'shortage' && (
+                        <span className="badge-red">{CITY_EVENT_INFO.shortage.icon} 抢购 ×2.2</span>
+                      )}
                       {state.cityId === r.fromId && <span className="badge-green ml-auto">就在此处</span>}
                       {state.cityId !== r.fromId && state.cityId === r.toId && <span className="badge-orange ml-auto">已经在目的地</span>}
                     </div>
@@ -182,7 +195,9 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
               </div>
               <div className="panel-white overflow-hidden" style={{ borderRadius: 14 }}>
                 {CITIES.map(c => {
-                  const trades = cityTrades(c, goodId)
+                  // 隐藏特产在产地未解锁时，不展示买入来源
+                  const locked = isSecretGood(goodId) && SECRET_OF_CITY[c.id] === goodId && !secretUnlocked(state, c.id)
+                  const trades = cityTrades(c, goodId) && !locked
                   const m = state.markets[c.id]?.[goodId]
                   const isKnown = known(c.id)
                   const here = c.id === state.cityId
@@ -200,7 +215,7 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                         {here && <span className="badge-orange">当前</span>}
                       </span>
                       {!trades ? (
-                        <span className="text-xs" style={{ color: '#c9bda8' }}>不流通</span>
+                        <span className="text-xs" style={{ color: '#c9bda8' }}>{locked ? '🔒 未解锁' : '不流通'}</span>
                       ) : isKnown && m ? (
                         <>
                           <span className="text-xs" style={{ color: '#a07030' }}>库存 {m.stock}</span>

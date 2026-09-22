@@ -15,10 +15,6 @@ export default function TavernView() {
 
   return (
     <>
-      <div className="text-xs mb-4" style={{ color: '#a07030' }}>
-        各路航海好手散落在世界各地的酒馆，抵达对应港口才能招募
-      </div>
-
       {/* 船员总览 */}
       <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
         <div className="flex items-center gap-3 mb-3">
