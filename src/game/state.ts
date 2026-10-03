@@ -13,10 +13,12 @@ import {
   cargoUnits, cargoValue, clamp, createMarkets, distance, eventBuyMult, eventSellMult, evolveMarkets, isBlockaded, rankFor, sellPrice, shipOf,
   totalAssets, voyageSeconds, type AllMarkets, type Cargo, type CityEvent,
 } from './engine'
+import type { GlyphName } from '../components/Glyph'
 
 export interface Toast {
   id: number
-  icon: string
+  /** 矢量图标名（见 components/Glyph.tsx） */
+  icon: GlyphName
   text: string
   kind: 'good' | 'bad' | 'info'
   ttl: number
@@ -27,6 +29,20 @@ export interface LogEntry {
   t: number
   text: string
   kind: 'good' | 'bad' | 'info'
+}
+
+/** 卖出流水（v1.5.1）：图鉴「出售记录」分页用，最近在前，最多保留 120 条 */
+export interface SellRecord {
+  id: number
+  /** 卖出时刻（游戏时钟秒） */
+  t: number
+  cityId: string
+  goodId: string
+  qty: number
+  /** 成交单价 */
+  unit: number
+  revenue: number
+  profit: number
 }
 
 export interface Voyage {
@@ -70,6 +86,8 @@ export interface GameState {
   cargo: Cargo
   cityId: string
   voyage: Voyage | null
+  /** 航行中待裁决的事件（v1.5）：遇海盗时暂停并弹窗让玩家抉择，清空后继续 */
+  pendingEvent: { type: 'pirate' } | null
   markets: AllMarkets
   shipId: string
   ownedShips: string[]
@@ -84,11 +102,17 @@ export interface GameState {
   goodsBought: string[]
   /** 卖出过的商品（去重） */
   goodsSold: string[]
+  /** 卖出流水（最近在前，最多 120 条）—— 图鉴「出售记录」分页用 */
+  sellLog: SellRecord[]
   claimed: string[]
   /** 已领取的传奇功勋（id 列表，见 data.tsx LEGENDS） */
   legendsClaimed: string[]
   /** 已提示过「可领取」的传奇功勋（防重复弹气泡；与 claimed 分开存，避免影响领取判定） */
   legendsSeen: string[]
+  /** 通关庆祝页是否已看过（集齐全部传奇功勋后弹一次） */
+  victorySeen: boolean
+  /** 海上事件图鉴：已遭遇过的航行事件 id（去重）；旧档读入自动补齐 */
+  eventsSeen: string[]
   /** 港口声望：cityId → 声望值（靠港/交易累积，换价格优惠） */
   rep: Record<string, number>
   /** 已领取的船员委托（id 列表，见 data.tsx CREW_QUESTS） */
@@ -156,10 +180,14 @@ export type Action =
   | { type: 'LOAN_REPAY'; amount: number }
   | { type: 'RAID' }
   | { type: 'DIG_TREASURE' }
+  | { type: 'RESOLVE_PIRATE'; choice: 'cannon' | 'bribe' | 'fight' }
   | { type: 'DROP_TOAST'; id: number }
   | { type: 'RESTART' }
   /** 用存档覆盖整局状态（读档） */
   | { type: 'HYDRATE'; state: GameState }
+  | { type: 'CLOSE_VICTORY' }
+  /** 调试面板专用：直接改写状态（仅 dev 生效，生产构建里整段被剔除） */
+  | { type: 'DEBUG_PATCH'; patch: Partial<GameState>; stats?: Partial<GameState['stats']> }
 
 export function initialState(): GameState {
   return {
@@ -167,6 +195,7 @@ export function initialState(): GameState {
     cargo: {},
     cityId: START_CITY,
     voyage: null,
+    pendingEvent: null,
     markets: createMarkets(),
     shipId: 'sloop',
     ownedShips: ['sloop'],
@@ -177,9 +206,12 @@ export function initialState(): GameState {
     visited: [START_CITY],
     goodsBought: [],
     goodsSold: [],
+    sellLog: [],
     claimed: [],
     legendsClaimed: [],
     legendsSeen: [],
+    victorySeen: false,
+    eventsSeen: [],
     rep: {},
     crewQuestsClaimed: [],
     crewQuestsSeen: [],
@@ -209,7 +241,7 @@ export function initialState(): GameState {
 
 // ── 小工具 ───────────────────────────────────────────────────────────────────
 
-function pushToast(s: GameState, icon: string, text: string, kind: Toast['kind']): void {
+function pushToast(s: GameState, icon: GlyphName, text: string, kind: Toast['kind']): void {
   s.seq += 1
   s.toasts = [...s.toasts, { id: s.seq, icon, text, kind, ttl: 4.2 }].slice(-4)
 }
@@ -415,10 +447,10 @@ function maybeFindFrag(s: GameState, chance: number): void {
   if (s.mapFrags >= MAP_FRAGS_NEED) {
     const pool = CITIES.filter(c => c.id !== s.cityId)
     s.digCity = pool[Math.floor(Math.random() * pool.length)].id
-    pushToast(s, '🗺️', '藏宝图集齐了！去市政厅查看沉宝地点', 'good')
+    pushToast(s, 'map', '藏宝图集齐了！去市政厅查看沉宝地点', 'good')
     pushLog(s, `藏宝图碎片集齐（${MAP_FRAGS_NEED}/${MAP_FRAGS_NEED}）：图中指向 ${CITY_BY_ID[s.digCity].name} 外海`, 'good')
   } else {
-    pushToast(s, '🗺️', `捞起藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）`, 'good')
+    pushToast(s, 'map', `捞起藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）`, 'good')
     pushLog(s, `获得藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）`, 'good')
   }
 }
@@ -523,37 +555,15 @@ function rollEvent(s: GameState): void {
     : goodPool[Math.floor(Math.random() * goodPool.length)]
 
   s.stats.events += 1
+  // 记录已遭遇事件，供「海上事件图鉴」标记发现
+  s.eventsSeen = Array.from(new Set([...s.eventsSeen, def.id]))
   const v = s.voyage
   if (!v) return
 
   switch (def.id) {
     case 'pirate': {
-      // 舰炮组：自动开火击退海盗，缴获战利品
-      if (supplyCount(s, 's_cannon') > 0) {
-        useSupply(s, 's_cannon')
-        const loot = 600 + Math.round(Math.random() * 1400)
-        s.money += loot
-        pushToast(s, '🎯', `舰炮齐鸣！吓退海盗，缴获 ${loot.toLocaleString()} 金`, 'good')
-        pushLog(s, `遭遇海盗：舰炮击退，缴获 ${loot.toLocaleString()} 金`, 'good')
-        break
-      }
-      const held = Object.entries(s.cargo).filter(([, c]) => c.qty > 0)
-      if (held.length) {
-        const [gid, c] = held[Math.floor(Math.random() * held.length)]
-        const lost = Math.max(1, Math.round(c.qty * 0.25))
-        const remain = c.qty - lost
-        const next = { ...s.cargo }
-        if (remain <= 0) delete next[gid]
-        else next[gid] = { qty: remain, cost: c.cost * (remain / c.qty) }
-        s.cargo = next
-        pushToast(s, '🏴‍☠️', `海盗劫走 ${GOOD_BY_ID[gid].name} ×${lost}`, 'bad')
-        pushLog(s, `遭遇海盗：损失 ${GOOD_BY_ID[gid].name} ×${lost}`, 'bad')
-      } else {
-        const fee = Math.min(s.money, 300)
-        s.money -= fee
-        pushToast(s, '🏴‍☠️', `海盗索要过路费 ${Math.round(fee)} 金`, 'bad')
-        pushLog(s, `遭遇海盗：被勒索 ${Math.round(fee)} 金`, 'bad')
-      }
+      // v1.5：改用待裁决弹窗，让玩家自行决定如何应对（舰炮迎战 / 破财消灾 / 硬拼）
+      s.pendingEvent = { type: 'pirate' }
       break
     }
     case 'storm': {
@@ -561,12 +571,12 @@ function rollEvent(s: GameState): void {
       if (supplyCount(s, 's_timber') > 0) {
         useSupply(s, 's_timber')
         s.voyage = { ...v, elapsed: clamp(v.elapsed - v.duration * 0.06, 0, v.duration) }
-        pushToast(s, '🔨', '暴风雨！木料加固船体，延误减半', 'good')
+        pushToast(s, 'hammer', '暴风雨！木料加固船体，延误减半', 'good')
         pushLog(s, '暴风雨：消耗修理木料，延误仅 6%', 'good')
         break
       }
       s.voyage = { ...v, elapsed: clamp(v.elapsed - v.duration * 0.12, 0, v.duration) }
-      pushToast(s, '⛈️', '暴风雨：航程延误', 'bad')
+      pushToast(s, 'storm', '暴风雨：航程延误', 'bad')
       pushLog(s, '暴风雨：航程延误约 12%', 'bad')
       break
     }
@@ -574,18 +584,18 @@ function rollEvent(s: GameState): void {
       // 通商特许状：免排队直接进港
       if (supplyCount(s, 's_charter') > 0) {
         useSupply(s, 's_charter')
-        pushToast(s, '🧾', '出示通商特许状：检疫免排队', 'good')
+        pushToast(s, 'receipt', '出示通商特许状：检疫免排队', 'good')
         pushLog(s, '港口检疫：出示特许状，免排队进港', 'good')
         break
       }
       s.voyage = { ...v, duration: v.duration + 4 }
-      pushToast(s, '🚩', '港口检疫：进港延迟 4 秒', 'bad')
+      pushToast(s, 'flag', '港口检疫：进港延迟 4 秒', 'bad')
       pushLog(s, '港口检疫排队：延误 4 秒', 'bad')
       break
     }
     case 'wind': {
       s.voyage = { ...v, elapsed: v.elapsed + v.duration * 0.2 }
-      pushToast(s, '💨', '顺风顺水：航程大幅缩短', 'good')
+      pushToast(s, 'wind', '顺风顺水：航程大幅缩短', 'good')
       pushLog(s, '顺风顺水：航程缩短 20%', 'good')
       break
     }
@@ -597,13 +607,13 @@ function rollEvent(s: GameState): void {
       }
       const tip = 80 + Math.round(Math.random() * 220)
       s.money += tip
-      pushToast(s, '🍾', `漂流瓶里有几枚旧金币：+${tip} 金`, 'good')
+      pushToast(s, 'bottle', `漂流瓶里有几枚旧金币：+${tip} 金`, 'good')
       pushLog(s, `捞起漂流瓶：兑换旧金币 +${tip} 金`, 'good')
       break
     }
     case 'dolphin': {
       s.boost += 1
-      pushToast(s, '🐬', '海豚引航：获得加速卡 ×1', 'good')
+      pushToast(s, 'dolphin', '海豚引航：获得加速卡 ×1', 'good')
       pushLog(s, '海豚引航：获得加速卡 ×1', 'good')
       break
     }
@@ -618,19 +628,121 @@ function rollEvent(s: GameState): void {
       if (add > 0) {
         const cur = s.cargo[gid]
         s.cargo = { ...s.cargo, [gid]: { qty: (cur?.qty ?? 0) + add, cost: cur?.cost ?? 0 } }
-        pushToast(s, '📦', `捞起 ${GOOD_BY_ID[gid].name} ×${add}`, 'good')
+        pushToast(s, 'box', `捞起 ${GOOD_BY_ID[gid].name} ×${add}`, 'good')
         pushLog(s, `海上漂货：获得 ${GOOD_BY_ID[gid].name} ×${add}`, 'good')
       } else {
-        pushToast(s, '📦', '发现漂货，但货舱已满', 'info')
+        pushToast(s, 'box', '发现漂货，但货舱已满', 'info')
         pushLog(s, '发现漂货，但货舱已满，只能放弃', 'info')
       }
+      break
+    }
+    case 'reef': {
+      // 修理木料：快速补舱，延误压到最小
+      if (supplyCount(s, 's_timber') > 0) {
+        useSupply(s, 's_timber')
+        s.voyage = { ...v, duration: v.duration + 1.5 }
+        pushToast(s, 'hammer', '暗礁！木料修补船体，仅延误 1.5 秒', 'good')
+        pushLog(s, '暗礁搁浅：木料加固，延误 1.5 秒', 'good')
+        break
+      }
+      s.voyage = { ...v, duration: v.duration + 5 }
+      pushToast(s, 'barrier', '暗礁搁浅：绕行延误 5 秒', 'bad')
+      pushLog(s, '暗礁搁浅：绕行延误 5 秒', 'bad')
+      break
+    }
+    case 'mutiny': {
+      const loss = Math.min(s.money, 200 + Math.round(Math.random() * 400))
+      s.money -= loss
+      pushToast(s, 'skull', `船员哗变：被勒索 ${loss} 金`, 'bad')
+      pushLog(s, `船员哗变：损失 ${loss} 金`, 'bad')
+      break
+    }
+    case 'fog': {
+      s.voyage = { ...v, duration: v.duration + 3 }
+      pushToast(s, 'compass', '浓雾迷航：绕路延误 3 秒', 'bad')
+      pushLog(s, '浓雾迷航：延误 3 秒', 'bad')
+      break
+    }
+    case 'fire': {
+      // 修理木料：即时扑灭，免遭损失
+      if (supplyCount(s, 's_timber') > 0) {
+        useSupply(s, 's_timber')
+        pushToast(s, 'hammer', '船舱失火！木料扑灭', 'good')
+        pushLog(s, '船舱失火：木料扑灭', 'good')
+        break
+      }
+      const ids = Object.keys(s.cargo).filter(g => (s.cargo[g]?.qty ?? 0) > 0)
+      if (ids.length) {
+        const gid = ids[Math.floor(Math.random() * ids.length)]
+        const cur = s.cargo[gid]
+        const lose = Math.max(1, Math.ceil(cur.qty * 0.3))
+        s.cargo = { ...s.cargo, [gid]: { ...cur, qty: cur.qty - lose } }
+        pushToast(s, 'flame', `船舱失火：烧毁 ${GOOD_BY_ID[gid].name} ×${lose}`, 'bad')
+        pushLog(s, `船舱失火：烧毁 ${GOOD_BY_ID[gid].name} ×${lose}`, 'bad')
+        break
+      }
+      s.voyage = { ...v, duration: v.duration + 3 }
+      pushToast(s, 'flame', '船舱失火：延误 3 秒', 'bad')
+      pushLog(s, '船舱失火：延误 3 秒', 'bad')
+      break
+    }
+    case 'doldrums': {
+      s.voyage = { ...v, elapsed: clamp(v.elapsed - v.duration * 0.18, 0, v.duration) }
+      pushToast(s, 'anchor', '陷入无风带：航程大幅拉长', 'bad')
+      pushLog(s, '无风带：航程变慢约 18%', 'bad')
+      break
+    }
+    case 'whirl': {
+      s.voyage = { ...v, duration: v.duration + 3 }
+      pushToast(s, 'wave', '漩涡暗流：绕行延误 3 秒', 'bad')
+      pushLog(s, '漩涡暗流：绕行延误 3 秒', 'bad')
+      break
+    }
+    case 'merchant': {
+      const gain = 250 + Math.round(Math.random() * 550)
+      s.money += gain
+      pushToast(s, 'ship', `偶遇商船：顺路倒卖 +${gain} 金`, 'good')
+      pushLog(s, `偶遇商船：+${gain} 金`, 'good')
+      break
+    }
+    case 'festival': {
+      const gain = 150 + Math.round(Math.random() * 350)
+      s.money += gain
+      s.boost += 1
+      pushToast(s, 'cheers', `海上节庆：+${gain} 金，获加速卡 ×1`, 'good')
+      pushLog(s, `海上节庆：+${gain} 金，加速卡 ×1`, 'good')
+      break
+    }
+    case 'whale': {
+      s.voyage = { ...v, elapsed: v.elapsed + v.duration * 0.15 }
+      pushToast(s, 'crystal', '巨鲸护航：航程缩短', 'good')
+      pushLog(s, '巨鲸护航：航程缩短 15%', 'good')
+      break
+    }
+    case 'spring': {
+      s.boost += 1
+      pushToast(s, 'beer', '甘泉补给：获加速卡 ×1', 'good')
+      pushLog(s, '甘泉补给：加速卡 ×1', 'good')
+      break
+    }
+    case 'wreck': {
+      const gain = 300 + Math.round(Math.random() * 600)
+      s.money += gain
+      pushToast(s, 'gem', `海难遗财：拾得 ${gain} 金`, 'good')
+      pushLog(s, '海难遗财：+${gain} 金', 'good')
+      break
+    }
+    case 'current': {
+      s.voyage = { ...v, elapsed: v.elapsed + v.duration * 0.22 }
+      pushToast(s, 'bolt', '幸运洋流：航程大幅缩短', 'good')
+      pushLog(s, '幸运洋流：航程缩短 22%', 'good')
       break
     }
     case 'deal':
     default: {
       const gain = 200 + Math.round(Math.random() * 600)
       s.money += gain
-      pushToast(s, '🤝', `港口商机：+${gain} 金`, 'good')
+      pushToast(s, 'exchange', `港口商机：+${gain} 金`, 'good')
       pushLog(s, `顺路做成一笔小生意：+${gain} 金`, 'good')
       break
     }
@@ -643,6 +755,8 @@ function coreReducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     // ── 时间推进 ──────────────────────────────────────────────────────────────
     case 'TICK': {
+      // 待裁决事件（如海盗）期间冻结模拟，等玩家抉择后再继续
+      if (state.pendingEvent) return state
       const dt = action.dt
       const s: GameState = {
         ...state,
@@ -683,11 +797,14 @@ function coreReducer(state: GameState, action: Action): GameState {
           if (!CITY_BY_ID[cid]) continue
           dividend += investBonusOf(s, cid).dividend
         }
+        // 被动分红设每周期总上限，避免后期滚雪球（满投资约 4460 金/秒）碾压主动跑商、弱化 1 亿终局挑战
+        const DIVIDEND_CAP = 2500
         if (dividend > 0) {
-          s.money += dividend
+          const paid = Math.min(dividend, DIVIDEND_CAP)
+          s.money += paid
           // 每 8 秒结算一次，日志按 40 秒节流，避免把商情/委托消息挤出日志
           if (Math.floor(s.clock / 40) !== Math.floor(state.clock / 40)) {
-            pushLog(s, `港口投资持续分红：每市场周期 +${dividend.toLocaleString()} 金`, 'good')
+            pushLog(s, `港口投资持续分红：每市场周期 +${paid.toLocaleString()} 金${paid < dividend ? '（已达上限）' : ''}`, 'good')
           }
         }
         // 银行计息（v1.4.0）；债务超过资产安全线 → 强制清算
@@ -699,7 +816,7 @@ function coreReducer(state: GameState, action: Action): GameState {
             s.money = 0
             s.cargo = {}
             s.debt = remain
-            pushToast(s, '⚖️', `债主查封！货物与金币充公抵债 ${seized.toLocaleString()} 金`, 'bad')
+            pushToast(s, 'scale', `债主查封！货物与金币充公抵债 ${seized.toLocaleString()} 金`, 'bad')
             pushLog(s, `银行强制清算：没收全部货物与现金抵债 ${seized.toLocaleString()} 金，剩余债务 ${remain.toLocaleString()} 金`, 'bad')
           }
         }
@@ -761,10 +878,10 @@ function coreReducer(state: GameState, action: Action): GameState {
           const city = pool[Math.floor(Math.random() * pool.length)]
           if (city) {
             const r = Math.random()
-            const kind: CityEventKind = r < 0.45 ? 'boom' : r < 0.85 ? 'shortage' : 'blockade'
+            const kind: CityEventKind = r < 0.4 ? 'boom' : r < 0.75 ? 'shortage' : r < 0.9 ? 'blockade' : 'festival'
             const goodId = kind === 'boom'
               ? city.exports[Math.floor(Math.random() * city.exports.length)] ?? ''
-              : kind === 'shortage'
+              : kind === 'shortage' || kind === 'festival'
                 ? city.imports[Math.floor(Math.random() * city.imports.length)] ?? ''
                 : ''
             const until = s.clock + CITY_EVENT_DURATION[0] + Math.random() * (CITY_EVENT_DURATION[1] - CITY_EVENT_DURATION[0])
@@ -786,7 +903,7 @@ function coreReducer(state: GameState, action: Action): GameState {
           if (o.deadline > s.clock) { alive.push(o); continue }
           expired = true
           if (o.taken) {
-            pushToast(s, '⏰', `委托超时：${GOOD_BY_ID[o.goodId]?.name ?? '货物'}未能送到 ${CITY_BY_ID[o.toCity]?.name ?? '目的地'}`, 'bad')
+            pushToast(s, 'hourglass', `委托超时：${GOOD_BY_ID[o.goodId]?.name ?? '货物'}未能送到 ${CITY_BY_ID[o.toCity]?.name ?? '目的地'}`, 'bad')
             pushLog(s, `委托超时失效：${GOOD_BY_ID[o.goodId]?.name} → ${CITY_BY_ID[o.toCity]?.name}`, 'bad')
           }
         }
@@ -829,7 +946,7 @@ function coreReducer(state: GameState, action: Action): GameState {
           reward: Math.round(pirate.strength * rate),
           deadline: s.clock + BOUNTY_TTL,
         }
-        pushToast(s, '🏴‍☠️', `海事悬赏：${pirate.name}（战力 ${pirate.strength}），赏金 ${s.bounty.reward.toLocaleString()} 金`, 'info')
+        pushToast(s, 'pirate', `海事悬赏：${pirate.name}（战力 ${pirate.strength}），赏金 ${s.bounty.reward.toLocaleString()} 金`, 'info')
         pushLog(s, `${city.name}海事署发布悬赏：缉拿 ${pirate.name}，赏金 ${s.bounty.reward.toLocaleString()} 金（${BOUNTY_TTL} 秒内有效，工坊·舰炮组可提升胜率）`, 'info')
       }
 
@@ -844,13 +961,20 @@ function coreReducer(state: GameState, action: Action): GameState {
           if (!s.visited.includes(v.to)) s.visited = [...s.visited, v.to]
           s.stats.distance += Math.round(Math.hypot(to.x - from.x, to.y - from.y) * 37)
           gainRep(s, v.to, REP_GAIN_ARRIVE)
-          pushToast(s, '⚓', `抵达 ${to.name}（声望 +${REP_GAIN_ARRIVE}）`, 'good')
+          pushToast(s, 'anchor', `抵达 ${to.name}（声望 +${REP_GAIN_ARRIVE}）`, 'good')
           pushLog(s, `从 ${from.name} 抵达 ${to.name}`, 'info')
+          // 委托交付引导（v1.5）：抵达城市时若手上有目的地在此的委托，主动提示
+          const hereOrders = s.orders.filter(o => o.taken && o.toCity === v.to)
+          if (hereOrders.length) {
+            const ready = hereOrders.filter(o => (s.cargo[o.goodId]?.qty ?? 0) >= o.qty)
+            if (ready.length) pushToast(s, 'truck', `抵达 ${to.name}：${ready.length} 张委托可立即交付`, 'good')
+            else pushToast(s, 'truck', `抵达 ${to.name}：${hereOrders.length} 张委托目的地在此，记得备货交付`, 'info')
+          }
           // 进港关税（v1.4.0）：投资 2 级半价、3 级全免；现金不足则倾囊缴纳
           const fee = Math.min(s.money, dockingFee(s, v.to, cargoValue(s.cargo, v.to, s.markets, shipNow(s).bonus)))
           if (fee > 0) {
             s.money -= fee
-            pushToast(s, '🛃', `缴纳进港关税 ${fee.toLocaleString()} 金`, 'info')
+            pushToast(s, 'stamp', `缴纳进港关税 ${fee.toLocaleString()} 金`, 'info')
             pushLog(s, `在${to.name}缴纳进港关税 ${fee.toLocaleString()} 金`, 'info')
           }
         } else {
@@ -883,7 +1007,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       if (wind) dur = Math.max(5, Math.round(dur / 1.2))
       s.voyage = { from: from.id, to: to.id, elapsed: 0, duration: dur }
       s.eventTimer = 4 + Math.random() * 3
-      pushToast(s, wind ? '⛵' : '⚓', `${wind ? `${season.icon} 乘${season.name}，航速 +20% · ` : ''}起航前往 ${to.name}，预计 ${dur} 秒`, 'info')
+      pushToast(s, wind ? 'ship' : 'anchor', `${wind ? `${season.icon} 乘${season.name}，航速 +20% · ` : ''}起航前往 ${to.name}，预计 ${dur} 秒`, 'info')
       pushLog(s, `从 ${from.name} 起航前往 ${to.name}${wind ? `（${season.name}提速）` : ''}，预计航行 ${dur} 秒`, 'info')
       return s
     }
@@ -891,28 +1015,28 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 买入 ──────────────────────────────────────────────────────────────────
     case 'BUY': {
       const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets }, goodsBought: state.goodsBought }
-      if (s.voyage) { pushToast(s, '⛔', '航行中无法交易', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行中无法交易', 'bad'); return s }
       const evHere = s.cityEvents[s.cityId]
-      if (isBlockaded(evHere)) { pushToast(s, '🚑', '港口封锁中，暂时无法交易', 'bad'); return s }
+      if (isBlockaded(evHere)) { pushToast(s, 'barrier', '港口封锁中，暂时无法交易', 'bad'); return s }
       const good = GOOD_BY_ID[action.goodId]
       const cm = s.markets[s.cityId]
       const m = cm?.[good.id]
-      if (!m) { pushToast(s, '🚫', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，去原产地看看`, 'bad'); return s }
+      if (!m) { pushToast(s, 'ban', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，去原产地看看`, 'bad'); return s }
       const city = CITY_BY_ID[s.cityId]
       // 销地 = 本港是进口商：只买不卖 —— 紧缺即卖价高，玩家只能在此卖出；买入请去产地。
       // 玩家应去产地 BUY 装船出海，再运到销地 SELL，这才是海上贸易的正确流向。
       if (city.imports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 紧缺 ${good.name}，本港只买不卖，此处只能卖出`, 'bad'); return s
+        pushToast(s, 'ban', `${city.name} 紧缺 ${good.name}，本港只买不卖，此处只能卖出`, 'bad'); return s
       }
       // 隐藏特产（v1.4.0）：本港投资 ≥ 1 级才开放购买
       if (isSecretGood(good.id) && SECRET_OF_CITY[s.cityId] === good.id && !secretUnlocked(s, s.cityId)) {
-        pushToast(s, '🔒', '隐藏特产：投资本港 1 级「商会伙伴」即可解锁购买', 'bad'); return s
+        pushToast(s, 'lock', '隐藏特产：投资本港 1 级「商会伙伴」即可解锁购买', 'bad'); return s
       }
       // 载重按「含船员与船具加成」的有效座舰计算（扩容货舱等因素必须计入）
       const ship = shipNow(s)
       const room = ship.cap - cargoUnits(s.cargo)
-      if (m.stock <= 0) { pushToast(s, '📉', `${good.name} 本地已售罄`, 'bad'); return s }
-      if (room <= 0) { pushToast(s, '📦', '货舱已满，先去卖出货物', 'bad'); return s }
+      if (m.stock <= 0) { pushToast(s, 'trendDown', `${good.name} 本地已售罄`, 'bad'); return s }
+      if (room <= 0) { pushToast(s, 'box', '货舱已满，先去卖出货物', 'bad'); return s }
 
       const repDisc = repBonusOf(s, s.cityId)
       const invBuy = investBonusOf(s, s.cityId).buy
@@ -922,7 +1046,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       // 数值校验：禁止负数 / NaN / 小数，再夹紧到 m.stock、room、afford 三者最小
       const raw = Number.isFinite(action.qty) ? Math.floor(action.qty) : 0
       const qty = Math.max(0, Math.min(raw, m.stock, room, afford))
-      if (qty <= 0) { pushToast(s, '🪙', afford <= 0 ? '金币不足' : `本次最多只能买 ${afford} 件`, 'bad'); return s }
+      if (qty <= 0) { pushToast(s, 'coin', afford <= 0 ? '金币不足' : `本次最多只能买 ${afford} 件`, 'bad'); return s }
 
       const cost = qty * unit
       s.money -= cost
@@ -935,32 +1059,32 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.stats.trades += 1
       gainRep(s, s.cityId, REP_GAIN_TRADE)
       if (!s.goodsBought.includes(good.id)) s.goodsBought = [...s.goodsBought, good.id]
-      pushToast(s, '📥', `买入 ${good.name} ×${qty}，支出 ${cost.toLocaleString()} 金${repDisc > 0 ? `（声望 -${repDisc}%）` : ''}`, 'info')
+      pushToast(s, 'loadIn', `买入 ${good.name} ×${qty}，支出 ${cost.toLocaleString()} 金${repDisc > 0 ? `（声望 -${repDisc}%）` : ''}`, 'info')
       return s
     }
 
     // ── 卖出 ──────────────────────────────────────────────────────────────────
     case 'SELL': {
-      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets }, goodsSold: state.goodsSold }
-      if (s.voyage) { pushToast(s, '⛔', '航行中无法交易', 'bad'); return s }
+      const s: GameState = { ...state, cargo: { ...state.cargo }, stats: { ...state.stats }, toasts: [...state.toasts], markets: { ...state.markets }, goodsSold: state.goodsSold, sellLog: state.sellLog }
+      if (s.voyage) { pushToast(s, 'ban', '航行中无法交易', 'bad'); return s }
       const evSell = s.cityEvents[s.cityId]
-      if (isBlockaded(evSell)) { pushToast(s, '🚑', '港口封锁中，暂时无法交易', 'bad'); return s }
+      if (isBlockaded(evSell)) { pushToast(s, 'barrier', '港口封锁中，暂时无法交易', 'bad'); return s }
       const good = GOOD_BY_ID[action.goodId]
       const cm = s.markets[s.cityId]
       const m = cm?.[good.id]
-      if (!m) { pushToast(s, '🚫', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，运往别处看看`, 'bad'); return s }
+      if (!m) { pushToast(s, 'ban', `${CITY_BY_ID[s.cityId].name} 不经营 ${good.name}，运往别处看看`, 'bad'); return s }
       const city = CITY_BY_ID[s.cityId]
       // ── 核心贸易规则：同一种货，本港要么「只卖不买」（产地），要么「只买不卖」（销地）──
       // 1) 产地（特产）：本港出口商自己就在卖这种货 → 只卖不买，不买玩家手里的货
       //    （否则可在产地「买入 → 原地卖回」，白嫖船只利润加成）
       if (city.exports.includes(good.id)) {
-        pushToast(s, '🚫', `${city.name} 是 ${good.name} 的产地，本港只卖不买`, 'bad'); return s
+        pushToast(s, 'ban', `${city.name} 是 ${good.name} 的产地，本港只卖不买`, 'bad'); return s
       }
       // 2) 销地（紧缺）：本港进口商买价高 → 只买不卖，玩家到这里就是要卖出赚钱
       //    （BUY 已在销地被拦截，所以不存在「同港买入再卖回」的套利空间）
       const ship = shipNow(s)
       const held = s.cargo[good.id]
-      if (!held || held.qty <= 0) { pushToast(s, '📦', `货舱里没有 ${good.name}`, 'bad'); return s }
+      if (!held || held.qty <= 0) { pushToast(s, 'box', `货舱里没有 ${good.name}`, 'bad'); return s }
       // 数值校验：禁止负数、NaN、非整数；并夹紧到货舱实际数量
       const raw = Number.isFinite(action.qty) ? Math.floor(action.qty) : 0
       const qty = Math.max(0, Math.min(raw, held.qty))
@@ -989,9 +1113,12 @@ function coreReducer(state: GameState, action: Action): GameState {
       if (!s.goodsSold.includes(good.id)) s.goodsSold = [...s.goodsSold, good.id]
       s.stats.profit += profit
       s.stats.best = Math.max(s.stats.best, profit)
+      // ── 记录卖出流水（图鉴「出售记录」用）──
+      s.seq += 1
+      s.sellLog = [{ id: s.seq, t: s.clock, cityId: s.cityId, goodId: good.id, qty, unit, revenue, profit }, ...s.sellLog].slice(0, 120)
       pushToast(
         s,
-        profit >= 0 ? '💰' : '💸',
+        profit >= 0 ? 'purse' : 'purse',
         `${good.name} ×${qty} 卖出 +${revenue.toLocaleString()} 金（${profit >= 0 ? '盈利' : '亏损'} ${Math.abs(profit).toLocaleString()}${repBonus > 0 ? `，声望 +${repBonus}%` : ''}）`,
         profit >= 0 ? 'good' : 'bad',
       )
@@ -1004,14 +1131,14 @@ function coreReducer(state: GameState, action: Action): GameState {
       let s = state
       if (isBlockaded(state.cityEvents[state.cityId])) {
         s = { ...s, toasts: [...s.toasts] }
-        pushToast(s, '🚑', '港口封锁中，暂时无法交易', 'bad')
+        pushToast(s, 'barrier', '港口封锁中，暂时无法交易', 'bad')
         return s
       }
       const ids = Object.keys(s.cargo)
       if (!ids.length) {
         const t = [...s.toasts]
         s = { ...s, toasts: t }
-        pushToast(s, '📦', '货舱是空的', 'bad')
+        pushToast(s, 'box', '货舱是空的', 'bad')
         return s
       }
       const sellable = ids.filter(gid => {
@@ -1027,7 +1154,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       }
       if (blocked.length) {
         s = { ...s, toasts: [...s.toasts] }
-        pushToast(s, '📦', `${blocked.map(g => GOOD_BY_ID[g].name).join('、')} 本港不买（产地），已保留`, 'info')
+        pushToast(s, 'box', `${blocked.map(g => GOOD_BY_ID[g].name).join('、')} 本港不买（产地），已保留`, 'info')
       }
       return s
     }
@@ -1037,11 +1164,11 @@ function coreReducer(state: GameState, action: Action): GameState {
       const s: GameState = { ...state, ownedShips: [...state.ownedShips], toasts: [...state.toasts] }
       const ship = SHIPS.find(x => x.id === action.shipId)
       if (!ship || s.ownedShips.includes(ship.id)) return state
-      if (s.money < ship.cost) { pushToast(s, '🪙', `金币不足，还差 ${(ship.cost - s.money).toLocaleString()} 金`, 'bad'); return s }
+      if (s.money < ship.cost) { pushToast(s, 'coin', `金币不足，还差 ${(ship.cost - s.money).toLocaleString()} 金`, 'bad'); return s }
       s.money -= ship.cost
       s.ownedShips = [...s.ownedShips, ship.id]
       s.shipId = ship.id
-      pushToast(s, '🚢', `购入 ${ship.name}！`, 'good')
+      pushToast(s, 'ship', `购入 ${ship.name}！`, 'good')
       pushLog(s, `购入新船：${ship.name}（载重 ${ship.cap}，利润 +${ship.bonus}%）`, 'good')
       return s
     }
@@ -1053,12 +1180,12 @@ function coreReducer(state: GameState, action: Action): GameState {
       // 招募限制：人必须亲自到对应港口的酒馆
       if (state.cityId !== c.cityId) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '🚫', `${c.name} 只在 ${CITY_BY_ID[c.cityId].name} 的酒馆招募`, 'bad')
+        pushToast(s0, 'ban', `${c.name} 只在 ${CITY_BY_ID[c.cityId].name} 的酒馆招募`, 'bad')
         return s0
       }
       if (state.money < c.cost) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '🪙', `金币不足，还差 ${(c.cost - state.money).toLocaleString()} 金`, 'bad')
+        pushToast(s0, 'coin', `金币不足，还差 ${(c.cost - state.money).toLocaleString()} 金`, 'bad')
         return s0
       }
       const s: GameState = {
@@ -1067,7 +1194,7 @@ function coreReducer(state: GameState, action: Action): GameState {
         hiredCrew: [...state.hiredCrew, c.id],
         toasts: [...state.toasts],
       }
-      pushToast(s, '🤝', `${c.name} 登船了！${c.speed ? `航速+${c.speed}% ` : ''}${c.trade ? `利润+${c.trade}%` : ''}`.trim(), 'good')
+      pushToast(s, 'exchange', `${c.name} 登船了！${c.speed ? `航速+${c.speed}% ` : ''}${c.trade ? `利润+${c.trade}%` : ''}`.trim(), 'good')
       pushLog(s, `在 ${CITY_BY_ID[c.cityId].name} 雇佣了${c.role}「${c.name}」`, 'good')
       return s
     }
@@ -1076,10 +1203,10 @@ function coreReducer(state: GameState, action: Action): GameState {
       if (!state.ownedShips.includes(action.shipId)) return state
       const s: GameState = { ...state, shipId: action.shipId, toasts: [...state.toasts] }
       if (cargoUnits(s.cargo) > shipNow(s).cap) {
-        pushToast(s, '📦', '该船载重不足，先清掉部分货物', 'bad')
+        pushToast(s, 'box', '该船载重不足，先清掉部分货物', 'bad')
         return state
       }
-      pushToast(s, '⚓', `已换乘 ${shipOf(action.shipId).name}`, 'info')
+      pushToast(s, 'anchor', `已换乘 ${shipOf(action.shipId).name}`, 'info')
       return s
     }
 
@@ -1100,13 +1227,13 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 加速 ──────────────────────────────────────────────────────────────────
     case 'USE_BOOST': {
       const s: GameState = { ...state, toasts: [...state.toasts] }
-      if (!s.voyage) { pushToast(s, '⛔', '当前没有航行任务', 'bad'); return s }
-      if (s.boost <= 0) { pushToast(s, '🎫', '加速卡不足', 'bad'); return s }
+      if (!s.voyage) { pushToast(s, 'ban', '当前没有航行任务', 'bad'); return s }
+      if (s.boost <= 0) { pushToast(s, 'ticket', '加速卡不足', 'bad'); return s }
       const v = s.voyage
       const remain = Math.max(0, v.duration - v.elapsed)
       s.boost -= 1
       s.voyage = { ...v, elapsed: v.elapsed + remain * 0.5 }
-      pushToast(s, '⚡', `使用加速卡，剩余航程减半`, 'good')
+      pushToast(s, 'bolt', `使用加速卡，剩余航程减半`, 'good')
       return s
     }
 
@@ -1118,7 +1245,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       const s: GameState = { ...state, claimed: [...state.claimed, m.id], toasts: [...state.toasts] }
       s.money += m.gold
       s.boost += m.boost
-      pushToast(s, '🏆', `${m.label}：+${m.gold.toLocaleString()} 金，加速卡 ×${m.boost}`, 'good')
+      pushToast(s, 'trophy', `${m.label}：+${m.gold.toLocaleString()} 金，加速卡 ×${m.boost}`, 'good')
       pushLog(s, `达成阶段目标「${m.label}」`, 'good')
       return s
     }
@@ -1137,10 +1264,11 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.money += l.gold
       s.boost += l.boost
       if (allLegendsDone(s)) {
-        pushToast(s, '👑', `传奇功勋全数达成！加冕「${LEGEND_TITLE}」`, 'good')
+        s.victorySeen = false
+        pushToast(s, 'crown', `传奇功勋全数达成！加冕「${LEGEND_TITLE}」`, 'good')
         pushLog(s, `集齐全部传奇功勋，加冕「${LEGEND_TITLE}」`, 'good')
       } else {
-        pushToast(s, '🏆', `${l.label}：+${l.gold.toLocaleString()} 金，加速卡 ×${l.boost}`, 'good')
+        pushToast(s, 'trophy', `${l.label}：+${l.gold.toLocaleString()} 金，加速卡 ×${l.boost}`, 'good')
         pushLog(s, `达成传奇功勋「${l.label}」`, 'good')
       }
       return s
@@ -1159,7 +1287,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.money += q.gold
       s.boost += q.boost
       const crew = CREW_BY_ID[q.crewId]
-      pushToast(s, '📜', `${crew.name}：「${q.title}」完成，+${q.gold.toLocaleString()} 金`, 'good')
+      pushToast(s, 'scroll', `${crew.name}：「${q.title}」完成，+${q.gold.toLocaleString()} 金`, 'good')
       pushLog(s, `完成 ${crew.name} 的委托「${q.title}」`, 'good')
       return s
     }
@@ -1171,12 +1299,12 @@ function coreReducer(state: GameState, action: Action): GameState {
       if (e.requireShip && !state.ownedShips.includes(e.requireShip)) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
         const shipName = SHIPS.find(x => x.id === e.requireShip)?.name ?? '指定船只'
-        pushToast(s0, '🔒', `${e.name} 需要 ${shipName}才能安装`, 'bad')
+        pushToast(s0, 'lock', `${e.name} 需要 ${shipName}才能安装`, 'bad')
         return s0
       }
       if (state.money < e.cost) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '🪙', `金币不足，还差 ${(e.cost - state.money).toLocaleString()} 金`, 'bad')
+        pushToast(s0, 'coin', `金币不足，还差 ${(e.cost - state.money).toLocaleString()} 金`, 'bad')
         return s0
       }
       const s: GameState = {
@@ -1185,7 +1313,7 @@ function coreReducer(state: GameState, action: Action): GameState {
         equipOwned: [...state.equipOwned, e.id],
         toasts: [...state.toasts],
       }
-      pushToast(s, '🛠️', `${e.name}安装完毕：${e.desc}`, 'good')
+      pushToast(s, 'anvil', `${e.name}安装完毕：${e.desc}`, 'good')
       pushLog(s, `船坞工坊购入船具「${e.name}」（${e.desc}）`, 'good')
       return s
     }
@@ -1200,7 +1328,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       const cost = def.cost * qty
       if (state.money < cost) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '🪙', `金币不足，还差 ${(cost - state.money).toLocaleString()} 金`, 'bad')
+        pushToast(s0, 'coin', `金币不足，还差 ${(cost - state.money).toLocaleString()} 金`, 'bad')
         return s0
       }
       const s: GameState = {
@@ -1219,13 +1347,13 @@ function coreReducer(state: GameState, action: Action): GameState {
       const s: GameState = { ...state, toasts: [...state.toasts] }
       const def = SUPPLY_BY_ID[action.id]
       if (!def || def.use !== 'manual') return state
-      if (!s.voyage) { pushToast(s, '⛔', '当前没有航行任务', 'bad'); return s }
-      if (supplyCount(s, def.id) <= 0) { pushToast(s, '📦', `${def.name}库存不足`, 'bad'); return s }
+      if (!s.voyage) { pushToast(s, 'ban', '当前没有航行任务', 'bad'); return s }
+      if (supplyCount(s, def.id) <= 0) { pushToast(s, 'box', `${def.name}库存不足`, 'bad'); return s }
       useSupply(s, def.id)
       const v = s.voyage
       const remain = Math.max(0, v.duration - v.elapsed)
       s.voyage = { ...v, elapsed: v.elapsed + remain * 0.4 }
-      pushToast(s, '🍶', '朗姆酒开桶！船员士气大振，剩余航程 -40%', 'good')
+      pushToast(s, 'supRum', '朗姆酒开桶！船员士气大振，剩余航程 -40%', 'good')
       pushLog(s, '使用朗姆酒桶：剩余航程缩短 40%', 'good')
       return s
     }
@@ -1233,12 +1361,12 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 港口投资（v1.3.0）────────────────────────────────────────────────────
     case 'INVEST': {
       const s: GameState = { ...state, invest: { ...state.invest }, toasts: [...state.toasts] }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法办理投资，靠港后再来', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法办理投资，靠港后再来', 'bad'); return s }
       const lvl = investLevelOf(s, s.cityId)
-      if (lvl >= INVEST_LEVELS.length) { pushToast(s, '🏛️', '本港投资已满级，感谢贡献', 'info'); return s }
+      if (lvl >= INVEST_LEVELS.length) { pushToast(s, 'hall', '本港投资已满级，感谢贡献', 'info'); return s }
       const def = INVEST_LEVELS[lvl]
       if (s.money < def.cost) {
-        pushToast(s, '🪙', `金币不足，还差 ${(def.cost - s.money).toLocaleString()} 金`, 'bad')
+        pushToast(s, 'coin', `金币不足，还差 ${(def.cost - s.money).toLocaleString()} 金`, 'bad')
         return s
       }
       s.money -= def.cost
@@ -1247,7 +1375,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       gainRep(s, s.cityId, 10)
       const secret = SECRET_OF_CITY[s.cityId]
       const unlockNote = lvl + 1 === 1 && secret ? `，解锁隐藏特产「${GOOD_BY_ID[secret].name}」` : ''
-      pushToast(s, '🏛️', `${CITY_BY_ID[s.cityId].name}投资升至 ${lvl + 1} 级「${def.title}」${unlockNote}`, 'good')
+      pushToast(s, 'hall', `${CITY_BY_ID[s.cityId].name}投资升至 ${lvl + 1} 级「${def.title}」${unlockNote}`, 'good')
       pushLog(s, `在${CITY_BY_ID[s.cityId].name}投资 ${def.cost.toLocaleString()} 金成为「${def.title}」：买入 -${bonus.buy}% · 卖出 +${bonus.sell}% · 每周期分红 ${bonus.dividend} 金${unlockNote}`, 'good')
       return s
     }
@@ -1257,15 +1385,15 @@ function coreReducer(state: GameState, action: Action): GameState {
       const o = state.orders.find(x => x.id === action.id)
       if (!o || o.taken) return state
       const s: GameState = { ...state, toasts: [...state.toasts] }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法接单，靠港后到市政厅办理', 'bad'); return s }
-      if (o.fromCity !== s.cityId) { pushToast(s, '🚫', '委托只能在其发布的港口接取', 'bad'); return s }
-      if (s.clock > o.deadline) { pushToast(s, '⏰', '该委托已过期', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法接单，靠港后到市政厅办理', 'bad'); return s }
+      if (o.fromCity !== s.cityId) { pushToast(s, 'ban', '委托只能在其发布的港口接取', 'bad'); return s }
+      if (s.clock > o.deadline) { pushToast(s, 'clock', '该委托已过期', 'bad'); return s }
       if (s.orders.filter(x => x.taken).length >= ORDER_ACTIVE_MAX) {
-        pushToast(s, '📜', `同时最多接 ${ORDER_ACTIVE_MAX} 张委托`, 'bad')
+        pushToast(s, 'scroll', `同时最多接 ${ORDER_ACTIVE_MAX} 张委托`, 'bad')
         return s
       }
       s.orders = s.orders.map(x => x.id === action.id ? { ...x, taken: true } : x)
-      pushToast(s, '📜', `接下委托：${GOOD_BY_ID[o.goodId].name} ×${o.qty} → ${CITY_BY_ID[o.toCity].name}`, 'good')
+      pushToast(s, 'scroll', `接下委托：${GOOD_BY_ID[o.goodId].name} ×${o.qty} → ${CITY_BY_ID[o.toCity].name}`, 'good')
       pushLog(s, `接下限时委托：在${CITY_BY_ID[o.fromCity].name}装运 ${GOOD_BY_ID[o.goodId].name} ×${o.qty}，限期送往 ${CITY_BY_ID[o.toCity].name}`, 'info')
       return s
     }
@@ -1277,18 +1405,18 @@ function coreReducer(state: GameState, action: Action): GameState {
       // 先校验再动状态：任何一项不满足都必须原样保留委托单（否则会在错误港口把单子弄丢）
       if (state.cityId !== o.toCity) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '🚫', `需在 ${CITY_BY_ID[o.toCity].name} 交付`, 'bad')
+        pushToast(s0, 'ban', `需在 ${CITY_BY_ID[o.toCity].name} 交付`, 'bad')
         return s0
       }
       if (state.clock > o.deadline) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '⏰', '委托已过期', 'bad')
+        pushToast(s0, 'clock', '委托已过期', 'bad')
         return s0
       }
       const held = state.cargo[o.goodId]
       if (!held || held.qty < o.qty) {
         const s0: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s0, '📦', `需要 ${GOOD_BY_ID[o.goodId].name} ×${o.qty}（货舱现有 ${held?.qty ?? 0}）`, 'bad')
+        pushToast(s0, 'box', `需要 ${GOOD_BY_ID[o.goodId].name} ×${o.qty}（货舱现有 ${held?.qty ?? 0}）`, 'bad')
         return s0
       }
       const s: GameState = {
@@ -1313,7 +1441,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.stats.best = Math.max(s.stats.best, profit)
       s.stats.ordersDelivered = (s.stats.ordersDelivered ?? 0) + 1
       gainRep(s, o.toCity, 12)
-      pushToast(s, '📦', `委托完成！${GOOD_BY_ID[o.goodId].name} ×${o.qty} 交付，+${o.reward.toLocaleString()} 金`, 'good')
+      pushToast(s, 'box', `委托完成！${GOOD_BY_ID[o.goodId].name} ×${o.qty} 交付，+${o.reward.toLocaleString()} 金`, 'good')
       pushLog(s, `在${CITY_BY_ID[o.toCity].name}交付委托：${GOOD_BY_ID[o.goodId].name} ×${o.qty}，报酬 ${o.reward.toLocaleString()} 金（盈利 ${profit.toLocaleString()}）`, 'good')
       // 委托方一高兴，塞给你一张残破的海图（v1.4.0）
       maybeFindFrag(s, 0.25)
@@ -1329,7 +1457,7 @@ function coreReducer(state: GameState, action: Action): GameState {
         orders: state.orders.filter(x => x.id !== action.id),
         toasts: [...state.toasts],
       }
-      pushToast(s, '🗑️', `已放弃委托：${GOOD_BY_ID[o.goodId].name} → ${CITY_BY_ID[o.toCity].name}`, 'info')
+      pushToast(s, 'trash', `已放弃委托：${GOOD_BY_ID[o.goodId].name} → ${CITY_BY_ID[o.toCity].name}`, 'info')
       pushLog(s, `放弃委托：${GOOD_BY_ID[o.goodId].name} → ${CITY_BY_ID[o.toCity].name}`, 'info')
       return s
     }
@@ -1337,14 +1465,14 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 银行：借款（v1.4.0）──────────────────────────────────────────────────
     case 'LOAN_BORROW': {
       const s: GameState = { ...state, toasts: [...state.toasts] }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法办理银行业务，靠港后再来', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法办理银行业务，靠港后再来', 'bad'); return s }
       const limit = creditLimit(s)
       const raw = Number.isFinite(action.amount) ? Math.floor(action.amount) : 0
       const amt = Math.min(raw, limit)
-      if (amt <= 0) { pushToast(s, '🏦', '信用额度不足，先偿还部分债务或积累资产', 'bad'); return s }
+      if (amt <= 0) { pushToast(s, 'bank', '信用额度不足，先偿还部分债务或积累资产', 'bad'); return s }
       s.money += amt
       s.debt += amt
-      pushToast(s, '🏦', `借入 ${amt.toLocaleString()} 金，当前债务 ${s.debt.toLocaleString()} 金`, 'info')
+      pushToast(s, 'bank', `借入 ${amt.toLocaleString()} 金，当前债务 ${s.debt.toLocaleString()} 金`, 'info')
       pushLog(s, `银行借款 ${amt.toLocaleString()} 金，债务合计 ${s.debt.toLocaleString()} 金（每市场周期计息 0.15%，债台高筑会被强制清算）`, 'info')
       return s
     }
@@ -1352,14 +1480,14 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 银行：还款（v1.4.0）──────────────────────────────────────────────────
     case 'LOAN_REPAY': {
       const s: GameState = { ...state, toasts: [...state.toasts] }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法办理银行业务，靠港后再来', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法办理银行业务，靠港后再来', 'bad'); return s }
       if (s.debt <= 0) return state
       const raw = Number.isFinite(action.amount) ? Math.floor(action.amount) : 0
       const amt = Math.max(0, Math.min(raw, s.debt, s.money))
-      if (amt <= 0) { pushToast(s, '🪙', '金币不足，无法偿还', 'bad'); return s }
+      if (amt <= 0) { pushToast(s, 'coin', '金币不足，无法偿还', 'bad'); return s }
       s.money -= amt
       s.debt -= amt
-      pushToast(s, '🏦', `偿还 ${amt.toLocaleString()} 金${s.debt === 0 ? '，债务已清空！' : `，剩余债务 ${s.debt.toLocaleString()} 金`}`, s.debt === 0 ? 'good' : 'info')
+      pushToast(s, 'bank', `偿还 ${amt.toLocaleString()} 金${s.debt === 0 ? '，债务已清空！' : `，剩余债务 ${s.debt.toLocaleString()} 金`}`, s.debt === 0 ? 'good' : 'info')
       pushLog(s, `银行还款 ${amt.toLocaleString()} 金${s.debt === 0 ? '，债务全部结清' : `，剩余 ${s.debt.toLocaleString()} 金`}`, 'good')
       return s
     }
@@ -1372,13 +1500,13 @@ function coreReducer(state: GameState, action: Action): GameState {
         toasts: [...state.toasts],
         supplies: { ...state.supplies },
       }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法出击，靠港后再来', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法出击，靠港后再来', 'bad'); return s }
       const b = s.bounty
       if (!b || b.deadline <= state.clock) return state
       const pirate = PIRATE_BY_ID[b.pirateId]
       if (!pirate) return state
       if (supplyCount(s, 's_cannon') <= 0) {
-        pushToast(s, '🎯', '出击需要至少 1 组舰炮组（船坞·工坊有售）', 'bad')
+        pushToast(s, 'target', '出击需要至少 1 组舰炮组（船坞·工坊有售）', 'bad')
         return s
       }
       // 先按满弹药估算胜率，再消耗一组舰炮（弹药物资打光了）
@@ -1395,9 +1523,9 @@ function coreReducer(state: GameState, action: Action): GameState {
         pushLog(s, `出击 ${pirate.name}（战力 ${pirate.strength}）大捷：领取${atCity.name}赏金 ${b.reward.toLocaleString()} 金，声望 +15`, 'good')
         maybeFindFrag(s, 0.6)
       } else {
-        const loss = Math.round(s.money * 0.08)
+        const loss = Math.min(Math.round(s.money * 0.08), 30_000)
         s.money -= loss
-        pushToast(s, '💥', `出击失利！${pirate.name} 击伤船舷，修理费 ${loss.toLocaleString()} 金`, 'bad')
+        pushToast(s, 'explode', `出击失利！${pirate.name} 击伤船舷，修理费 ${loss.toLocaleString()} 金`, 'bad')
         pushLog(s, `出击 ${pirate.name} 失利：付修理费 ${loss.toLocaleString()} 金，悬赏仍在`, 'bad')
       }
       return s
@@ -1411,10 +1539,10 @@ function coreReducer(state: GameState, action: Action): GameState {
         stats: { ...state.stats },
         toasts: [...state.toasts],
       }
-      if (s.voyage) { pushToast(s, '⛔', '航行途中无法挖掘，靠港后再来', 'bad'); return s }
+      if (s.voyage) { pushToast(s, 'ban', '航行途中无法挖掘，靠港后再来', 'bad'); return s }
       if (s.mapFrags < MAP_FRAGS_NEED || !s.digCity) return state
       if (s.digCity !== s.cityId) {
-        pushToast(s, '🗺️', `沉宝在 ${CITY_BY_ID[s.digCity].name} 外海，先把船开过去`, 'bad')
+        pushToast(s, 'map', `沉宝在 ${CITY_BY_ID[s.digCity].name} 外海，先把船开过去`, 'bad')
         return s
       }
       const nth = (s.stats.treasures ?? 0) + 1
@@ -1433,7 +1561,7 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.mapFrags = 0
       s.digCity = null
       gainRep(s, s.cityId, 20)
-      pushToast(s, '🏺', `挖出沉没神殿宝藏！+${gold.toLocaleString()} 金${take > 0 ? `，珍宝 ×${take} 入舱` : ''}`, 'good')
+      pushToast(s, 'amphora', `挖出沉没神殿宝藏！+${gold.toLocaleString()} 金${take > 0 ? `，珍宝 ×${take} 入舱` : ''}`, 'good')
       pushLog(
         s,
         `在${CITY_BY_ID[s.cityId].name}外海挖出第 ${nth} 处深海秘藏：金币 ${gold.toLocaleString()} + 沉没神殿珍宝 ×${DIG_RELIC_QTY}（${cashed > 0 ? `${cashed} 件舱满折现` : '全部入舱'}），声望 +20`,
@@ -1442,16 +1570,66 @@ function coreReducer(state: GameState, action: Action): GameState {
       return s
     }
 
+    // ── 海盗遭遇抉择（v1.5）──────────────────────────────────────────────────
+    case 'RESOLVE_PIRATE': {
+      if (!state.pendingEvent) return state
+      const s: GameState = {
+        ...state,
+        stats: { ...state.stats },
+        toasts: [...state.toasts],
+        supplies: { ...state.supplies },
+      }
+      if (action.choice === 'cannon') {
+        if (supplyCount(s, 's_cannon') <= 0) return state
+        useSupply(s, 's_cannon')
+        const loot = 600 + Math.round(Math.random() * 1400)
+        s.money += loot
+        pushToast(s, 'target', `舰炮齐鸣！吓退海盗，缴获 ${loot.toLocaleString()} 金`, 'good')
+        pushLog(s, `遭遇海盗：舰炮击退，缴获 ${loot.toLocaleString()} 金`, 'good')
+      } else if (action.choice === 'bribe') {
+        const fee = Math.min(s.money, Math.max(300, Math.round(s.money * 0.1)))
+        s.money -= fee
+        pushToast(s, 'coin', `缴纳过路费 ${fee.toLocaleString()} 金，平安通过`, 'info')
+        pushLog(s, `遭遇海盗：缴纳过路费 ${fee.toLocaleString()} 金脱身`, 'info')
+      } else {
+        // 硬拼：无补给，五五开
+        if (Math.random() < 0.5) {
+          const held = Object.entries(s.cargo).filter(([, c]) => c.qty > 0)
+          if (held.length) {
+            const [gid, c] = held[Math.floor(Math.random() * held.length)]
+            const lost = Math.max(1, Math.round(c.qty * 0.25))
+            const remain = c.qty - lost
+            const next = { ...s.cargo }
+            if (remain <= 0) delete next[gid]
+            else next[gid] = { qty: remain, cost: c.cost * (remain / c.qty) }
+            s.cargo = next
+            pushToast(s, 'pirate', `硬拼失利！海盗劫走 ${GOOD_BY_ID[gid].name} ×${lost}`, 'bad')
+            pushLog(s, `遭遇海盗：硬拼失利，损失 ${GOOD_BY_ID[gid].name} ×${lost}`, 'bad')
+          } else {
+            const fee = Math.min(s.money, 300)
+            s.money -= fee
+            pushToast(s, 'pirate', `硬拼失利！海盗索要过路费 ${Math.round(fee)} 金`, 'bad')
+            pushLog(s, `遭遇海盗：硬拼失利，被勒索 ${Math.round(fee)} 金`, 'bad')
+          }
+        } else {
+          pushToast(s, 'target', '硬拼脱身！船员奋勇击退海盗，货物无损', 'good')
+          pushLog(s, '遭遇海盗：硬拼一番，成功脱身', 'good')
+        }
+      }
+      s.pendingEvent = null
+      return s
+    }
+
     // ── 购买情报网络 ──────────────────────────────────────────────────────────
     case 'BUY_INTEL': {
       if (state.intelOwned) return state
       if (state.money < INTEL_PRICE) {
         const s: GameState = { ...state, toasts: [...state.toasts] }
-        pushToast(s, '🔮', `情报网络需要 ${INTEL_PRICE} 金`, 'bad')
+        pushToast(s, 'crystal', `情报网络需要 ${INTEL_PRICE} 金`, 'bad')
         return s
       }
       const s: GameState = { ...state, money: state.money - INTEL_PRICE, intelOwned: true, toasts: [...state.toasts] }
-      pushToast(s, '🔮', '情报网络已开通，全球价格一览无余', 'good')
+      pushToast(s, 'crystal', '情报网络已开通，全球价格一览无余', 'good')
       pushLog(s, `花费 ${INTEL_PRICE} 金开通全球情报网络`, 'info')
       return s
     }
@@ -1465,6 +1643,21 @@ function coreReducer(state: GameState, action: Action): GameState {
     // ── 读档：直接换成存档里的状态（气泡清空，避免弹出旧提示） ─────────────────
     case 'HYDRATE':
       return { ...action.state, toasts: [] }
+
+    // ── 调试面板：直接改写状态（只在 dev 构建生效） ────────────────────────────
+    case 'DEBUG_PATCH': {
+      if (!import.meta.env.DEV) return state
+      return {
+        ...state,
+        ...action.patch,
+        stats: { ...state.stats, ...(action.stats ?? {}) },
+        toasts: [...state.toasts],
+      }
+    }
+
+    // ── 通关庆祝页关闭（v1.5）─────────────────────────────────────────────────
+    case 'CLOSE_VICTORY':
+      return { ...state, victorySeen: true }
 
     default:
       return state
@@ -1488,9 +1681,9 @@ function notifyLegends(s: GameState): GameState {
     crewQuestsSeen: [...s.crewQuestsSeen, ...freshQuests.map(q => q.id)],
     toasts: [...s.toasts],
   }
-  const notes: { icon: string; text: string }[] = [
-    ...freshLegends.map(l => ({ icon: '🏆', text: `传奇功勋「${l.label}」达成，可前往功勋页领取` })),
-    ...freshQuests.map(q => ({ icon: '📜', text: `${CREW_BY_ID[q.crewId].name}的委托可领取：「${q.title}」` })),
+  const notes: { icon: GlyphName; text: string }[] = [
+    ...freshLegends.map((l): { icon: GlyphName; text: string } => ({ icon: 'trophy', text: `传奇功勋「${l.label}」达成，可前往功勋页领取` })),
+    ...freshQuests.map((q): { icon: GlyphName; text: string } => ({ icon: 'scroll', text: `${CREW_BY_ID[q.crewId].name}的委托可领取：「${q.title}」` })),
   ]
   for (const n of notes.slice(0, 2)) {
     pushToast(out, n.icon, n.text, 'good')

@@ -1,6 +1,7 @@
 import { EQUIPS, SUPPLIES } from '../game/data'
 import { equipBonusOf, shipNow, supplyCount } from '../game/state'
 import { useGame } from '../game/store'
+import { Glyph } from '../components/Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  船坞工坊：船具（永久装备）+ 补给（消耗品）
@@ -17,8 +18,8 @@ export default function WorkshopView() {
       {/* 装备总览 */}
       <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.22)' }}>
-            🛠️
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.22)' }}>
+            <Glyph name="anvil" size={30} color="#fff" />
           </div>
           <div className="flex-1">
             <div className="text-xs opacity-85">已装船具</div>
@@ -29,7 +30,7 @@ export default function WorkshopView() {
             <div className="font-900 text-sm">{Math.floor(state.money).toLocaleString()}</div>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 min-[400px]:grid-cols-4 gap-2">
           <div className="text-center rounded-xl py-1.5" style={{ background: 'rgba(0,0,0,0.15)' }}>
             <div className="text-xs opacity-80">航速</div>
             <div className="font-900 text-sm">{eq.speed ? `+${eq.speed}%` : '—'}</div>
@@ -64,8 +65,8 @@ export default function WorkshopView() {
               style={{ borderRadius: 14, opacity: owned ? 0.78 : 1 }}
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: '#fff5ec' }}>
-                  {e.icon}
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: '#fff5ec' }}>
+                  <Glyph name={e.icon} size={28} color="#c98a30" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>{e.name}</div>
@@ -75,7 +76,7 @@ export default function WorkshopView() {
                   <span className="badge-green flex-shrink-0">已安装</span>
                 ) : shipLocked ? (
                   <span className="text-[10px] font-800 px-2 py-1 rounded-lg flex-shrink-0" style={{ background: '#f5eee0', color: '#b09868' }}>
-                    🔒 需传奇宝船
+                    <span className="inline-flex items-center gap-1"><Glyph name="lock" size={11} />需传奇宝船</span>
                   </span>
                 ) : (
                   <button
@@ -83,7 +84,7 @@ export default function WorkshopView() {
                     style={{ opacity: affordable ? 1 : 0.55 }}
                     onClick={() => dispatch({ type: 'BUY_EQUIP', id: e.id })}
                   >
-                    🪙 {e.cost.toLocaleString()}
+                    <span className="inline-flex items-center gap-1"><Glyph name="coin" size={12} />{e.cost.toLocaleString()}</span>
                   </button>
                 )}
               </div>
@@ -101,8 +102,8 @@ export default function WorkshopView() {
           return (
             <div key={x.id} className="panel-white p-3" style={{ borderRadius: 14 }}>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: '#fff5ec' }}>
-                  {x.icon}
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#fff5ec' }}>
+                  <Glyph name={x.icon} size={28} color="#c98a30" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -139,7 +140,9 @@ export default function WorkshopView() {
                   disabled={!state.voyage}
                   onClick={() => dispatch({ type: 'USE_SUPPLY', id: x.id })}
                 >
-                  🍶 {state.voyage ? '开桶！剩余航程 -40%' : '航行中才能使用'}
+                  <span className="inline-flex items-center gap-1.5 justify-center">
+                    <Glyph name="supRum" size={14} />{state.voyage ? '开桶！剩余航程 -40%' : '航行中才能使用'}
+                  </span>
                 </button>
               )}
             </div>

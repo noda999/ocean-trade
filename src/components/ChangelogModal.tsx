@@ -1,21 +1,19 @@
 import { useEffect, useState } from 'react'
+import { Glyph, type GlyphName } from './Glyph'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.4.0'
+const CURRENT_VERSION = 'v1.5.0'
 
 interface ChangeItem {
-  icon: string
+  icon: GlyphName
   title: string
   desc: string
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: '🔓', title: '隐藏特产 · 21 件新货', desc: '每座港口都藏着一件投资 1 级「商会伙伴」（25,000 金）即解锁的独家特产：和田玉雕、锡兰蓝宝石、龙涎香、太阳金盘……产地价极低，名港高价求购。商品总数扩至 71 种，图鉴党的盛宴。' },
-  { icon: '🛃', title: '进港关税', desc: '每次靠港按货值缴纳关税（30 金 + 货值 1%）：投资 2 级半价、3 级全免——「荣誉市民」从此免税通行。' },
-  { icon: '🏴‍☠️', title: '海事署悬赏', desc: '船坞分区栏新增「海事署」：定期发布海盗通缉令，消耗舰炮组即可出击。战力 = 船级 + 舰炮组，出手前就能看到预估胜率；大捷领赏 + 声望，失利损失 8% 现金修船。' },
-  { icon: '🗺️', title: '深海秘藏', desc: '交付委托、海上漂流瓶、击溃海盗都可能捡到藏宝图碎片。集齐 4 块指向某港外海，到「海事署」按图挖掘：金币 + 「沉没神殿珍宝」（名港超高价收购），越挖越富。' },
-  { icon: '🏦', title: '港口银行', desc: '市场页新增「港口银行」（折叠一行，点开借贷）：按资产 50% 提供信用额度，随借随还。但债务每周期计息，超过资产 3 倍会被强制清算——刀尖上的滚雪球。' },
-  { icon: '🔁', title: '老档完全兼容', desc: '新玩法全部为新增字段，历史存档读入自动补齐（含 21 件新货的行情），进度不受任何影响。' },
+  { icon: 'book', title: '三大图鉴上线', desc: '商品图鉴（83 种货的产地 / 销地推荐航线）、城市图鉴（每座港换成招牌特产插画）、海上事件图鉴（20 种奇遇集齐解锁「命运弄人」）全部入册，没见过的先留 ???，是收藏党的长线目标。' },
+  { icon: 'trophy', title: '功勋页卡片化折叠', desc: '传奇功勋、船员委托、贸易成就三大长列表改为可点开的卡片式折叠栏，每张都带图标、计数与进度条，默认收起——页面清爽，想看哪块点哪块。' },
+  { icon: 'horn', title: '背景音乐 BGM', desc: '首次操作后自动播放程序化合成的大航海轻音乐（海浪 + 古筝 / 乌德拨弦 + 笛 + 弦乐铺底，中东 Hijaz 异域音阶 × 中国五声），零音频文件。可在「设置」里开关并调音量。' },
 ]
 
 interface Props {
@@ -83,13 +81,13 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
           }}
         >
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: 28 }}>🎉</span>
+            <Glyph name="sparkles" size={28} color="#3d2b10" />
             <div>
               <div className="font-900 text-lg" style={{ color: '#3d2b10' }}>
                 新版本上线
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 隐藏特产 · 海事悬赏 · 深海秘藏 · 银行
+                {CURRENT_VERSION} · 船坞界面精简 · 商品图鉴补全 · 海上事件图鉴
               </div>
             </div>
           </div>
@@ -128,10 +126,9 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
                   borderRadius: 12,
                   background: '#fff5ec',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 20,
                 }}
               >
-                {it.icon}
+                <Glyph name={it.icon} size={21} color="#c98a30" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-900 text-sm" style={{ color: '#3d2b10' }}>
@@ -154,7 +151,7 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
             style={{ borderRadius: 14, padding: '12px 0', fontSize: 15 }}
             onClick={close}
           >
-            开始航行 🚢
+            <span className="inline-flex items-center gap-1.5 justify-center">开始航行 <Glyph name="ship" size={17} /></span>
           </button>
         </div>
       </div>

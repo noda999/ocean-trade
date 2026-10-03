@@ -18,6 +18,16 @@ npm run dev      # 启动开发服务器
 npm run build    # 构建生产版本到 dist/
 ```
 
+## 静态资源
+
+游戏运行依赖 `public/` 下的静态资源（**必须随仓库提交**——Vercel 从源码构建、不读取本地 `dist`，缺失会导致图标 / 音乐失效）：
+
+- `public/icons/ui-sprite.png`：UI 图标精灵图（靶心 / 金币 / 宝箱 / 罗盘等），由 `Glyph` 组件按名称取图；
+- `public/icons/*.png`：货物、城市、船员头像等 AI 生成的插画与地标图；
+- `public/audio/bgm.mp3`：自定义背景音乐；文件加载失败时自动回落 Web Audio 合成器。
+
+原始 / 生成素材（`generated-*`、`icons_backup`、`assets-raw` 等）体积大且非运行所需，已在 `.gitignore` 中排除。
+
 ## 部署与更新
 
 本项目托管在 GitHub（[noda999/ocean-trade](https://github.com/noda999/ocean-trade)），并通过 **Vercel** 自动部署：每次 `git push` 后约 1 分钟，线上版本自动更新。构建配置锁定在 [`vercel.json`](./vercel.json)（framework: vite → `npm run build` → `dist`）。
@@ -67,4 +77,4 @@ npm run preview:xhs     # 本地模拟容器环境验证 zip
 
 ## 版本
 
-当前 v1.4.0 —— 港口投资与进港关税、隐藏特产、海事署悬赏海战、深海秘藏、港口银行、市政厅/海事署/银行分区重构、10 步新手导览。详见游戏内更新日志。
+当前 v1.5.0 —— 船坞界面精简、商品图鉴补全、海上事件图鉴；并接入 AI 生成的城市地标插画、精灵图 UI 图标与自定义背景音乐（保留 Web Audio 合成器兜底）。详见游戏内更新日志。

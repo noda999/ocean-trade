@@ -6,6 +6,7 @@ import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
 import FlatWorld from './FlatWorld'
 import GlobeWorld from './GlobeWorld'
+import { Glyph } from '../components/Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  地图容器（v1.4.0）：平面手绘图 ⇄ 球形地球 双模式切换
@@ -71,12 +72,12 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
             className={`map-mode-btn${mode === 'globe' ? ' on' : ''}`}
             onClick={() => switchMode('globe')}
             title="球形地球"
-          >🌍</button>
+          ><Glyph name="globe" size={18} /></button>
           <button
             className={`map-mode-btn${mode === 'flat' ? ' on' : ''}`}
             onClick={() => switchMode('flat')}
             title="平面地图"
-          >🗺️</button>
+          ><Glyph name="map" size={18} /></button>
         </div>
 
         {/* ── 航行中横幅（保持在视口顶部，不缩放） ── */}
@@ -84,9 +85,9 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
           <div className="absolute left-3 right-3 z-20" style={{ top: 10, pointerEvents: 'auto' }}>
             <div className="voyage-banner">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-base">🧭</span>
+                <Glyph name="compass" size={16} color="#ffe6c0" />
                 <span className="text-xs font-800" style={{ color: '#ffe6c0' }}>
-                  {fromCity.name} <span style={{ color: '#f5913a' }}>···→</span> {toCity.name}
+                  {fromCity.name} ··· <Glyph name="arrowRight" size={13} color="#f5913a" /> {toCity.name}
                 </span>
                 <span className="ml-auto text-xs font-800" style={{ color: '#fdb870' }}>
                   剩余 {Math.ceil(remain)} 秒
@@ -94,7 +95,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
               </div>
               <div className="voyage-track">
                 <div className="voyage-fill" style={{ width: `${progress * 100}%` }} />
-                <span className="voyage-ship" style={{ left: `calc(${progress * 100}% - 9px)` }}>🚢</span>
+                <span className="voyage-ship" style={{ left: `calc(${progress * 100}% - 9px)` }}><Glyph name="ship" size={18} /></span>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-xs" style={{ color: 'rgba(255,220,150,0.75)' }}>
@@ -104,7 +105,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                   className="speed-up-btn ml-auto px-3 py-1 text-xs"
                   onPointerDown={e => { e.stopPropagation(); dispatch({ type: 'USE_BOOST' }) }}
                 >
-                  ⚡ 加速 · 剩 {state.boost}
+                  <span className="inline-flex items-center gap-1"><Glyph name="bolt" size={13} />加速 · 剩 {state.boost}</span>
                 </button>
               </div>
             </div>
@@ -121,7 +122,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-16 h-16 rounded-2xl flex items-end justify-center flex-shrink-0" style={{ background: '#fff5ec', overflow: 'hidden' }}>
                   <div style={{ marginBottom: -6 }}>
-                    <CityLandmark id={sel.id} size={56} />
+                    <CityLandmark id={sel.id} size={56} forceSvg />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -140,7 +141,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                   onClick={() => setSelected(null)}
                   className="text-lg leading-none px-1"
                   style={{ color: '#c9b394' }}
-                >✕</button>
+                ><Glyph name="cross" size={16} color="#c9b394" /></button>
               </div>
 
               {/* 快速行情预览（本港未经营时按全球基准价对比） */}
@@ -153,7 +154,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                   return (
                     <div key={gid} className="flex-shrink-0 px-2.5 py-1.5 rounded-xl" style={{ background: '#fff8f0', border: '1.5px solid #f5e0c0' }}>
                       <div className="text-xs font-700" style={{ color: '#3d2b10' }}>
-                        {GOOD_BY_ID[gid].icon} {GOOD_BY_ID[gid].name}
+                        <span className="inline-flex items-center gap-1"><Glyph name={GOOD_BY_ID[gid].icon} size={13} color="#c98a30" />{GOOD_BY_ID[gid].name}</span>
                       </div>
                       <div className="text-xs font-900" style={{ color: cheaper ? '#4cba6a' : '#e05050' }}>
                         {m.price} <span style={{ fontSize: 9, color: '#a07030' }}>金</span>
@@ -164,7 +165,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
               </div>
 
               <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl" style={{ background: '#fff5ec' }}>
-                <span>⏱️</span>
+                <Glyph name="clock" size={15} color="#a07030" />
                 <span className="text-xs font-700" style={{ color: '#3d2b10' }}>预计航行时间</span>
                 <span className="ml-auto font-900 text-sm" style={{ color: '#f5913a' }}>
                   {sel.id === state.cityId ? '已在港内' : `${voyageSeconds(cur, sel, ship)} 秒`}
@@ -178,14 +179,16 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                   disabled={sel.id === state.cityId}
                   onClick={() => sailTo(sel.id)}
                 >
-                  {sel.id === state.cityId ? '⚓ 当前所在港口' : '⚓ 起航前往'}
+                  <span className="inline-flex items-center gap-1.5 justify-center">
+                    <Glyph name="anchor" size={15} />{sel.id === state.cityId ? '当前所在港口' : '起航前往'}
+                  </span>
                 </button>
                 <button
                   className="btn-ghost-orange px-3 py-2 text-xs"
                   style={{ borderRadius: 14 }}
                   onClick={() => { onOpenIntel(); setSelected(null) }}
                 >
-                  📡 看情报
+                  <span className="inline-flex items-center gap-1"><Glyph name="spyglass" size={13} />看情报</span>
                 </button>
               </div>
             </div>
@@ -196,7 +199,7 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
         {!sel && !sailing && (
           <div className="absolute left-3 right-3 z-10" style={{ bottom: 10 }}>
             <div className="panel-white px-3 py-2 flex items-center gap-2" style={{ borderRadius: 14 }}>
-              <span className="text-lg">📍</span>
+              <Glyph name="pin" size={18} color="#f5913a" />
               <span className="text-xs font-700" style={{ color: '#3d2b10' }}>
                 已停靠 <b style={{ color: '#f5913a' }}>{cur.name}</b> · 点击地图上的城市即可起航
               </span>

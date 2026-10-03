@@ -23,3 +23,13 @@ vite-dev.err
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# 原始/生成素材（非运行所需、体积大，不入库）
+generated-images/
+generated-icons2/
+generated-icons3/
+icons_backup/
+assets-raw/
+samples/
+_view_*.png
+*endsWith*

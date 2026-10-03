@@ -38,8 +38,36 @@ const CONTINENTS = [
   'M-8,47 C8,40 25,42 33,52 C41,62 44,73 40,83 C36,91 22,95 11,93 C0,91 -9,82 -9,68 Z',
   // 马达加斯加
   'M36,79 C39,76 44,78 44,82 C44,86 39,88 36,85 C34,83 34,81 36,79 Z',
-  // 新大陆（阿兹特克 / 印加）
+  // 新大陆（阿兹特克 / 印加 / 巴拿马）
   'M58,88 C70,82 86,84 94,91 C100,97 96,104 86,105 C72,107 56,103 52,96 C49,90 53,90 58,88 Z',
+  // ── v1.5.1 补全地区：北美洲（与新大陆隔加勒比海相望） ──
+  'M68,58 C78,52 88,54 95,59 C101,64 100,74 95,80 C89,87 78,90 70,87 C62,84 59,74 62,66 C64,61 65,60 68,58 Z',
+  // 澳大利亚（大洋洲）
+  'M89,56 C94,51 99,53 100,58 C101,64 98,70 92,71 C86,72 84,66 85,61 C86,58 88,58 89,56 Z',
+  // 菲律宾诸岛
+  'M85,41 C88,39 91,41 90,44 C89,47 86,48 85,45 Z',
+  'M88,48 C90,47 92,48 91,51 C90,53 88,53 87,51 Z',
+]
+
+// ── 城市所在的陆地补块：避免港口漂在海上（任何缩放都可见） ──
+const CITY_LAND = [
+  // 中南半岛（暹罗 67,40）
+  'M59,33 C65,30 72,33 74,39 C75,45 71,50 64,49 C58,48 55,42 57,37 C58,35 58,34 59,33 Z',
+  // 意大利半岛（意大利 30,41）
+  'M26,35 C31,33 35,37 34,43 C33,48 29,50 27,48 C24,45 24,39 26,35 Z',
+  // 婆罗洲（婆罗洲 79,66）
+  'M74,59 C81,57 87,61 86,67 C85,72 79,72 75,69 C71,66 70,62 74,59 Z',
+]
+
+// ── 放大后才浮现的细节陆地（岛屿 / 半岛）：让缩放真正“看到更多地区” ──
+// minZoom 为该块开始淡入的缩放等级，0.25 级内淡入完毕
+const REGION_SHAPES: { d: string; minZoom: number }[] = [
+  { d: 'M71,56 C75,54 79,57 78,61 C77,64 73,64 71,61 C69,59 69,57 71,56 Z', minZoom: 1.3 }, // 苏门答腊
+  { d: 'M86,18 C89,16 92,19 91,22 C90,25 87,25 86,22 C85,20 85,19 86,18 Z', minZoom: 1.3 }, // 台湾
+  { d: 'M88,13 C92,11 96,14 95,18 C94,21 90,21 89,18 C88,16 87,14 88,13 Z', minZoom: 1.3 }, // 朝鲜半岛
+  { d: 'M94,70 C98,68 102,71 101,75 C100,79 96,79 94,76 C92,73 92,71 94,70 Z', minZoom: 1.3 }, // 新几内亚
+  { d: 'M30,46 C33,45 35,48 34,51 C33,53 30,53 29,50 C28,48 28,47 30,46 Z', minZoom: 1.6 }, // 西西里
+  { d: 'M7,5 C10,3 13,6 12,9 C11,11 8,11 7,8 C6,7 6,6 7,5 Z', minZoom: 1.6 }, // 冰岛
 ]
 
 /** 陆地纹理（草坡） */
@@ -47,12 +75,16 @@ const TUFT = [
   [6, 6], [20, 14], [10, 22], [28, 2], [72, 4], [86, 12], [95, 24], [62, 8],
   [22, 30], [34, 34], [44, 26], [56, 32], [4, 60], [16, 58], [30, 62], [12, 78], [26, 84],
   [7, 29], [18, 40], [45, 25], [94, 33], [78, 74], [75, 90], [62, 95], [31, 55],
+  // v1.5.1 新大陆块纹理：北美洲 / 澳大利亚
+  [70, 62], [76, 64], [90, 58], [95, 66], [88, 68],
 ]
 
 /** 山脉 */
 const MOUNTAINS = [
   [13, 6], [24, 10], [84, 8], [70, 30], [45, 25], [18, 56],
   [70, 90], [86, 92], [63, 92],
+  // v1.5.1 新大陆块山脉：北美洲落基 / 澳大利亚大分水岭
+  [76, 66], [92, 60],
 ]
 
 /** 海面礁石 / 小岛 */
@@ -62,10 +94,17 @@ const REEF = [
 ]
 
 /** 渔船点缀 */
-const BOAT_DOTS: [number, number][] = [[44, 58], [50, 74], [62, 78]]
+const BOAT_DOTS: [number, number][] = [[44, 58], [50, 74], [56, 74]]
 
-const ZOOM_MIN = 0.6
+// 最小缩放 = 1：世界层与容器同尺寸，zoom < 1 会在四周露出蓝色底
+// （用户要求：不允许缩小到露底，只能放大；放大后可拖动看更多国家）
+const ZOOM_MIN = 1
 const ZOOM_MAX = 2.5
+
+/** geo 标注基准字号（px）——渲染时除以 zoom 保持屏幕尺寸恒定 */
+const GEO_FONT: Record<string, number> = {
+  ocean: 15, region: 13, sea: 11.5, strait: 10, desert: 11, mountain: 10.5,
+}
 
 interface Props {
   selected: string | null
@@ -79,7 +118,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
 
   // ── 地图平移 / 缩放状态 ───────────────────────────────────────────────────
   const [pan, setPan] = useState({ x: 0, y: 0 }) // 平移，屏幕像素
-  const [zoom, setZoom] = useState(1)             // 缩放 0.6 .. 2.5
+  const [zoom, setZoom] = useState(1)             // 缩放 1 .. 2.5
   const worldRef = useRef<HTMLDivElement>(null)
   // 活动指针集合：pointerId → {x, y}，支持双指缩放
   const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map())
@@ -104,19 +143,38 @@ export default function FlatWorld({ selected, setSelected }: Props) {
     return () => ro.disconnect()
   }, [])
 
+  // zoomRef 与 zoom state 同步。缩放绝不能在 setState 更新器里嵌套 setPan：
+  // StrictMode 会双调用更新器，pan 会被连续应用两次锚点变换 → 滚轮每滚一档地图飞一段
+  const zoomRef = useRef(1)
+  /** 平移边界钳制：世界层（w·zoom × h·zoom）必须始终盖住容器，不许露出蓝底 */
+  function clampPan(p: { x: number; y: number }, z: number) {
+    const el = rootRef.current
+    if (!el) return p
+    const minX = el.clientWidth * (1 - z)
+    const minY = el.clientHeight * (1 - z)
+    return {
+      x: Math.min(0, Math.max(minX, p.x)),
+      y: Math.min(0, Math.max(minY, p.y)),
+    }
+  }
+  function applyZoom(rawZoom: number, anchorX: number, anchorY: number) {
+    const prev = zoomRef.current
+    const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, rawZoom))
+    if (z === prev) return
+    const k = z / prev
+    zoomRef.current = z
+    setZoom(z)
+    // 以 anchorX/Y 为锚点缩放（保持该点在世界坐标下不动），再钳进合法范围
+    setPan(p => clampPan({
+      x: anchorX - (anchorX - p.x) * k,
+      y: anchorY - (anchorY - p.y) * k,
+    }, z))
+  }
   function setZoomAround(newZoom: number, anchorX: number, anchorY: number) {
-    setZoom(prev => {
-      const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom))
-      if (z === prev) return prev
-      // 以 anchorX/Y 为锚点缩放（保持该点在世界坐标下不动）
-      setPan(p => ({
-        x: anchorX - (anchorX - p.x) * (z / prev),
-        y: anchorY - (anchorY - p.y) * (z / prev),
-      }))
-      return z
-    })
+    applyZoom(newZoom, anchorX, anchorY)
   }
   function resetView() {
+    zoomRef.current = 1
     setZoom(1)
     setPan({ x: 0, y: 0 })
   }
@@ -167,7 +225,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
         if (total < 6) return
         dragRef.current.isDragging = true
       }
-      setPan(p => ({ x: p.x + ddx, y: p.y + ddy }))
+      setPan(p => clampPan({ x: p.x + ddx, y: p.y + ddy }, zoomRef.current))
     } else if (list.length === 2 && dragRef.current.pinchStartDist) {
       const d = Math.hypot(list[0].x - list[1].x, list[0].y - list[1].y)
       const newZoom = dragRef.current.pinchStartZoom * (d / dragRef.current.pinchStartDist)
@@ -198,20 +256,15 @@ export default function FlatWorld({ selected, setSelected }: Props) {
     if (!el) return
     function onWheel(ev: WheelEvent) {
       ev.preventDefault()
-      const rect = el!.getBoundingClientRect()
+      // 用未变换的根节点矩形换算锚点：世界层 rect 带 transform，
+      // 每滚一档 pan 都在变，锚点会随之漂移 → 地图越滚越偏
+      const root = rootRef.current
+      if (!root) return
+      const rect = root.getBoundingClientRect()
       const cx = ev.clientX - rect.left
       const cy = ev.clientY - rect.top
       const factor = ev.deltaY > 0 ? 0.88 : 1.14
-      // 通过 setZoomAround 的双闭包间接调用——直接拿当前 zoom
-      setZoom(prev => {
-        const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, prev * factor))
-        if (z === prev) return prev
-        setPan(p => ({
-          x: cx - (cx - p.x) * (z / prev),
-          y: cy - (cy - p.y) * (z / prev),
-        }))
-        return z
-      })
+      applyZoom(zoomRef.current * factor, cx, cy)
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
@@ -267,8 +320,9 @@ export default function FlatWorld({ selected, setSelected }: Props) {
     for (const c of order) {
       const a = anchors.get(c.id)
       if (!a) continue
-      // 视口外（留 80px 余量）不摆标签
-      if (a.x < -80 || a.y < -80 || a.x > size.w + 80 || a.y > size.h + 80) continue
+      // 锚点不在本屏内就不摆标签（v1.5.1 收紧：此前留 80px 余量，
+      // 屏幕外的城市会把标签「伸」进视野，出现有标签没图标的误导）
+      if (a.x < 10 || a.y < 10 || a.x > size.w - 10 || a.y > size.h - 10) continue
       for (const variant of ['full', 'compact'] as const) {
         const { w, h } = flatPill(c.name, c.sub, 1, variant)
         cands.push({ id: `${c.id}:${variant}:r`, group: c.id, x: a.x + 13, y: a.y - h / 2, w, h })
@@ -285,7 +339,8 @@ export default function FlatWorld({ selected, setSelected }: Props) {
   const labelById = new Map(labels.map(l => [l.id.split(':')[0], l]))
 
   // 地标实际大小随缩放适配：缩小时图标跟着变小，避免堆叠
-  const lmEff = Math.max(26, Math.min(110, 58 * zoom))
+  // 平面地图用手绘 SVG 地标（满画布建筑），基准 72px
+  const lmEff = Math.max(36, Math.min(130, 72 * zoom))
   const lmWorld = Math.round(lmEff / zoom)
   // 圆点在 world 层会随 zoom 放大，做反向补偿
   const dotSize = Math.max(5, Math.round(9 / zoom))
@@ -359,6 +414,28 @@ export default function FlatWorld({ selected, setSelected }: Props) {
             </g>
           ))}
 
+          {/* 城市补块（常显，确保港口不在海上） */}
+          {CITY_LAND.map((d, i) => (
+            <g key={`cl${i}`}>
+              <path d={d} fill="#f6e5ac" stroke="#f6e5ac" strokeWidth="2.2" strokeLinejoin="round" />
+              <path d={d} fill="url(#landGrad)" />
+            </g>
+          ))}
+
+          {/* 放大后浮现的细节陆地：缩放越高看得见的地区越多 */}
+          {REGION_SHAPES.map((r, i) => (
+            <g
+              key={`rs${i}`}
+              style={{
+                opacity: Math.max(0, Math.min(1, (zoom - r.minZoom + 0.25) / 0.25)),
+                transition: 'opacity 0.18s ease-out',
+              }}
+            >
+              <path d={r.d} fill="#f6e5ac" stroke="#f6e5ac" strokeWidth="1.8" strokeLinejoin="round" />
+              <path d={r.d} fill="url(#landGrad)" />
+            </g>
+          ))}
+
           {/* 陆地纹理 */}
           {TUFT.map(([x, y], i) => (
             <ellipse key={i} cx={x} cy={y} rx={2.4} ry={1.4} fill="#4e9c40" opacity="0.22" />
@@ -408,7 +485,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
           )}
         </svg>
 
-        {/* ── 地理标注：平面图只留大洋与马六甲海峡（调淡），地形用图形 ── */}
+        {/* ── 地理标注：大洋/马六甲常显，其余按 minZoom 随缩放淡入（v1.5.1 分层） ── */}
         {GEO_FEATURES.filter(f => f.flatText).map(f => (
           <div
             key={`geo-${f.name}`}
@@ -418,7 +495,9 @@ export default function FlatWorld({ selected, setSelected }: Props) {
               top: `${f.flat.y}%`,
               transform: `translate(-50%, -50%) rotate(${f.flat.rotate}deg)`,
               zIndex: 2,
-              opacity: 0.6,
+              // 字号反向补偿：标注处在 scale(zoom) 层内，除以 zoom 保持屏幕尺寸恒定
+              fontSize: `${GEO_FONT[f.kind] / zoom}px`,
+              opacity: zoom >= (f.flat.minZoom ?? 0) ? 0.6 : 0,
             }}
           >
             {f.name}
@@ -441,7 +520,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
             >
               {/* 建筑塔：底部中心对准城市锚点 */}
               <div className="city-lm" style={{ opacity: here ? 1 : 0.92 }}>
-                <CityLandmark id={c.id} size={lmWorld} />
+                <CityLandmark id={c.id} size={lmWorld} forceSvg />
                 <div
                   className="city-pin-dot"
                   style={{
@@ -500,7 +579,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
             <div className="relative my-ship-glow">
               <span className="my-ship-ping" />
               <span className="my-ship-ping is-late" />
-              <ShipSprite color={ship.color} size={52} highlight />
+              <ShipSprite color={ship.color} size={52} highlight icon={ship.icon} />
             </div>
             <div className="my-ship-name" title={displayedShipName}>{displayedShipName}</div>
             {sailing && (
@@ -538,6 +617,15 @@ export default function FlatWorld({ selected, setSelected }: Props) {
           const onRight = r.id.endsWith(':r')
           return (
             <div key={`lb-${c.id}`}>
+              {/* 引导线：从标签贴锚点一侧连到建筑锚点，名字与图标一一对应 */}
+              <span
+                className="tag-leader"
+                style={{
+                  left: Math.min(onRight ? r.x : r.x + r.w, a.x),
+                  top: a.y - 1,
+                  width: Math.abs(a.x - (onRight ? r.x : r.x + r.w)),
+                }}
+              />
               {/* 标签 */}
               <div
                 className={`city-tag ${variant}${active ? ' active' : ''}${here ? ' here' : ''}`}
@@ -550,12 +638,13 @@ export default function FlatWorld({ selected, setSelected }: Props) {
                 {!onRight && <span className="tag-tick" />}
                 <div className="pin-label">{c.name}</div>
                 {variant === 'full' && <div className="pin-sub">{c.sub}</div>}
+                {onRight && <span className="tag-tick" />}
               </div>
               {/* 顶部徽标（所在位置 / 前往中） */}
               {(here || target) && (
                 <div
                   className={`city-badge ${here ? 'here-badge' : 'target-badge'}`}
-                  style={{ left: a.x, top: a.y - lmEff - 14, transform: 'translate(-50%, 0)' }}
+                  style={{ left: a.x, top: a.y - lmEff - 10, transform: 'translate(-50%, 0)' }}
                 >
                   {here ? '所在位置' : '前往中'}
                 </div>

@@ -169,7 +169,10 @@ export function eventBuyMult(ev: CityEvent | undefined, goodId: string): number 
 
 /** 抢购潮：该商品在本港的卖出价乘数 */
 export function eventSellMult(ev: CityEvent | undefined, goodId: string): number {
-  if (ev && ev.kind === 'shortage' && ev.goodId === goodId) return 2.2
+  if (ev && ev.goodId === goodId) {
+    if (ev.kind === 'shortage') return 2.2
+    if (ev.kind === 'festival') return 1.8
+  }
   return 1
 }
 

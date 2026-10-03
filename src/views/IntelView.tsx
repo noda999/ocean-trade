@@ -3,6 +3,8 @@ import { CITIES, CITY_BY_ID, CITY_EVENT_INFO, GOODS, GOOD_BY_ID, INTEL_PRICE, SE
 import { cityTrades, estBuyPrice, estSellPrice, eventSellMult, isBlockaded, sellPrice } from '../game/engine'
 import { investBonusOf, repBonusOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
+import { Glyph } from '../components/Glyph'
+import { ArtIcon } from '../components/ArtIcon'
 
 interface Route {
   goodId: string
@@ -90,13 +92,15 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
         {/* 顶部 */}
         <div className="p-4 pb-3 flex-shrink-0">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">📡</span>
+            <Glyph name="spyglass" size={22} color="#a07030" />
             <span className="font-900 text-lg" style={{ color: '#3d2b10' }}>情报网络</span>
-            <span className="ml-auto text-lg" style={{ color: '#c9b394' }} onClick={onClose}>✕</span>
+            <button className="ml-auto" style={{ color: '#c9b394' }} onClick={onClose} title="关闭">
+              <Glyph name="cross" size={18} />
+            </button>
           </div>
 
           <div className="flex gap-2 mb-3">
-            {([['routes', '🔥 最赚商路'], ['prices', '💰 全球比价']] as const).map(([k, label]) => (
+            {([['routes', '最赚商路', 'flame'], ['prices', '全球比价', 'purse']] as const).map(([k, label, icon]) => (
               <button
                 key={k}
                 className="flex-1 py-2 text-xs font-800 rounded-xl"
@@ -105,14 +109,16 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                   : { background: '#fff5ec', color: '#a07030' }}
                 onClick={() => setTab(k)}
               >
-                {label}
+                <span className="inline-flex items-center gap-1.5 justify-center">
+                  <Glyph name={icon} size={13} />{label}
+                </span>
               </button>
             ))}
           </div>
 
           {!state.intelOwned && (
             <div className="panel-orange p-3 flex items-center gap-2">
-              <span className="text-lg">🔮</span>
+              <Glyph name="crystal" size={20} color="#fff" />
               <div className="flex-1">
                 <div className="text-xs font-800">未开通全球情报</div>
                 <div className="text-xs opacity-85">未探明城市仅显示按特产推算的预估价</div>
@@ -147,12 +153,12 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                 return (
                   <div key={i} className="panel-white p-3" style={{ borderRadius: 14 }}>
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style={{ background: '#fff5ec' }}>
-                        {good.icon}
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F7F0E1' }}>
+                        <ArtIcon name={good.icon} size={34} />
                       </div>
                       <div className="flex-1">
                         <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>
-                          {from.name} <span style={{ color: '#f5913a' }}>→</span> {to.name}
+                          {from.name} <Glyph name="arrowRight" size={13} color="#f5913a" /> {to.name}
                           {r.estimated && <span className="est-tag">预估</span>}
                         </div>
                         <div className="text-xs" style={{ color: '#a07030' }}>{good.name} · 单件利润 {r.profit} 金</div>
@@ -164,11 +170,20 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <span className="price-chip buy">买入 {r.buy}</span>
-                      <span style={{ color: '#c9b394' }}>→</span>
+                      <Glyph name="arrowRight" size={12} color="#c9b394" />
                       <span className="price-chip sell">卖出 {r.sell}</span>
-                      {isBlockaded(state.cityEvents[to.id]) && <span className="badge-red">🚑 封锁中</span>}
+                      {isBlockaded(state.cityEvents[to.id]) && (
+                        <span className="badge-red inline-flex items-center gap-1"><Glyph name="barrier" size={11} />封锁中</span>
+                      )}
                       {state.cityEvents[to.id]?.kind === 'shortage' && (
-                        <span className="badge-red">{CITY_EVENT_INFO.shortage.icon} 抢购 ×2.2</span>
+                        <span className="badge-red inline-flex items-center gap-1">
+                          <Glyph name={CITY_EVENT_INFO.shortage.icon} size={11} />抢购 ×2.2
+                        </span>
+                      )}
+                      {state.cityEvents[to.id]?.kind === 'festival' && (
+                        <span className="badge-red inline-flex items-center gap-1">
+                          <Glyph name={CITY_EVENT_INFO.festival.icon} size={11} />节庆 ×1.8
+                        </span>
                       )}
                       {state.cityId === r.fromId && <span className="badge-green ml-auto">就在此处</span>}
                       {state.cityId !== r.fromId && state.cityId === r.toId && <span className="badge-orange ml-auto">已经在目的地</span>}
@@ -189,7 +204,7 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                       : { background: '#fff5ec', color: '#a07030' }}
                     onClick={() => setGoodId(x.id)}
                   >
-                    {x.icon} {x.name}
+                    <span className="inline-flex items-center gap-1"><Glyph name={x.icon} size={12} />{x.name}</span>
                   </button>
                 ))}
               </div>
@@ -215,7 +230,9 @@ export default function IntelView({ onClose }: { onClose: () => void }) {
                         {here && <span className="badge-orange">当前</span>}
                       </span>
                       {!trades ? (
-                        <span className="text-xs" style={{ color: '#c9bda8' }}>{locked ? '🔒 未解锁' : '不流通'}</span>
+                        <span className="text-xs inline-flex items-center gap-1" style={{ color: '#c9bda8' }}>
+                          {locked ? <><Glyph name="lock" size={11} />未解锁</> : '不流通'}
+                        </span>
                       ) : isKnown && m ? (
                         <>
                           <span className="text-xs" style={{ color: '#a07030' }}>库存 {m.stock}</span>

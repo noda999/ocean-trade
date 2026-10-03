@@ -4,19 +4,20 @@ import { shipOf } from '../game/engine'
 import { crewBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
 import { ShipSprite } from '../components/ShipSprite'
+import { Glyph, type GlyphName } from '../components/Glyph'
 import TavernView from './TavernView'
 import WorkshopView from './WorkshopView'
 import HallView from './HallView'
 import AdmiraltyView from './AdmiraltyView'
 
 /** 港口内的 5 个设施分区：船坞 / 酒馆 / 工坊 / 市政厅 / 海事署 */
-const SECTIONS = [
-  { id: 'ships', icon: '⚓', label: '船坞', hint: '更快的船省时间，更大的舱赚更多，更高的加成提高利润率' },
-  { id: 'tavern', icon: '🍺', label: '酒馆', hint: '招募航海好手：永久加成 + 每人 3 段专属委托（去功勋页领取奖励）' },
-  { id: 'workshop', icon: '🛠️', label: '工坊', hint: '船具永久生效，补给在海上事件里自动派上用场' },
-  { id: 'hall', icon: '🏛️', label: '市政厅', hint: '投资港口享永久折扣与分红，2 级起关税减半；委托板限期送货，报酬丰厚' },
-  { id: 'navy', icon: '🏴‍☠️', label: '海事署', hint: '接通缉令出击海盗领赏金；集齐藏宝图碎片挖掘深海秘藏' },
-] as const
+const SECTIONS: { id: 'ships' | 'tavern' | 'workshop' | 'hall' | 'navy'; icon: GlyphName; label: string; hint: string }[] = [
+  { id: 'ships', icon: 'anchor', label: '船坞', hint: '更快的船省时间，更大的舱赚更多，更高的加成提高利润率' },
+  { id: 'tavern', icon: 'beer', label: '酒馆', hint: '招募航海好手：永久加成 + 每人 3 段专属委托（去功勋页领取奖励）' },
+  { id: 'workshop', icon: 'anvil', label: '工坊', hint: '船具永久生效，补给在海上事件里自动派上用场' },
+  { id: 'hall', icon: 'hall', label: '市政厅', hint: '投资港口享永久折扣与分红，2 级起关税减半；委托板限期送货，报酬丰厚' },
+  { id: 'navy', icon: 'navy', label: '海事署', hint: '接通缉令出击海盗领赏金；集齐藏宝图碎片挖掘深海秘藏' },
+]
 
 type SectionId = typeof SECTIONS[number]['id']
 
@@ -29,6 +30,10 @@ export default function DockView() {
   const [editingName, setEditingName] = useState(false)
   const [draftName, setDraftName] = useState(state.shipName)
   const cur = SECTIONS.find(x => x.id === section) ?? SECTIONS[0]
+  // 委托交付红点：当前港有可立即交付的委托 → 市政厅按钮高亮
+  const deliverableCount = state.orders.filter(
+    o => o.taken && o.toCity === state.cityId && (state.cargo[o.goodId]?.qty ?? 0) >= o.qty,
+  ).length
 
   function commitName() {
     dispatch({ type: 'SET_SHIP_NAME', name: draftName })
@@ -42,25 +47,31 @@ export default function DockView() {
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
       <div className="px-4 pt-4 pb-6">
-        <div className="font-900 text-xl mb-2" style={{ color: '#3d2b10' }}>
-          {cur.icon} {cur.label}
+        <div className="font-900 text-xl mb-2 inline-flex items-center gap-2" style={{ color: '#3d2b10' }}>
+          <Glyph name={cur.icon} size={21} />{cur.label}
         </div>
         {/* 设施切换：5 个分区，窄屏可横向滚动 */}
         <div className="flex gap-0.5 p-1 rounded-xl mb-2 overflow-x-auto" style={{ background: '#efe2c8' }}>
           {SECTIONS.map(x => {
             const badge = x.id === 'tavern' ? state.hiredCrew.length : x.id === 'workshop' ? state.equipOwned.length : 0
+            const deliverable = x.id === 'hall' && deliverableCount > 0
             const active = section === x.id
             return (
               <button
                 key={x.id}
-                className={`${x.id}-toggle flex-shrink-0 text-xs font-800 px-2.5 py-1.5 rounded-lg`}
+                className={`${x.id}-toggle flex-shrink-0 text-xs font-800 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1`}
                 style={{
                   background: active ? '#fff' : 'transparent',
                   color: active ? '#d97320' : '#a07030',
                 }}
                 onClick={() => setSection(x.id)}
               >
-                {x.icon} {x.label}{badge > 0 ? ` ${badge}` : ''}
+                <Glyph name={x.icon} size={13} />{x.label}
+                {deliverable ? (
+                  <span className="text-[9px] font-900 px-1.5 rounded-full" style={{ background: '#4cba6a', color: '#fff' }}>交付</span>
+                ) : badge > 0 ? (
+                  <span> {badge}</span>
+                ) : null}
               </button>
             )
           })}
@@ -107,7 +118,7 @@ export default function DockView() {
                   title="点我给船改名"
                 >
                   「{shipDisplayName(state.shipName, current.name)}」
-                  <span className="text-xs opacity-80 font-700">✏️</span>
+                  <Glyph name="quill" size={13} />
                 </button>
               )}
               <div className="text-xs opacity-85 mt-1">
@@ -117,8 +128,8 @@ export default function DockView() {
                 )}
               </div>
             </div>
-            <div style={{ transform: 'scale(0.9)' }}>
-              <ShipSprite color={current.color} size={64} highlight />
+            <div>
+              <ShipSprite color={current.color} size={76} highlight icon={current.icon} />
             </div>
           </div>
           {editingName && (
@@ -135,7 +146,7 @@ export default function DockView() {
                 className="text-xs font-800 px-3 py-1.5"
                 style={{ borderRadius: 10, background: 'white', color: '#d97320' }}
                 onClick={commitName}
-              >✓ 确定</button>
+              ><span className="inline-flex items-center gap-1"><Glyph name="check" size={13} />确定</span></button>
             </div>
           )}
           <div className="flex gap-2 mt-3">
@@ -167,8 +178,8 @@ export default function DockView() {
                 style={{ borderRadius: 16, borderLeft: `4px solid ${s.color}`, opacity: !owned && !affordable ? 0.72 : 1 }}
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${s.color}22` }}>
-                    <ShipSprite color={s.color} size={48} />
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${s.color}22` }}>
+                    <ShipSprite color={s.color} size={58} icon={s.icon} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -182,12 +193,12 @@ export default function DockView() {
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { label: '载货量', value: `${s.cap}`, icon: '📦', good: s.cap > current.cap },
-                    { label: '航速', value: `${s.speed}x`, icon: '💨', good: s.speed > current.speed },
-                    { label: '利润加成', value: s.bonus ? `+${s.bonus}%` : '无', icon: '💰', good: s.bonus > current.bonus },
+                    { label: '载货量', value: `${s.cap}`, icon: 'box' as GlyphName, good: s.cap > current.cap },
+                    { label: '航速', value: `${s.speed}x`, icon: 'wind' as GlyphName, good: s.speed > current.speed },
+                    { label: '利润加成', value: s.bonus ? `+${s.bonus}%` : '无', icon: 'purse' as GlyphName, good: s.bonus > current.bonus },
                   ].map(st => (
                     <div key={st.label} className="text-center p-2 rounded-xl" style={{ background: '#fff8f0' }}>
-                      <div className="text-base mb-0.5">{st.icon}</div>
+                      <div className="mb-0.5 flex justify-center"><Glyph name={st.icon} size={17} color="#8a6a40" /></div>
                       <div className="font-900 text-xs" style={{ color: st.good ? '#4cba6a' : '#3d2b10' }}>{st.value}</div>
                       <div style={{ color: '#c0a070', fontSize: 10 }}>{st.label}</div>
                     </div>
@@ -208,7 +219,9 @@ export default function DockView() {
                     style={{ opacity: active ? 0.5 : 1 }}
                     onClick={() => dispatch({ type: 'SELECT_SHIP', shipId: s.id })}
                   >
-                    {active ? '✓ 正在使用' : '⚓ 换乘此船'}
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <Glyph name={active ? 'check' : 'anchor'} size={15} />{active ? '正在使用' : '换乘此船'}
+                    </span>
                   </button>
                 ) : (
                   <button
@@ -216,7 +229,9 @@ export default function DockView() {
                     style={{ opacity: affordable ? 1 : 0.55 }}
                     onClick={() => dispatch({ type: 'BUY_SHIP', shipId: s.id })}
                   >
-                    🪙 购买 · {s.cost.toLocaleString()} 金
+                    <span className="inline-flex items-center gap-1.5 justify-center">
+                      <Glyph name="coin" size={15} />购买 · {s.cost.toLocaleString()} 金
+                    </span>
                   </button>
                 )}
               </div>

@@ -117,6 +117,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     lastSaved,
   }), [state, assets, reset, flush, loadFromSave, removeSave, lastSaved])
 
+  // DEV 专用：暴露钩子给端到端测试（生产构建会被 import.meta.env.DEV 剔除，不影响线上）
+  if (import.meta.env.DEV) {
+    ;(window as unknown as { __game: unknown }).__game = { dispatch, getState: () => stateRef.current }
+  }
+
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }
 

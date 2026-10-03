@@ -1,4 +1,4 @@
-import { Component, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
+import { Component, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
 import { CREW_QUESTS, LEGENDS, MILESTONES, seasonOf } from './game/data'
 import { shipOf } from './game/engine'
 import { claimable, crewQuestClaimable, legendClaimable } from './game/state'
@@ -11,16 +11,23 @@ import MapView from './views/MapView'
 import IntelView from './views/IntelView'
 import OnboardingTour from './components/OnboardingTour'
 import ChangelogModal from './components/ChangelogModal'
+import PirateModal from './components/PirateModal'
+import VictoryModal from './components/VictoryModal'
+import DebugPanel from './components/DebugPanel'
 import SettingsModal from './components/SettingsModal'
+import SoundLayer from './components/SoundLayer'
+import { Glyph, type GlyphName } from './components/Glyph'
+import { audio } from './game/audio'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
 
-const NAV: { id: Tab; icon: string; label: string }[] = [
-  { id: 'map', icon: '🗺️', label: '地图' },
-  { id: 'market', icon: '🏪', label: '市场' },
-  { id: 'cargo', icon: '📦', label: '货舱' },
-  { id: 'dock', icon: '⚓', label: '船坞' },
-  { id: 'quest', icon: '🏆', label: '功勋' },
+const NAV: { id: Tab; icon: GlyphName; label: string; emoji?: string }[] = [
+  { id: 'map', icon: 'map', label: '地图' },
+  { id: 'market', icon: 'market', label: '市场' },
+  { id: 'cargo', icon: 'box', label: '货舱' },
+  { id: 'dock', icon: 'anchor', label: '船坞' },
+  // 功勋：用 emoji 奖杯替代 SVG 图标
+  { id: 'quest', icon: 'trophy', label: '功勋', emoji: '🏆' },
 ]
 
 function clockFmt(sec: number) {
@@ -30,16 +37,14 @@ function clockFmt(sec: number) {
 }
 
 function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () => void }) {
-  const { state, assets } = useGame()
+  const { state } = useGame()
   const ship = shipOf(state.shipId)
-  const rank = assets >= 12_000 ? Math.max(1, Math.round(680 - Math.log10(assets) * 78)) : null
-  const nextTarget = MILESTONES.find(m => assets < m.target)?.target
 
   return (
     <div className="top-bar relative z-30 px-3 pb-2" style={{ background: 'linear-gradient(180deg,#2f9ec9,#4fb8dc)' }}>
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-lg" style={{ background: 'rgba(255,255,255,0.25)' }}>
-          🧭
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.25)' }}>
+          <Glyph name="compass" size={22} color="#fff" />
         </div>
         <div className="app-title">远洋贸易</div>
         {(() => {
@@ -50,37 +55,31 @@ function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () =
               style={{ background: 'rgba(255,255,255,0.22)', color: 'white', whiteSpace: 'nowrap', flexShrink: 0 }}
               title={`${season.name}｜${season.desc}`}
             >
-              {season.icon}
+              <Glyph name={season.icon} size={14} />
             </div>
           )
         })()}
         <div className="ml-auto flex items-center gap-1.5">
           <div className="stat-pill">
-            <span style={{ fontSize: 13 }}>🪙</span>
+            <Glyph name="coin" size={16} color="#a07030" />
             <span className="font-900 text-xs" style={{ color: '#3d2b10' }}>{Math.floor(state.money).toLocaleString()}</span>
           </div>
-          <button className="top-icon-btn" onClick={onIntel}>📡</button>
-          <button className="top-icon-btn" onClick={onSettings} title="存档设置">⚙️</button>
+          <button className="top-icon-btn" onClick={() => { audio.sfx('click'); onIntel() }} title="情报网络"><Glyph name="spyglass" size={24} /></button>
+          <button className="top-icon-btn" onClick={() => { audio.sfx('click'); onSettings() }} title="存档设置"><Glyph name="gear" size={24} /></button>
         </div>
       </div>
 
       <div className="panel-white px-3 py-2">
-        <div className="flex items-center gap-1.5 mb-1">
-          <span className="text-xs">🏆</span>
-          <span className="font-900 text-xs" style={{ color: '#3d2b10' }}>{assets.toLocaleString()}</span>
-          {nextTarget && (
-            <span className="text-xs" style={{ color: '#c0a070' }}>/ {nextTarget.toLocaleString()}</span>
-          )}
-          <span className="ml-auto text-xs font-700" style={{ color: '#8a6a40' }}>
-            个人排名: {rank ? `第 ${rank} 位` : '未上榜'}
+        <div className="flex items-center gap-3 text-xs" style={{ color: '#a07030' }}>
+          <span className="inline-flex items-center gap-1">
+            <Glyph name="crate" size={18} />货物库存刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.marketTimer)}</b>
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1">
+            <Glyph name="trendUp" size={22} />紧缺行情刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.spiceTimer)}</b>
           </span>
         </div>
-        <div className="flex items-center gap-3 text-xs" style={{ color: '#a07030' }}>
-          <span>🍱 货物库存刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.marketTimer)}</b></span>
-          <span className="ml-auto">📈 紧缺行情刷新: <b style={{ color: '#8a6a40' }}>{clockFmt(state.spiceTimer)}</b></span>
-        </div>
-        <div className="text-xs mt-1" style={{ color: '#a07030' }}>
-          {seasonOf(state.clock).icon} <b style={{ color: '#8a6a40' }}>{seasonOf(state.clock).name}</b>
+        <div className="text-xs mt-1 inline-flex items-center gap-1" style={{ color: '#a07030' }}>
+          <Glyph name={seasonOf(state.clock).icon} size={18} /><b style={{ color: '#8a6a40' }}>{seasonOf(state.clock).name}</b>
           {' · '}{seasonOf(state.clock).desc}
         </div>
       </div>
@@ -93,7 +92,7 @@ function Toasts() {
   return (
     <div
       className="absolute left-0 right-0 z-50 flex flex-col items-center gap-1.5 pointer-events-none"
-      style={{ top: 120, padding: '0 12px' }}
+      style={{ top: 8, padding: '0 12px' }}
     >
       {state.toasts.map(t => (
         <div
@@ -101,7 +100,7 @@ function Toasts() {
           className={`toast toast-${t.kind} pointer-events-auto`}
           onClick={() => dispatch({ type: 'DROP_TOAST', id: t.id })}
         >
-          <span className="text-base flex-shrink-0">{t.icon}</span>
+          <Glyph name={t.icon} size={17} className="flex-shrink-0" />
           <span className="text-xs font-800">{t.text}</span>
         </div>
       ))}
@@ -130,9 +129,11 @@ function NavBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
           <button
             key={n.id}
             className={`nav-btn relative flex-1 ${active ? 'active' : ''}`}
-            onClick={() => setTab(n.id)}
+            onClick={() => { audio.sfx('click'); setTab(n.id) }}
           >
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{n.icon}</span>
+            {n.emoji
+              ? <span style={{ fontSize: 19, lineHeight: '22px' }}>{n.emoji}</span>
+              : <Glyph name={n.icon} size={22} />}
             <span>{n.label}</span>
             {badge > 0 && <span className="nav-badge">{badge}</span>}
             {dot && <span className="nav-dot" />}
@@ -160,7 +161,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
       return (
         <div className="absolute inset-0 overflow-auto p-5" style={{ background: '#fff8f0' }}>
           <div className="panel-white p-4" style={{ borderRadius: 16 }}>
-            <div className="font-900 text-base mb-2" style={{ color: '#c05050' }}>⚠️ 这个界面出错了</div>
+            <div className="font-900 text-base mb-2 inline-flex items-center gap-1.5" style={{ color: '#c05050' }}>
+              <Glyph name="warn" size={18} />这个界面出错了
+            </div>
             <div className="text-xs mb-3" style={{ color: '#8a6a40', wordBreak: 'break-all' }}>
               {String(this.state.error?.message ?? this.state.error)}
             </div>
@@ -193,6 +196,17 @@ function Game() {
   const [intelOpen, setIntelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
+  // 首个用户手势解锁 Web Audio 并启动 BGM（浏览器自动播放策略要求）
+  useEffect(() => {
+    const unlock = () => audio.unlock()
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center"
@@ -215,6 +229,12 @@ function Game() {
         <NavBar tab={tab} setTab={setTab} />
         <OnboardingTour activeTab={tab} setActiveTab={t => setTab(t as Tab)} />
         <ChangelogModal />
+        <PirateModal />
+        <VictoryModal />
+        {/* 调试面板：仅开发环境，生产构建（含小红书包）会被剔除 */}
+        {import.meta.env.DEV && <DebugPanel />}
+        {/* 声音层：订阅状态触发音效，无 UI */}
+        <SoundLayer />
       </div>
     </div>
   )

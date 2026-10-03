@@ -2,6 +2,7 @@ import { CITY_BY_ID, CREW } from '../game/data'
 import { crewBonusOf } from '../game/state'
 import { useGame } from '../game/store'
 import { CrewAvatar } from '../components/CrewAvatar'
+import { Glyph } from '../components/Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  酒馆：招募散落在世界各港的航海家 / 水手长 / 水手 / 大厨…
@@ -18,8 +19,8 @@ export default function TavernView() {
       {/* 船员总览 */}
       <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: 'rgba(255,255,255,0.22)' }}>
-            🍺
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(255,255,255,0.22)' }}>
+            <Glyph name="beer" size={30} color="#fff" />
           </div>
           <div className="flex-1">
             <div className="text-xs opacity-85">在船船员</div>
@@ -57,7 +58,7 @@ export default function TavernView() {
             >
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center" style={{ background: '#fffdf8', border: `1.5px solid ${c.color}33` }}>
-                  <CrewAvatar look={c.look} size={52} />
+                  <CrewAvatar look={c.look} size={52} icon={c.id} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -71,13 +72,13 @@ export default function TavernView() {
                   <div className="text-xs mt-0.5" style={{ color: '#a07030' }}>{c.desc}</div>
                   <div className="flex gap-1.5 mt-1.5 flex-wrap">
                     {c.speed > 0 && (
-                      <span className="text-[10px] font-800 px-1.5 py-0.5 rounded-md" style={{ background: '#e8f4ff', color: '#2f7cb8' }}>
-                        💨 航速 +{c.speed}%
+                      <span className="text-[10px] font-800 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1" style={{ background: '#e8f4ff', color: '#2f7cb8' }}>
+                        <Glyph name="wind" size={11} />航速 +{c.speed}%
                       </span>
                     )}
                     {c.trade > 0 && (
-                      <span className="text-[10px] font-800 px-1.5 py-0.5 rounded-md" style={{ background: '#fff4dd', color: '#c07a1a' }}>
-                        💰 利润 +{c.trade}%
+                      <span className="text-[10px] font-800 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1" style={{ background: '#fff4dd', color: '#c07a1a' }}>
+                        <Glyph name="purse" size={11} />利润 +{c.trade}%
                       </span>
                     )}
                     <span
@@ -87,7 +88,10 @@ export default function TavernView() {
                         color: here && !hired ? '#3a9a58' : '#a07030',
                       }}
                     >
-                      {hired ? `招募地 · ${city.name}` : here ? '📍 就在本港酒馆' : `🗺️ 需前往 ${city.name}`}
+                      <span className="inline-flex items-center gap-1">
+                        <Glyph name={here ? 'pin' : 'map'} size={11} />
+                        {hired ? `招募地 · ${city.name}` : here ? '就在本港酒馆' : `需前往 ${city.name}`}
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -95,7 +99,7 @@ export default function TavernView() {
 
               {hired ? (
                 <button className="btn-ghost-orange w-full py-2.5 text-sm" disabled style={{ opacity: 0.6 }}>
-                  ✓ 已在船上
+                  <span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="check" size={15} />已在船上</span>
                 </button>
               ) : here ? (
                 <button
@@ -103,7 +107,9 @@ export default function TavernView() {
                   style={{ opacity: affordable ? 1 : 0.55 }}
                   onClick={() => dispatch({ type: 'HIRE_CREW', crewId: c.id })}
                 >
-                  🤝 雇佣 · {c.cost.toLocaleString()} 金{!affordable && '（金币不足）'}
+                  <span className="inline-flex items-center gap-1.5 justify-center">
+                    <Glyph name="exchange" size={15} />雇佣 · {c.cost.toLocaleString()} 金{!affordable && '（金币不足）'}
+                  </span>
                 </button>
               ) : (
                 <button
@@ -111,7 +117,9 @@ export default function TavernView() {
                   disabled
                   style={{ borderRadius: 12, background: '#f5eee0', color: '#b09868' }}
                 >
-                  🗺️ 到 {city.name} 才能招募
+                  <span className="inline-flex items-center gap-1.5 justify-center">
+                    <Glyph name="map" size={15} />到 {city.name} 才能招募
+                  </span>
                 </button>
               )}
             </div>

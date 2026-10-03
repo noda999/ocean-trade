@@ -14,6 +14,10 @@ export const CITY_GEO: Record<string, LonLat> = {
   france: [2, 47],
   spain: [-4, 40],
   netherlands: [5, 52.5],
+  // v1.5.1 补全：新港口的球面坐标（此前缺失 → geoOf 回退 [0,0]，
+  // 球形地球视图上意大利 / 暹罗会重叠在几内亚湾同一点）
+  italy: [12.5, 41.9],
+  siam: [100.5, 13.7],
   egypt: [31, 28],
   persia: [53, 32],
   arabia: [46, 24],
@@ -33,7 +37,13 @@ export const CITY_GEO: Record<string, LonLat> = {
 }
 
 export function geoOf(cityId: string): LonLat {
-  return CITY_GEO[cityId] ?? [0, 0]
+  const g = CITY_GEO[cityId]
+  if (!g) {
+    // 新增港口必须同步补 CITY_GEO，否则球面视图会全部叠在 (0,0)
+    console.warn(`[geo] 城市缺少球面坐标: ${cityId}（回退 [0,0]）`)
+    return [0, 0]
+  }
+  return g
 }
 
 /** 简化的大陆轮廓（卡通风格，够用即可，按环绘制） */

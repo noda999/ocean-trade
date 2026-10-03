@@ -1,11 +1,52 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACHIEVEMENTS, CITIES, CREW_QUESTS, GOODS, LEGENDS, LEGEND_TITLE } from '../game/data'
 import { allLegendsDone, type GameState } from '../game/state'
+import { drawGlyph, Glyph, type GlyphName } from './Glyph'
 
 const W = 1080
 const H = 1440
 
 const FONT = '"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif'
+
+/**
+ * 居中绘制「图标 + 文字」：canvas 里也走矢量图标，
+ * 不再依赖系统 emoji 字形（各平台形状不一致且无法着色）
+ */
+function centerIconText(
+  ctx: CanvasRenderingContext2D,
+  name: GlyphName,
+  text: string,
+  cx: number,
+  baselineY: number,
+  color: string,
+  iconSize: number,
+  trailing?: GlyphName,
+) {
+  const gap = iconSize * 0.5
+  const w = ctx.measureText(text).width
+  const total = w + iconSize * (trailing ? 2 : 1) + gap * (trailing ? 2 : 1)
+  const left = cx - total / 2
+  drawGlyph(ctx, name, left, baselineY - iconSize * 0.86, iconSize, color, 2.6)
+  if (trailing) drawGlyph(ctx, trailing, left + total - iconSize, baselineY - iconSize * 0.86, iconSize, color, 2.6)
+  ctx.textAlign = 'center'
+  ctx.fillText(text, left + iconSize + gap + w / 2, baselineY)
+}
+
+/** 左对齐绘制「图标 + 文字」 */
+function leftIconText(
+  ctx: CanvasRenderingContext2D,
+  name: GlyphName,
+  text: string,
+  x: number,
+  baselineY: number,
+  color: string,
+  iconSize: number,
+) {
+  const gap = iconSize * 0.5
+  drawGlyph(ctx, name, x, baselineY - iconSize * 0.86, iconSize, color, 2.6)
+  ctx.textAlign = 'left'
+  ctx.fillText(text, x + iconSize + gap, baselineY)
+}
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath()
@@ -71,7 +112,7 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
     ctx.textAlign = 'center'
     ctx.fillStyle = '#3d2b10'
     ctx.font = `900 56px ${FONT}`
-    ctx.fillText('🧭 远洋贸易 🧭', W / 2, 108)
+    centerIconText(ctx, 'compass', '远洋贸易', W / 2, 108, '#3d2b10', 46, 'compass')
     ctx.font = `700 30px ${FONT}`
     ctx.fillStyle = '#a07030'
     ctx.fillText('· 我 的 航 海 生 涯 ·', W / 2, 158)
@@ -86,7 +127,8 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
 
     ctx.fillStyle = '#a07030'
     ctx.font = `800 34px ${FONT}`
-    ctx.fillText(legendComplete ? `👑 ${LEGEND_TITLE} 👑` : `称号 · ${title}`, W / 2, 272)
+    if (legendComplete) centerIconText(ctx, 'crown', LEGEND_TITLE, W / 2, 272, '#a07030', 34, 'crown')
+    else ctx.fillText(`称号 · ${title}`, W / 2, 272)
 
     ctx.fillStyle = '#f5913a'
     ctx.font = `900 108px ${FONT}`
@@ -102,11 +144,11 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
     ctx.fillText(`航海时长 ${hrs} 小时 ${mins} 分 · 船队 ${state.ownedShips.length} 艘 · 船员 ${state.hiredCrew.length} 人`, W / 2, 508)
 
     // ── 数据网格 2×2 ──
-    const cells: { icon: string; v: string; label: string }[] = [
-      { icon: '🔁', v: `${state.stats.trades}`, label: '交易笔数' },
-      { icon: '🧭', v: `${state.stats.distance.toLocaleString()}`, label: '航行海里' },
-      { icon: '🏙️', v: `${state.visited.length}/${CITIES.length}`, label: '到访城市' },
-      { icon: '🏅', v: state.stats.best > 0 ? `+${Math.round(state.stats.best).toLocaleString()}` : '—', label: '单笔最佳' },
+    const cells: { icon: GlyphName; v: string; label: string }[] = [
+      { icon: 'swap', v: `${state.stats.trades}`, label: '交易笔数' },
+      { icon: 'compass', v: `${state.stats.distance.toLocaleString()}`, label: '航行海里' },
+      { icon: 'city', v: `${state.visited.length}/${CITIES.length}`, label: '到访城市' },
+      { icon: 'medal', v: state.stats.best > 0 ? `+${Math.round(state.stats.best).toLocaleString()}` : '—', label: '单笔最佳' },
     ]
     cells.forEach((c, i) => {
       const x = 70 + (i % 2) * ((W - 140) / 2 + 12)
@@ -122,16 +164,14 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
       ctx.font = `900 56px ${FONT}`
       ctx.fillStyle = '#3d2b10'
       ctx.fillText(c.v, x + 28, y + 112)
-      ctx.textAlign = 'center'
-      ctx.font = `52px ${FONT}`
-      ctx.fillText(c.icon, x + w - 62, y + 108)
+      drawGlyph(ctx, c.icon, x + w - 118, y + 44, 62, '#e0b060', 3.2)
     })
 
     // ── 传奇功勋条 ──
     ctx.textAlign = 'left'
     ctx.fillStyle = '#3d2b10'
     ctx.font = `900 40px ${FONT}`
-    ctx.fillText('🏆 传奇功勋', 90, 1010)
+    leftIconText(ctx, 'trophy', '传奇功勋', 90, 1010, '#3d2b10', 40)
     ctx.textAlign = 'right'
     ctx.font = `900 40px ${FONT}`
     ctx.fillStyle = legendsDone === LEGENDS.length ? '#c98a10' : '#a07030'
@@ -154,15 +194,15 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
     ctx.textAlign = 'left'
     ctx.font = `700 32px ${FONT}`
     ctx.fillStyle = '#8a6a40'
-    ctx.fillText(`📜 船员委托 ${questsDone}/${CREW_QUESTS.length}`, 90, 1148)
-    ctx.fillText(`🎖️ 贸易成就 ${achDone}/${ACHIEVEMENTS.length}`, 90, 1200)
-    ctx.fillText(`📦 万货图鉴 ${traded.size}/${GOODS.length}`, 90, 1252)
+    leftIconText(ctx, 'scroll', `船员委托 ${questsDone}/${CREW_QUESTS.length}`, 90, 1148, '#8a6a40', 32)
+    leftIconText(ctx, 'medal', `贸易成就 ${achDone}/${ACHIEVEMENTS.length}`, 90, 1200, '#8a6a40', 32)
+    leftIconText(ctx, 'box', `万货图鉴 ${traded.size}/${GOODS.length}`, 90, 1252, '#8a6a40', 32)
 
     // ── 底部 ──
     ctx.textAlign = 'center'
     ctx.fillStyle = '#a07030'
     ctx.font = `800 32px ${FONT}`
-    ctx.fillText('⚓ 通关不是终点，七海才是 ⚓', W / 2, 1340)
+    centerIconText(ctx, 'anchor', '通关不是终点，七海才是', W / 2, 1340, '#a07030', 32, 'anchor')
     ctx.font = `700 26px ${FONT}`
     ctx.fillStyle = '#c0a070'
     const d = new Date()
@@ -191,7 +231,9 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
         onClick={e => e.stopPropagation()}
       >
         <div className="panel-white p-3" style={{ borderRadius: 18 }}>
-          <div className="text-center font-900 text-sm mb-2" style={{ color: '#3d2b10' }}>📸 我的航海生涯卡</div>
+          <div className="text-center font-900 text-sm mb-2 inline-flex items-center gap-1.5 w-full justify-center" style={{ color: '#3d2b10' }}>
+            <Glyph name="camera" size={15} />我的航海生涯卡
+          </div>
           {url && (
             <img src={url} alt="分享图" style={{ width: '100%', borderRadius: 12, display: 'block' }} />
           )}
@@ -204,7 +246,7 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
             <button
               className="btn-orange flex-1 py-2.5 text-sm font-900"
               onClick={save}
-            >💾 保存图片</button>
+            ><span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="book" size={15} />保存图片</span></button>
           </div>
           <div className="text-[10px] text-center mt-2" style={{ color: '#c0a070' }}>
             手机端也可长按图片保存 · 发到小红书记得带上游戏链接

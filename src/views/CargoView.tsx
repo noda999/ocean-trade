@@ -2,6 +2,8 @@ import { CITY_BY_ID, CITY_EVENT_INFO, GOOD_BY_ID } from '../game/data'
 import { cargoUnits, cargoValue, eventSellMult, isBlockaded, sellPrice } from '../game/engine'
 import { cityEventOf, investBonusOf, repBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
+import { Glyph } from '../components/Glyph'
+import { ArtIcon } from '../components/ArtIcon'
 
 function fmt(sec: number) {
   const m = Math.floor(sec / 60)
@@ -28,7 +30,9 @@ export default function CargoView() {
   return (
     <div className="absolute inset-0 overflow-auto" style={{ background: '#f8f0e0' }}>
       <div className="px-4 pt-4 pb-6">
-        <div className="font-900 text-xl mb-1" style={{ color: '#3d2b10' }}>📦 货舱清单</div>
+        <div className="font-900 text-xl mb-1 inline-flex items-center gap-2" style={{ color: '#3d2b10' }}>
+          <Glyph name="box" size={20} />货舱清单
+        </div>
         <div className="text-xs mb-4" style={{ color: '#a07030' }}>
           停靠 {city.name} · 卖出价格按本地行情结算
         </div>
@@ -72,7 +76,7 @@ export default function CargoView() {
         <div className="font-800 text-sm mb-2" style={{ color: '#3d2b10' }}>持有货物</div>
         {held === 0 ? (
           <div className="panel-white p-5 text-center mb-3" style={{ borderRadius: 14 }}>
-            <div className="text-3xl mb-2">🛒</div>
+            <div className="mb-2"><Glyph name="cart" size={34} color="#d8bb8a" /></div>
             <div className="text-sm font-700" style={{ color: '#8a6a40' }}>货舱空空如也</div>
             <div className="text-xs mt-1" style={{ color: '#c0a070' }}>去「市场」低价买入特产，再运到紧缺的城市卖出</div>
           </div>
@@ -92,8 +96,8 @@ export default function CargoView() {
               return (
                 <div key={gid} className="panel-white p-3" style={{ borderRadius: 14 }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#fff5ec' }}>
-                      {g.icon}
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: '#F7F0E1' }}>
+                      <ArtIcon name={g.icon} size={38} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>{g.name} ×{c.qty}</div>
@@ -138,11 +142,11 @@ export default function CargoView() {
               disabled={!canTradeHere}
               onClick={() => dispatch({ type: 'SELL_ALL' })}
             >
-              💰 一键全部卖出
+              <span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="purse" size={17} />一键全部卖出</span>
             </button>
             {blockaded && (
               <div className="text-xs text-center mt-1" style={{ color: '#c05050' }}>
-                🚑 {city.name}在市集封锁期（{CITY_EVENT_INFO.blockade.name}），暂时无法卖出
+                <span className="inline-flex items-center gap-1"><Glyph name="barrier" size={13} />{city.name}在市集封锁期（{CITY_EVENT_INFO.blockade.name}），暂时无法卖出</span>
               </div>
             )}
           </div>
@@ -152,13 +156,13 @@ export default function CargoView() {
         <div className="font-800 text-sm mt-4 mb-2" style={{ color: '#3d2b10' }}>道具栏</div>
         <div className="panel-white p-3 mb-4" style={{ borderRadius: 14 }}>
           <div className="flex items-center gap-3 py-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: '#fff5ec' }}>⚡</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff5ec' }}><Glyph name="bolt" size={24} color="#c98a30" /></div>
             <span className="flex-1 font-700 text-sm" style={{ color: '#3d2b10' }}>加速卡</span>
             <span className="text-xs mr-2" style={{ color: '#c0a070' }}>航行中剩余时间减半</span>
             <span className="font-900 text-sm" style={{ color: '#f5c830' }}>×{state.boost}</span>
           </div>
           <div className="flex items-center gap-3 py-2" style={{ borderTop: '1.5px solid #f5e8d0' }}>
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ background: '#fff5ec' }}>🔮</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fff5ec' }}><Glyph name="crystal" size={24} color="#c98a30" /></div>
             <span className="flex-1 font-700 text-sm" style={{ color: '#3d2b10' }}>情报网络</span>
             <span className="text-xs mr-2" style={{ color: '#c0a070' }}>全球价格一览</span>
             <span className="font-900 text-xs" style={{ color: state.intelOwned ? '#4cba6a' : '#c0a070' }}>
@@ -168,7 +172,9 @@ export default function CargoView() {
         </div>
 
         {/* 航海日志 */}
-        <div className="font-800 text-sm mb-2" style={{ color: '#3d2b10' }}>🧭 航海日志</div>
+        <div className="font-800 text-sm mb-2 inline-flex items-center gap-1.5" style={{ color: '#3d2b10' }}>
+          <Glyph name="compass" size={15} />航海日志
+        </div>
         <div className="panel-white overflow-hidden" style={{ borderRadius: 16 }}>
           {state.log.slice(0, 12).map((l, i) => (
             <div

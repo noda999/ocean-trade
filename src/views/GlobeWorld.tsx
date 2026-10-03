@@ -545,7 +545,7 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
         const here = c.id === state.cityId
         const active = selected === c.id
         const depth = 0.55 + 0.45 * p.z
-        const lmSize = Math.round(Math.max(20, Math.min(64, 40 * zoomG)) * depth)
+        const lmSize = Math.round(Math.max(22, Math.min(72, 46 * zoomG)) * depth)
         return (
           <div
             key={c.id}
@@ -557,7 +557,7 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
             }}
           >
             <div className="city-lm" style={{ opacity: here ? 1 : 0.68 + 0.24 * p.z }}>
-              <CityLandmark id={c.id} size={lmSize} />
+              <CityLandmark id={c.id} size={lmSize} forceSvg />
               <div
                 className="city-pin-dot"
                 style={{ background: here ? '#4cba6a' : active ? '#d97320' : '#f5913a' }}
@@ -601,7 +601,7 @@ export default function GlobeWorld({ selected, setSelected }: Props) {
             <div className="relative my-ship-glow">
               <span className="my-ship-ping" />
               <span className="my-ship-ping is-late" />
-              <ShipSprite color={ship.color} size={Math.round(38 * zoomG)} highlight />
+              <ShipSprite color={ship.color} size={Math.round(38 * zoomG)} highlight icon={ship.icon} />
             </div>
             <div className="my-ship-name" title={displayedShipName}>{displayedShipName}</div>
           </div>

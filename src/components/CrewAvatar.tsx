@@ -1,17 +1,35 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import type { CrewLook } from '../game/data'
+import { ICON_VER } from './iconVer'
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Q 版船员头像：纯 SVG 绘制的大头水手小人
-//  依据 CrewLook 配置组合 发型 / 帽子 / 胡子 / 配件，人人长得不一样
+//  船员头像：优先用 AI 全彩位图 public/icons/<icon>.png（通常是 crew.id），
+//  缺图时回落到内置 SVG 捏脸
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function CrewAvatar({ look, size = 56, bg = '#fffdf8' }: {
+export function CrewAvatar({ look, size = 56, bg = '#fffdf8', icon }: {
   look: CrewLook
   size?: number
   bg?: string
+  icon?: string
 }) {
+  const [failed, setFailed] = useState(false)
+  // Hooks 必须无条件调用：位图回落 SVG 时不能改变调用顺序，否则整个视图崩溃
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '')
+  if (icon && !failed) {
+    return (
+      <img
+        src={`./icons/${icon}.png?v=${ICON_VER}`}
+        width={size}
+        height={size}
+        alt=""
+        draggable={false}
+        style={{ display: 'block', objectFit: 'contain', borderRadius: '50%' }}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+
   const clip = `crew-body-${uid}`
   const { skin, hair, hairStyle, hat, hatColor, hatColor2, beardStyle, beardColor, accessory } = look
   const beardC = beardColor ?? hair

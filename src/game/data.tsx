@@ -2,93 +2,200 @@
 //  远洋贸易 · 静态配置数据
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { GoldBar } from '../components/Landmarks'
+// v1.5.0：图标字段统一引用矢量图标名（见 components/Glyph.tsx），全站告别 emoji
+import type { GlyphName } from '../components/Glyph'
 
 export interface Good {
   id: string
   name: string
-  icon: string | React.ReactElement
+  icon: GlyphName
   base: number
 }
 
-/** 22 + 7 = 29 种可交易货物，base 为全球基准价；每种只在部分港口流通 */
+/** 共 83 种可交易货物，base 为全球基准价；每种只在部分港口流通 */
 export const GOODS: Good[] = [
-  { id: 'silk', name: '丝绸', icon: '🧣', base: 280 },
-  { id: 'porcelain', name: '瓷器', icon: '🏺', base: 200 },
-  { id: 'tea', name: '茶叶', icon: '🍵', base: 60 },
-  { id: 'spice', name: '香料', icon: '🌶️', base: 120 },
-  { id: 'cotton', name: '棉花', icon: '☁️', base: 45 },
-  { id: 'pearl', name: '珍珠', icon: '⚪', base: 350 },
-  { id: 'gold', name: '黄金', icon: <GoldBar size={18} />, base: 520 },
-  { id: 'clove', name: '丁香', icon: '🌿', base: 160 },
-  { id: 'timber', name: '木材', icon: '🪵', base: 80 },
-  { id: 'coffee', name: '咖啡', icon: '☕', base: 110 },
-  { id: 'fur', name: '皮草', icon: '🦊', base: 260 },
-  { id: 'wool', name: '羊毛', icon: '🐑', base: 55 },
-  { id: 'whisky', name: '威士忌', icon: '🥃', base: 170 },
-  { id: 'wine', name: '葡萄酒', icon: '🍷', base: 140 },
-  { id: 'perfume', name: '香水', icon: '🧴', base: 240 },
-  { id: 'grain', name: '谷物', icon: '🌾', base: 42 },
-  { id: 'carpet', name: '波斯地毯', icon: '🧶', base: 210 },
-  { id: 'rose', name: '玫瑰油', icon: '🌹', base: 190 },
-  { id: 'gem', name: '宝石', icon: '💎', base: 620 },
-  { id: 'sword', name: '东洋刀', icon: '⚔️', base: 300 },
-  { id: 'silver', name: '白银', icon: '🥈', base: 420 },
-  { id: 'cacao', name: '可可', icon: '🍫', base: 95 },
+  { id: 'silk', name: '丝绸', icon: 'silk', base: 280 },
+  { id: 'porcelain', name: '瓷器', icon: 'porcelain', base: 200 },
+  { id: 'tea', name: '茶叶', icon: 'tea', base: 60 },
+  { id: 'spice', name: '香料', icon: 'spice', base: 120 },
+  { id: 'cotton', name: '棉花', icon: 'cotton', base: 45 },
+  { id: 'pearl', name: '珍珠', icon: 'pearl', base: 350 },
+  { id: 'gold', name: '黄金', icon: 'gold', base: 520 },
+  { id: 'clove', name: '丁香', icon: 'clove', base: 160 },
+  { id: 'timber', name: '木材', icon: 'timber', base: 80 },
+  { id: 'coffee', name: '咖啡', icon: 'coffee', base: 110 },
+  { id: 'fur', name: '皮草', icon: 'fur', base: 260 },
+  { id: 'wool', name: '羊毛', icon: 'wool', base: 55 },
+  { id: 'whisky', name: '威士忌', icon: 'whisky', base: 170 },
+  { id: 'wine', name: '葡萄酒', icon: 'wine', base: 140 },
+  { id: 'perfume', name: '香水', icon: 'perfume', base: 240 },
+  { id: 'grain', name: '谷物', icon: 'grain', base: 42 },
+  { id: 'carpet', name: '波斯地毯', icon: 'carpet', base: 210 },
+  { id: 'rose', name: '玫瑰油', icon: 'rose', base: 190 },
+  { id: 'gem', name: '宝石', icon: 'gem', base: 620 },
+  { id: 'sword', name: '东洋刀', icon: 'sword', base: 300 },
+  { id: 'silver', name: '白银', icon: 'silver', base: 420 },
+  { id: 'cacao', name: '可可', icon: 'cacao', base: 95 },
   // ── v1.3.0 新增 7 种商品 ──
-  { id: 'cheese', name: '奶酪', icon: '🧀', base: 50 },
-  { id: 'watch', name: '钟表', icon: '⌚', base: 480 },
-  { id: 'nest', name: '燕窝', icon: '🪺', base: 280 },
-  { id: 'vanilla', name: '香草', icon: '🌿', base: 220 },
-  { id: 'frankincense', name: '乳香', icon: '🌳', base: 320 },
-  { id: 'olive', name: '橄榄油', icon: '🫒', base: 75 },
-  { id: 'tobacco', name: '烟草', icon: '🍂', base: 130 },
+  { id: 'cheese', name: '奶酪', icon: 'cheese', base: 50 },
+  { id: 'watch', name: '钟表', icon: 'watch', base: 480 },
+  { id: 'nest', name: '燕窝', icon: 'nest', base: 280 },
+  { id: 'vanilla', name: '香草', icon: 'vanilla', base: 220 },
+  { id: 'frankincense', name: '乳香', icon: 'frankincense', base: 320 },
+  { id: 'olive', name: '橄榄油', icon: 'olive', base: 75 },
+  { id: 'tobacco', name: '烟草', icon: 'tobacco', base: 130 },
   // ── v1.2.0 新增 20 种商品（每城特产扩充） ──
-  { id: 'amber', name: '琥珀', icon: '🟠', base: 260 },
-  { id: 'truffle', name: '松露', icon: '🍄', base: 350 },
-  { id: 'honey', name: '蜂蜜', icon: '🍯', base: 85 },
-  { id: 'saffron', name: '藏红花', icon: '🌺', base: 380 },
-  { id: 'caviar', name: '鱼子酱', icon: '🥫', base: 400 },
-  { id: 'date', name: '椰枣', icon: '🌴', base: 70 },
-  { id: 'indigo', name: '靛蓝', icon: '🫐', base: 150 },
-  { id: 'cinnamon', name: '肉桂', icon: '🥮', base: 170 },
-  { id: 'paper', name: '宣纸', icon: '📜', base: 130 },
-  { id: 'lacquer', name: '漆器', icon: '🥢', base: 310 },
-  { id: 'nutmeg', name: '肉豆蔻', icon: '🌰', base: 180 },
-  { id: 'sugar', name: '蔗糖', icon: '🍬', base: 75 },
-  { id: 'diamond', name: '钻石', icon: '💠', base: 750 },
-  { id: 'leather', name: '皮革', icon: '🥾', base: 100 },
-  { id: 'alpaca', name: '羊驼毛', icon: '🦙', base: 180 },
-  { id: 'salt', name: '海盐', icon: '🧂', base: 55 },
-  { id: 'tulip', name: '郁金香', icon: '🌷', base: 160 },
-  { id: 'copper', name: '黄铜', icon: '🥉', base: 300 },
-  { id: 'seashell', name: '珍珠母', icon: '🐚', base: 90 },
-  { id: 'rum', name: '朗姆酒', icon: '🍹', base: 120 },
+  { id: 'amber', name: '琥珀', icon: 'amber', base: 260 },
+  { id: 'truffle', name: '松露', icon: 'truffle', base: 350 },
+  { id: 'honey', name: '蜂蜜', icon: 'honey', base: 85 },
+  { id: 'saffron', name: '藏红花', icon: 'saffron', base: 380 },
+  { id: 'caviar', name: '鱼子酱', icon: 'caviar', base: 400 },
+  { id: 'date', name: '椰枣', icon: 'date', base: 70 },
+  { id: 'indigo', name: '靛蓝', icon: 'indigo', base: 150 },
+  { id: 'cinnamon', name: '肉桂', icon: 'cinnamon', base: 170 },
+  { id: 'paper', name: '宣纸', icon: 'paper', base: 130 },
+  { id: 'lacquer', name: '漆器', icon: 'lacquer', base: 310 },
+  { id: 'nutmeg', name: '肉豆蔻', icon: 'nutmeg', base: 180 },
+  { id: 'sugar', name: '蔗糖', icon: 'sugar', base: 75 },
+  { id: 'diamond', name: '钻石', icon: 'diamond', base: 750 },
+  { id: 'leather', name: '皮革', icon: 'leather', base: 100 },
+  { id: 'alpaca', name: '羊驼毛', icon: 'alpaca', base: 180 },
+  { id: 'salt', name: '海盐', icon: 'salt', base: 55 },
+  { id: 'tulip', name: '郁金香', icon: 'tulip', base: 160 },
+  { id: 'copper', name: '黄铜', icon: 'copper', base: 300 },
+  { id: 'seashell', name: '珍珠母', icon: 'seashell', base: 90 },
+  { id: 'rum', name: '朗姆酒', icon: 'rum', base: 120 },
   // ── v1.4.0 隐藏特产（21 城 · 投资 1 级「商会伙伴」解锁）+ 秘藏珍宝 ──
-  { id: 'rune', name: '符文石碑', icon: '🗿', base: 320 },
-  { id: 'longbow', name: '英格兰长弓', icon: '🏹', base: 300 },
-  { id: 'tapestry', name: '哥特壁毯', icon: '🖼️', base: 340 },
-  { id: 'papyrus', name: '纸莎草卷', icon: '📜', base: 280 },
-  { id: 'miniature', name: '波斯细密画', icon: '🎨', base: 360 },
-  { id: 'scimitar', name: '大马士革弯刀', icon: '🗡️', base: 340 },
-  { id: 'sitar', name: '西塔琴', icon: '🎸', base: 300 },
-  { id: 'sapphire', name: '锡兰蓝宝石', icon: '🔷', base: 640 },
-  { id: 'jade', name: '和田玉雕', icon: '🟩', base: 560 },
-  { id: 'armor', name: '武士铠甲', icon: '🛡️', base: 480 },
-  { id: 'agarwood', name: '沉香木', icon: '🪵', base: 520 },
-  { id: 'batik', name: '巴迪克蜡染', icon: '👘', base: 300 },
-  { id: 'mask', name: '部落黄金面具', icon: '🎭', base: 420 },
-  { id: 'obsidian', name: '黑曜石镜', icon: '🖤', base: 400 },
-  { id: 'sundisc', name: '太阳金盘', icon: '🌞', base: 680 },
-  { id: 'guitar', name: '西班牙吉他', icon: '🪕', base: 300 },
-  { id: 'delft', name: '代尔夫特蓝陶', icon: '🔵', base: 340 },
-  { id: 'incenseburner', name: '阿拉伯香炉', icon: '🪔', base: 360 },
-  { id: 'ambergris', name: '龙涎香', icon: '🐋', base: 600 },
-  { id: 'elephantegg', name: '象鸟蛋', icon: '🥚', base: 500 },
-  { id: 'emerald', name: '哥伦比亚祖母绿', icon: '💚', base: 700 },
+  { id: 'rune', name: '符文石碑', icon: 'rune', base: 320 },
+  { id: 'longbow', name: '英格兰长弓', icon: 'longbow', base: 300 },
+  { id: 'tapestry', name: '哥特壁毯', icon: 'tapestry', base: 340 },
+  { id: 'papyrus', name: '纸莎草卷', icon: 'papyrus', base: 280 },
+  { id: 'miniature', name: '波斯细密画', icon: 'miniature', base: 360 },
+  { id: 'scimitar', name: '大马士革弯刀', icon: 'scimitar', base: 340 },
+  { id: 'sitar', name: '西塔琴', icon: 'sitar', base: 300 },
+  { id: 'sapphire', name: '锡兰蓝宝石', icon: 'sapphire', base: 640 },
+  { id: 'jade', name: '和田玉雕', icon: 'jade', base: 560 },
+  { id: 'armor', name: '武士铠甲', icon: 'armor', base: 480 },
+  { id: 'agarwood', name: '沉香木', icon: 'agarwood', base: 520 },
+  { id: 'batik', name: '巴迪克蜡染', icon: 'batik', base: 300 },
+  { id: 'mask', name: '部落黄金面具', icon: 'mask', base: 420 },
+  { id: 'obsidian', name: '黑曜石镜', icon: 'obsidian', base: 400 },
+  { id: 'sundisc', name: '太阳金盘', icon: 'sundisc', base: 680 },
+  { id: 'guitar', name: '西班牙吉他', icon: 'guitar', base: 300 },
+  { id: 'delft', name: '代尔夫特蓝陶', icon: 'delft', base: 340 },
+  { id: 'incenseburner', name: '阿拉伯香炉', icon: 'incenseburner', base: 360 },
+  { id: 'ambergris', name: '龙涎香', icon: 'ambergris', base: 600 },
+  { id: 'elephantegg', name: '象鸟蛋', icon: 'elephantegg', base: 500 },
+  { id: 'emerald', name: '哥伦比亚祖母绿', icon: 'emerald', base: 700 },
   // 深海秘藏奖励品：无产地，只能靠挖掘获得，各名港高价求购
-  { id: 'relic', name: '沉没神殿珍宝', icon: '🧿', base: 1_800 },
+  { id: 'relic', name: '沉没神殿珍宝', icon: 'relic', base: 1_800 },
+  // ── v1.5.0 新增通用货物（城市进出口经下方 EXTRA_TRADE 批量注入）──
+  { id: 'book', name: '古籍善本', icon: 'book', base: 300 },
+  { id: 'fleur', name: '鸢尾花饰', icon: 'fleur', base: 190 },
+  { id: 'scroll', name: '航海图卷', icon: 'scroll', base: 260 },
+  // ── v1.5.0 暹罗 / 意大利专属特产 ──
+  { id: 'jasmine', name: '茉莉香米', icon: 'jasmine', base: 240 },
+  { id: 'murano', name: '威尼斯玻璃', icon: 'murano', base: 360 },
+  // ── 16 世纪改名与「每城≥3 独有特产」补缺：下列货物仅单一港口出产 ──
+  { id: 'kris', name: '克力士剑', icon: 'kris', base: 320 },
+  { id: 'tumi', name: '印加金刀', icon: 'tumi', base: 340 },
+  { id: 'pineapple', name: '菠萝', icon: 'pineapple', base: 90 },
+  { id: 'teak', name: '柚木', icon: 'teak', base: 130 },
+  { id: 'betel', name: '槟榔', icon: 'betel', base: 70 },
+  { id: 'violin', name: '小提琴', icon: 'violin', base: 300 },
+  { id: 'marble', name: '大理石', icon: 'marble', base: 150 },
 ]
+
+/** 特色货物背景描述（图鉴卡片点击展开时显示）；普通货物留空 */
+export const GOOD_DESC: Record<string, string> = {
+  // ── 7 件新货（v1.5.0） ──
+  kris: '马来群岛的波浪刃短剑，刃纹如蛇，是身份与守护的象征。',
+  tumi: '印加祭司的黄金半圆刃祭刀，顶端立雕神明，用于祭祀与权柄。',
+  pineapple: '新大陆的金色珍果，冠芽如凤尾，曾是欧洲宫廷眼中的奢侈品。',
+  teak: '南洋热带硬木，耐腐防蛀，造船与宫殿的首选良材。',
+  betel: '东南亚待客佳品，蒌叶裹果同嚼，驱瘴提神，代代相沿。',
+  violin: '亚平宁匠人手工琴，云杉面板枫木背板，音色如歌。',
+  marble: '意大利开采的雪白石材，纹理如山水，雕饰宫殿与造像。',
+  // ── 23 件隐藏特产（每城独家） ──
+  rune: '维京先祖刻下的神秘石碑，符文诉说着神话与咒语。',
+  longbow: '打垮骑士的紫杉长弓，百年战争中的决胜之矢。',
+  tapestry: '挂毯上的圣经与史诗，哥特织机织就的流动壁画。',
+  papyrus: '尼罗河沼泽的莎草纸卷，承载古老的咒文与智慧。',
+  miniature: '细如毫发的波斯工笔画，金箔铺底，讲尽王宫秘事。',
+  scimitar: '大马士革花纹钢弯刀，月光般的刃纹削铁如泥。',
+  sitar: '北印度拨弦长颈琴，共鸣弦缭绕，吟唱拉格之情。',
+  sapphire: '锡兰河床的矢车菊蓝宝石，深蓝如印度洋之夜。',
+  jade: '昆仑和田美玉，温润含蓄，君子比德于玉。',
+  armor: '赤备武士的精致胴甲，漆金缀革，忠勇之姿。',
+  agarwood: '马来雨林结油的沉香，焚之香气沉静，价比黄金。',
+  batik: '爪哇匠人以蜡防染的繁花布，蓝靛与赭红交织。',
+  mask: '部落祭祀的木雕面具，狰狞纹样连通祖灵与神祇。',
+  obsidian: '中美洲火山玻璃，锋利如刃，雕成匕首与神像。',
+  sundisc: '印加太阳神因蒂的金盘，祭祀圣器，光芒灼灼。',
+  guitar: '安达卢西亚的六弦吉他，弗拉明戈的火热心跳。',
+  delft: '荷兰代尔夫特仿青花锡釉陶，白底蓝纹如瓷。',
+  incenseburner: '阿曼黄铜镂空香炉，焚乳香以敬神，烟篆袅袅。',
+  ambergris: '抹香鲸肠中结块的灰琥珀，定香之王，千金难求。',
+  elephantegg: '马达加斯加巨鸟的化石蛋，盈尺之高，博物奇珍。',
+  emerald: '安第斯矿脉的祖母绿，翠色欲滴，绿宝石之王。',
+  jasmine: '暹罗茉莉香米，炊时满室清香，米中上品。',
+  murano: '穆拉诺岛匠人的彩绘玻璃，炉火淬出琉璃幻彩。',
+  // ── 沉没神殿珍宝 ──
+  relic: '沉没神殿中的秘藏，金玉交错，唯有按图挖掘方能现世。',
+  // ── 普通货物（52 件）──
+  silk: '中国丝织，柔光流转，西方贵妇争相追捧的东方奢侈品。',
+  porcelain: '白瓷青花纹，海上丝路最负盛名、易碎却价高的货物。',
+  tea: '一片东方树叶，风靡欧陆下午茶的源头。',
+  spice: '胡椒丁香肉豆蔻，点燃大航海的「甜味黄金」。',
+  cotton: '印度棉布轻柔透气，衣被天下的平民大宗。',
+  pearl: '波斯湾孕育的圆润明珠，王冠与耳坠的宠儿。',
+  gold: '永不贬值的硬通货，贸易与冒险的终极目标。',
+  clove: '香料群岛的丁香，一粒便香透整间货舱。',
+  timber: '北欧与热带的造船木料，商船的筋骨。',
+  coffee: '阿拉伯的黑色饮品，醒神提气，风靡每座港口。',
+  fur: '寒带猎得的华贵皮草，御寒更显身份。',
+  wool: '英格兰羊毛呢绒，温暖厚实的大宗货。',
+  whisky: '苏格兰蒸馏的琥珀烈酒，港口酒馆的常客。',
+  wine: '伊比利亚与法兰西的葡萄佳酿，宴席必备。',
+  perfume: '花露蒸馏而成的香水，一抹幽香千金不换。',
+  grain: '面包与生命的根本，风浪里最稳妥的压舱货。',
+  carpet: '波斯匠人手工打结的地毯，足下铺开的繁花庭院。',
+  rose: '大马士革玫瑰蒸馏的香精油，价比黄金。',
+  gem: '未经琢磨的粗宝石，切磨后身价百倍。',
+  sword: '东洋锻刀，百炼钢折叠如波，寒光摄人。',
+  silver: '新大陆与日本的白银，跨洋贸易的血脉。',
+  cacao: '新大陆的可可豆，欧洲巧克力风味的源头。',
+  cheese: '牧场熟成的奶酪，耐储藏的远航海粮。',
+  watch: '低地钟表的齿轮艺术，精准丈量时间。',
+  nest: '金丝燕的燕窝，滋补珍品，莹润如玉。',
+  vanilla: '马达加斯加香草荚，甜点灵魂的幽香。',
+  frankincense: '阿曼乳香，焚烧通神，教堂与宫廷皆用。',
+  olive: '地中海的橄榄油，灯食皆宜的液体黄金。',
+  tobacco: '新大陆烟草叶，烟斗里缭绕的异域瘾。',
+  amber: '波罗的海的树脂化石，封存远古虫蚁如时光胶囊。',
+  truffle: '林间难寻的黑松露，厨师梦寐的「地下钻石」。',
+  honey: '蜂巢酿就的金黄蜜，天然的甜与药。',
+  saffron: '藏红花柱头，三万朵方得一磅，红金之称。',
+  caviar: '盐渍鱼子酱，黑珍珠般的奢宴之巅。',
+  date: '沙漠椰枣，商队旅途的甘甜干粮。',
+  indigo: '靛蓝染草，染就一匹匹深沉的蓝布。',
+  cinnamon: '锡兰肉桂皮，温甜香气入馔亦入药。',
+  paper: '中国宣纸，墨韵淋漓，文明赖此远播。',
+  lacquer: '东洋漆器，层层髹涂温润如玉。',
+  nutmeg: '香料群岛肉豆蔻，汤点与药引的点睛之笔。',
+  sugar: '蔗田熬出的晶糖，甜蜜生意的利润引擎。',
+  diamond: '矿区金刚石，切面流转火彩，永恒之石。',
+  leather: '硝制兽皮，制靴制甲制书封的百搭料。',
+  alpaca: '安第斯羊驼的柔毛，轻暖更胜羊毛。',
+  salt: '海盐与矿盐，腌藏万物、富贵之基。',
+  tulip: '荷兰郁金香球根，曾掀起癫狂的「花泡沫」。',
+  copper: '红铜锭料，铸炮制器的基础金属。',
+  seashell: '珍珠母贝壳，嵌饰螺钿的虹彩原料。',
+  rum: '蔗蜜酿的朗姆酒，水手杯中的烈性与豪情。',
+  book: '活字印就的古籍善本，知识随商船流转。',
+  fleur: '鸢尾花饰，法兰西纹章上的金色百合。',
+  scroll: '手绘航海图卷，标记暗礁与秘港的航海家笔记。',
+}
 
 export const GOOD_BY_ID: Record<string, Good> = Object.fromEntries(
   GOODS.map(g => [g.id, g]),
@@ -117,22 +224,22 @@ export const CITIES: City[] = [
     blurb: '峡湾深处，盛产木材与皮草',
   },
   {
-    id: 'england', name: '英国', sub: 'ENGLAND', x: 7, y: 30, side: 'right',
+    id: 'england', name: '英格兰', sub: 'ENGLAND', x: 7, y: 30, side: 'right',
     exports: ['wool', 'whisky', 'cheese'], imports: ['tea', 'spice', 'fur', 'carpet', 'nest', 'frankincense', 'truffle', 'caviar', 'sugar', 'alpaca', 'lacquer'],
     blurb: '雾都港埠，羊毛与麦芽威士忌之乡',
   },
   {
-    id: 'france', name: '法国', sub: 'FRANCE', x: 17, y: 43, side: 'right',
+    id: 'france', name: '法兰西', sub: 'FRANCE', x: 17, y: 43, side: 'right',
     exports: ['wine', 'perfume', 'truffle'], imports: ['wool', 'fur', 'silk', 'coffee', 'vanilla', 'olive', 'cinnamon', 'nutmeg', 'diamond', 'leather', 'tulip'],
     blurb: '塞纳河畔，葡萄酒与香水的国度',
   },
   {
     id: 'egypt', name: '埃及', sub: 'EGYPT', x: 29, y: 49, side: 'right',
-    exports: ['cotton', 'grain', 'honey'], imports: ['timber', 'wine', 'silver', 'spice', 'frankincense', 'paper', 'rum', 'cinnamon'],
+    exports: ['grain', 'honey'], imports: ['timber', 'wine', 'silver', 'spice', 'frankincense', 'paper', 'rum', 'cinnamon'],
     blurb: '尼罗河畔的粮仓，长绒棉之乡',
   },
   {
-    id: 'persia', name: '波斯', sub: 'PERSIA', x: 41, y: 20, side: 'left',
+    id: 'persia', name: '波斯', sub: 'SAFAVID PERSIA', x: 41, y: 20, side: 'left',
     exports: ['carpet', 'rose', 'saffron', 'caviar'], imports: ['grain', 'pearl', 'gold', 'seashell'],
     blurb: '丝路古国，玫瑰与地毯的故乡',
   },
@@ -142,17 +249,17 @@ export const CITIES: City[] = [
     blurb: '沙漠商路的中心，珍珠汇聚之地',
   },
   {
-    id: 'india', name: '印度', sub: 'INDIA', x: 53, y: 29, side: 'right',
+    id: 'india', name: '印度', sub: 'MUGHAL INDIA', x: 53, y: 29, side: 'right',
     exports: ['spice', 'cotton', 'indigo'], imports: ['carpet', 'gem', 'silver', 'clove', 'frankincense', 'date', 'diamond', 'seashell'],
     blurb: '香料与棉花的帝国',
   },
   {
-    id: 'srilanka', name: '斯里兰卡', sub: 'SRI LANKA', x: 60, y: 44, side: 'right',
-    exports: ['tea', 'gem', 'cinnamon'], imports: ['gold', 'whisky', 'wine', 'cacao', 'honey', 'date'],
+    id: 'srilanka', name: '锡兰', sub: 'CEYLON', x: 60, y: 44, side: 'right',
+    exports: ['gem', 'cinnamon'], imports: ['gold', 'whisky', 'wine', 'cacao', 'honey', 'date'],
     blurb: '印度洋上的宝石与红茶之岛',
   },
   {
-    id: 'china', name: '中国', sub: 'CHINA', x: 76, y: 14, side: 'left',
+    id: 'china', name: '中国', sub: 'MING CHINA', x: 76, y: 14, side: 'left',
     exports: ['silk', 'porcelain', 'tea', 'paper'], imports: ['pearl', 'clove', 'rose', 'wine', 'nest', 'watch', 'amber', 'saffron', 'copper'],
     blurb: '丝绸与瓷器之乡，海内最富',
   },
@@ -168,22 +275,22 @@ export const CITIES: City[] = [
   },
   {
     id: 'java', name: '爪哇', sub: 'JAVA', x: 78, y: 75, side: 'left',
-    exports: ['coffee', 'clove', 'sugar'], imports: ['silk', 'tea', 'sword'],
+    exports: ['coffee', 'sugar', 'kris'], imports: ['silk', 'tea', 'sword'],
     blurb: '火山脚下的千岛之国，咖啡飘香',
   },
   {
-    id: 'africa', name: '南非', sub: 'SOUTH AFRICA', x: 19, y: 66, side: 'right',
+    id: 'africa', name: '好望角', sub: 'CAPE OF GOOD HOPE', x: 19, y: 66, side: 'right',
     exports: ['gold', 'coffee', 'diamond'], imports: ['porcelain', 'whisky', 'gem'],
     blurb: '好望角黄金与宝石海岸',
   },
   {
     id: 'aztec', name: '阿兹特克', sub: 'AZTEC', x: 85, y: 89, side: 'left',
-    exports: ['silver', 'cacao', 'leather'], imports: ['silk', 'tea', 'wine', 'vanilla', 'saffron'],
+    exports: ['cacao', 'leather'], imports: ['silk', 'tea', 'wine', 'vanilla', 'saffron'],
     blurb: '新大陆的白银王国',
   },
   {
     id: 'inca', name: '印加', sub: 'INCA', x: 63, y: 97, side: 'left',
-    exports: ['gold', 'gem', 'alpaca'], imports: ['sword', 'perfume', 'wool', 'watch', 'olive'],
+    exports: ['alpaca', 'tumi'], imports: ['sword', 'perfume', 'wool', 'watch', 'olive'],
     blurb: '云中之城，黄金与宝石之地',
   },
   // ── v1.3.0 新增 6 个港口 ──
@@ -194,17 +301,17 @@ export const CITIES: City[] = [
   },
   {
     id: 'netherlands', name: '荷兰', sub: 'NETHERLANDS', x: 22, y: 25, side: 'right',
-    exports: ['cheese', 'watch', 'tulip'], imports: ['silk', 'tea', 'gem', 'wine', 'vanilla', 'tobacco', 'indigo', 'nutmeg', 'alpaca', 'rum'],
+    exports: ['watch', 'tulip'], imports: ['silk', 'tea', 'gem', 'wine', 'vanilla', 'tobacco', 'indigo', 'nutmeg', 'alpaca', 'rum'],
     blurb: '低地之国，风车与郁金香，钟表匠之都',
   },
   {
     id: 'oman', name: '阿曼', sub: 'OMAN', x: 42, y: 47, side: 'left',
-    exports: ['frankincense', 'pearl', 'copper'], imports: ['timber', 'wine', 'porcelain', 'sword'],
+    exports: ['frankincense', 'copper'], imports: ['timber', 'wine', 'porcelain', 'sword'],
     blurb: '阿拉伯海之门，乳香与珍珠的产地',
   },
   {
-    id: 'borneo', name: '婆罗洲', sub: 'BORNEO', x: 79, y: 66, side: 'left',
-    exports: ['nest', 'timber', 'seashell'], imports: ['silk', 'wine', 'perfume', 'silver'],
+    id: 'borneo', name: '汶莱', sub: 'BRUNEI', x: 79, y: 66, side: 'left',
+    exports: ['nest', 'seashell'], imports: ['silk', 'wine', 'perfume', 'silver'],
     blurb: '热带雨林深处，金丝燕燕窝与红木之乡',
   },
   {
@@ -214,8 +321,19 @@ export const CITIES: City[] = [
   },
   {
     id: 'panama', name: '巴拿马', sub: 'PANAMA', x: 72, y: 92, side: 'right',
-    exports: ['tobacco', 'silver', 'sugar'], imports: ['silk', 'wine', 'perfume', 'gem'],
+    exports: ['tobacco', 'pineapple'], imports: ['silk', 'wine', 'perfume', 'gem'],
     blurb: '两洋咽喉，烟草与白银的新大陆港口',
+  },
+  // ── v1.5.0 新增 2 个港口 ──
+  {
+    id: 'siam', name: '暹罗', sub: 'SIAM', x: 67, y: 40, side: 'right',
+    exports: ['spice', 'teak', 'betel'], imports: ['silk', 'porcelain', 'tea', 'wool', 'gem', 'wine', 'watch', 'perfume'],
+    blurb: '湄南河畔的稻香王国，香料与蔗糖之乡',
+  },
+  {
+    id: 'italy', name: '威尼斯', sub: 'VENICE', x: 30, y: 41, side: 'right',
+    exports: ['wine', 'violin', 'marble'], imports: ['silk', 'porcelain', 'tea', 'spice', 'gem', 'diamond', 'saffron', 'carpet', 'rose'],
+    blurb: '地中海商贸枢纽，美酒与香水的摇篮',
   },
 ]
 
@@ -223,7 +341,7 @@ export const CITY_BY_ID: Record<string, City> = Object.fromEntries(
   CITIES.map(c => [c.id, c]),
 )
 
-// ── 隐藏特产（v1.4.0）：本港投资 ≥ 1 级解锁挂牌与购买；集中注入，避免散改 21 个城市定义 ──
+// ── 隐藏特产（v1.4.0）：本港投资 ≥ 1 级解锁挂牌与购买；集中注入，避免散改 23 个城市定义 ──
 
 /** 每座城市的隐藏特产（进 exports，产地价便宜） */
 export const SECRET_OF_CITY: Record<string, string> = {
@@ -233,6 +351,7 @@ export const SECRET_OF_CITY: Record<string, string> = {
   africa: 'mask', aztec: 'obsidian', inca: 'sundisc', spain: 'guitar',
   netherlands: 'delft', oman: 'incenseburner', borneo: 'ambergris',
   madagascar: 'elephantegg', panama: 'emerald',
+  siam: 'jasmine', italy: 'murano',
 }
 
 /** 隐藏特产的销地（进 imports，高价收购） */
@@ -258,6 +377,8 @@ const SECRET_DEMAND: Record<string, string[]> = {
   borneo: ['china', 'arabia', 'france'],
   madagascar: ['france', 'england', 'china'],
   panama: ['france', 'england', 'japan'],
+  siam: ['china', 'japan', 'persia'],
+  italy: ['france', 'england', 'spain'],
 }
 
 for (const [cid, gid] of Object.entries(SECRET_OF_CITY)) {
@@ -268,6 +389,41 @@ for (const [cid, gid] of Object.entries(SECRET_OF_CITY)) {
     if (ic && !ic.imports.includes(gid)) ic.imports.push(gid)
   }
 }
+// v1.5.0 新增通用货物：批量注入城市进出口，避免散改 21 个城市定义
+const EXTRA_TRADE: Record<string, { exportAt: string[]; importAt: string[] }> = {
+  book:   { exportAt: ['france', 'england', 'netherlands'], importAt: ['china', 'japan', 'persia', 'inca'] },
+  fleur:  { exportAt: ['france', 'persia'], importAt: ['england', 'spain', 'netherlands', 'japan'] },
+  scroll: { exportAt: ['china', 'persia', 'arabia'], importAt: ['england', 'france', 'netherlands', 'spain'] },
+}
+for (const [gid, cfg] of Object.entries(EXTRA_TRADE)) {
+  for (const cid of cfg.exportAt) {
+    const c = CITY_BY_ID[cid]
+    if (c && !c.exports.includes(gid)) c.exports.push(gid)
+  }
+  for (const cid of cfg.importAt) {
+    const c = CITY_BY_ID[cid]
+    if (c && !c.imports.includes(gid)) c.imports.push(gid)
+  }
+}
+
+// v1.5.0 新增 7 件特色货的销地（进 imports，高价收购，形成「产地低价买 → 需求港高价卖」闭环）
+//   产地：kris/爪哇 · tumi/印加 · pineapple/汶莱 · teak·betel/暹罗 · violin·marble/威尼斯
+const NEWGOOD_DEMAND: Record<string, string[]> = {
+  kris:      ['spain', 'japan', 'france'],
+  tumi:      ['spain', 'france', 'england'],
+  pineapple: ['england', 'france', 'netherlands'],
+  teak:      ['england', 'netherlands', 'japan'],
+  betel:     ['china', 'japan', 'arabia'],
+  violin:    ['france', 'england', 'spain'],
+  marble:    ['france', 'england', 'spain'],
+}
+for (const [gid, cities] of Object.entries(NEWGOOD_DEMAND)) {
+  for (const cid of cities) {
+    const c = CITY_BY_ID[cid]
+    if (c && !c.imports.includes(gid)) c.imports.push(gid)
+  }
+}
+
 // 沉没神殿珍宝：只有名港求购，无产地
 for (const cid of ['england', 'france', 'netherlands', 'japan', 'spain', 'inca']) {
   const c = CITY_BY_ID[cid]
@@ -282,7 +438,7 @@ export function isSecretGood(goodId: string): boolean {
 export interface ShipClass {
   id: string
   name: string
-  icon: string
+  icon: GlyphName
   desc: string
   /** 载重上限 */
   cap: number
@@ -295,13 +451,13 @@ export interface ShipClass {
 }
 
 export const SHIPS: ShipClass[] = [
-  { id: 'sloop', name: '小帆船', icon: '⛵', desc: '入门商船，轻便灵活', cap: 40, speed: 1.0, bonus: 0, cost: 0, color: '#5aaedc' },
-  { id: 'schooner', name: '双桅商船', icon: '🚤', desc: '标准贸易船型，运力翻倍', cap: 90, speed: 1.25, bonus: 8, cost: 6000, color: '#4cba6a' },
-  { id: 'clipper', name: '飞剪船', icon: '🛥️', desc: '极速船型，航程大幅缩短', cap: 120, speed: 1.7, bonus: 12, cost: 18000, color: '#9b6ee0' },
-  { id: 'galleon', name: '大型商船', icon: '🚢', desc: '重型货运主力，利润加成高', cap: 200, speed: 1.15, bonus: 20, cost: 45000, color: '#e87070' },
-  { id: 'royal', name: '皇家盖伦', icon: '⛴️', desc: '传说级旗舰，财富与荣耀的象征', cap: 360, speed: 1.35, bonus: 35, cost: 120000, color: '#f5913a' },
+  { id: 'sloop', name: '小帆船', icon: 'shipSloop', desc: '入门商船，轻便灵活', cap: 40, speed: 1.0, bonus: 0, cost: 0, color: '#5aaedc' },
+  { id: 'schooner', name: '双桅商船', icon: 'shipSchooner', desc: '标准贸易船型，运力翻倍', cap: 90, speed: 1.25, bonus: 8, cost: 6000, color: '#4cba6a' },
+  { id: 'clipper', name: '飞剪船', icon: 'shipClipper', desc: '极速船型，航程大幅缩短', cap: 120, speed: 1.7, bonus: 12, cost: 18000, color: '#9b6ee0' },
+  { id: 'galleon', name: '大型商船', icon: 'shipGalleon', desc: '重型货运主力，利润加成高', cap: 200, speed: 1.15, bonus: 20, cost: 45000, color: '#e87070' },
+  { id: 'royal', name: '皇家盖伦', icon: 'shipRoyal', desc: '传说级旗舰，财富与荣耀的象征', cap: 360, speed: 1.35, bonus: 35, cost: 120000, color: '#f5913a' },
   // ── v1.1.0 终局目标：一亿金币的传奇宝船 ──
-  { id: 'legend', name: '传奇宝船', icon: '👑', desc: '郑和宝船队旗舰复刻 · 一亿金币的海上巨无霸', cap: 600, speed: 1.5, bonus: 45, cost: 100_000_000, color: '#d4af37' },
+  { id: 'legend', name: '传奇宝船', icon: 'shipLegend', desc: '郑和宝船队旗舰复刻 · 一亿金币的海上巨无霸', cap: 600, speed: 1.5, bonus: 45, cost: 100_000_000, color: '#d4af37' },
 ]
 
 export const SHIP_BY_ID: Record<string, ShipClass> = Object.fromEntries(
@@ -314,7 +470,7 @@ export const SHIP_BY_ID: Record<string, ShipClass> = Object.fromEntries(
 export interface EquipDef {
   id: string
   name: string
-  icon: string
+  icon: GlyphName
   desc: string
   cost: number
   /** 航速 +% */
@@ -330,12 +486,12 @@ export interface EquipDef {
 }
 
 export const EQUIPS: EquipDef[] = [
-  { id: 'e_sail', name: '强化纵帆', icon: '⛵', desc: '全船航速 +8%', cost: 45_000, speed: 8 },
-  { id: 'e_ledger', name: '商人账本', icon: '📒', desc: '卖出利润 +6%', cost: 55_000, trade: 6 },
-  { id: 'e_hold', name: '扩容货舱', icon: '📦', desc: '货舱载重 +60', cost: 70_000, cap: 60 },
-  { id: 'e_chart', name: '精致海图', icon: '🗺️', desc: '航速 +5%，利润 +3%', cost: 90_000, speed: 5, trade: 3 },
-  { id: 'e_guild', name: '商会徽章', icon: '🎖️', desc: '各港声望获取 +50%', cost: 120_000, repGain: 50 },
-  { id: 'e_keel', name: '金龙骨', icon: '🐉', desc: '航速 +12%、载重 +120、利润 +8% —— 传奇宝船专属', cost: 8_000_000, requireShip: 'legend', speed: 12, cap: 120, trade: 8 },
+  { id: 'e_sail', name: '强化纵帆', icon: 'eqSail', desc: '全船航速 +8%', cost: 45_000, speed: 8 },
+  { id: 'e_ledger', name: '商人账本', icon: 'eqLedger', desc: '卖出利润 +6%', cost: 55_000, trade: 6 },
+  { id: 'e_hold', name: '扩容货舱', icon: 'eqHold', desc: '货舱载重 +60', cost: 70_000, cap: 60 },
+  { id: 'e_chart', name: '精致海图', icon: 'eqChart', desc: '航速 +5%，利润 +3%', cost: 90_000, speed: 5, trade: 3 },
+  { id: 'e_guild', name: '商会徽章', icon: 'eqGuild', desc: '各港声望获取 +50%', cost: 120_000, repGain: 50 },
+  { id: 'e_keel', name: '金龙骨', icon: 'eqKeel', desc: '航速 +12%、载重 +120、利润 +8% —— 传奇宝船专属', cost: 8_000_000, requireShip: 'legend', speed: 12, cap: 120, trade: 8 },
 ]
 
 export const EQUIP_BY_ID: Record<string, EquipDef> = Object.fromEntries(
@@ -345,7 +501,7 @@ export const EQUIP_BY_ID: Record<string, EquipDef> = Object.fromEntries(
 export interface SupplyDef {
   id: string
   name: string
-  icon: string
+  icon: GlyphName
   desc: string
   /** 单价 */
   cost: number
@@ -354,10 +510,10 @@ export interface SupplyDef {
 }
 
 export const SUPPLIES: SupplyDef[] = [
-  { id: 's_cannon', name: '舰炮组', icon: '🎯', desc: '遭遇海盗时自动开火：击退海盗并缴获战利品', cost: 2_500, use: 'auto' },
-  { id: 's_timber', name: '修理木料', icon: '🔨', desc: '暴风雨时自动加固船体：航程延误减半', cost: 800, use: 'auto' },
-  { id: 's_charter', name: '通商特许状', icon: '🧾', desc: '港口检疫时自动出示：免排队直接进港', cost: 600, use: 'auto' },
-  { id: 's_rum', name: '朗姆酒桶', icon: '🍶', desc: '航行中使用：船员士气大振，剩余航程 -40%', cost: 1_200, use: 'manual' },
+  { id: 's_cannon', name: '舰炮组', icon: 'supCannon', desc: '遭遇海盗时自动开火：击退海盗并缴获战利品', cost: 2_500, use: 'auto' },
+  { id: 's_timber', name: '修理木料', icon: 'supTimber', desc: '暴风雨时自动加固船体：航程延误减半', cost: 800, use: 'auto' },
+  { id: 's_charter', name: '通商特许状', icon: 'supCharter', desc: '港口检疫时自动出示：免排队直接进港', cost: 600, use: 'auto' },
+  { id: 's_rum', name: '朗姆酒桶', icon: 'supRum', desc: '航行中使用：船员士气大振，剩余航程 -40%', cost: 1_200, use: 'manual' },
 ]
 
 export const SUPPLY_BY_ID: Record<string, SupplyDef> = Object.fromEntries(
@@ -366,12 +522,13 @@ export const SUPPLY_BY_ID: Record<string, SupplyDef> = Object.fromEntries(
 
 // ── 港口商情 / 投资 / 委托（v1.3.0）──────────────────────────────────────────
 
-export type CityEventKind = 'boom' | 'shortage' | 'blockade'
+export type CityEventKind = 'boom' | 'shortage' | 'blockade' | 'festival'
 
-export const CITY_EVENT_INFO: Record<CityEventKind, { name: string; icon: string; desc: string }> = {
-  boom: { name: '丰产季', icon: '🌾', desc: '特产大量上市，本港买入价 -45%' },
-  shortage: { name: '抢购潮', icon: '🔥', desc: '全城抢购紧缺货，本港卖出价 ×2.2' },
-  blockade: { name: '瘟疫封锁', icon: '🚑', desc: '市集关闭无法买卖（委托交付照常办理）' },
+export const CITY_EVENT_INFO: Record<CityEventKind, { name: string; icon: GlyphName; desc: string }> = {
+  boom: { name: '丰产季', icon: 'wheat', desc: '特产大量上市，本港买入价 -45%' },
+  shortage: { name: '抢购潮', icon: 'flame', desc: '全城抢购紧缺货，本港卖出价 ×2.2' },
+  blockade: { name: '瘟疫封锁', icon: 'barrier', desc: '市集关闭无法买卖（委托交付照常办理）' },
+  festival: { name: '节庆集市', icon: 'mask', desc: '节庆限定货大受欢迎，本港卖出价 ×1.8' },
 }
 
 /** 商情调度间隔（秒）与单次持续时长范围（秒） */
@@ -413,19 +570,21 @@ export const TARIFF_RATE = 0.01
 export interface PirateDef {
   id: string
   name: string
-  icon: string
+  icon: GlyphName
   strength: number
 }
 
 export const PIRATES: PirateDef[] = [
-  { id: 'p_rat', name: '独眼耗子', icon: '🐀', strength: 40 },
-  { id: 'p_hook', name: '铁钩手·席德', icon: '🪝', strength: 55 },
-  { id: 'p_kraken', name: '唤雾者·莫比', icon: '🐙', strength: 70 },
-  { id: 'p_morgan', name: '血帆·摩根', icon: '🩸', strength: 85 },
-  { id: 'p_barbarossa', name: '红胡子·巴巴罗萨', icon: '🧔', strength: 105 },
-  { id: 'p_blackbeard', name: '黑胡子·蒂奇', icon: '🎩', strength: 125 },
-  { id: 'p_dragonlady', name: '龙夫人·郑', icon: '🐉', strength: 150 },
-  { id: 'p_davy', name: '深渊之王·戴维', icon: '👻', strength: 180 },
+  { id: 'p_rat', name: '独眼耗子', icon: 'piratRat', strength: 40 },
+  { id: 'p_hook', name: '铁钩手·席德', icon: 'piratHook', strength: 55 },
+  { id: 'p_kraken', name: '唤雾者·莫比', icon: 'piratKraken', strength: 70 },
+  { id: 'p_morgan', name: '血帆·摩根', icon: 'piratMorgan', strength: 85 },
+  { id: 'p_ivory', name: '象牙王·科萨', icon: 'piratIvory', strength: 95 },
+  { id: 'p_barbarossa', name: '红胡子·巴巴罗萨', icon: 'piratBarbarossa', strength: 105 },
+  { id: 'p_blackbeard', name: '黑胡子·蒂奇', icon: 'piratBlack', strength: 125 },
+  { id: 'p_dragonlady', name: '龙夫人·郑', icon: 'piratDragon', strength: 150 },
+  { id: 'p_storm', name: '风暴女巫·美杜莎', icon: 'piratStorm', strength: 165 },
+  { id: 'p_davy', name: '深渊之王·戴维', icon: 'piratDavy', strength: 180 },
 ]
 
 export const PIRATE_BY_ID: Record<string, PirateDef> = Object.fromEntries(
@@ -436,7 +595,7 @@ export const PIRATE_BY_ID: Record<string, PirateDef> = Object.fromEntries(
 export const BOUNTY_CYCLE = 75
 export const BOUNTY_TTL = 260
 /** 赏金 = strength × 随机系数 */
-export const BOUNTY_RATE: [number, number] = [80, 130]
+export const BOUNTY_RATE: [number, number] = [100, 150]
 
 /** 出击战力 = 基础 + 船级×系数 + 舰炮组库存×系数 */
 export const RAID_BASE_POWER = 15
@@ -648,26 +807,27 @@ export interface Milestone {
   target: number
   gold: number
   boost: number
+  icon: GlyphName
 }
 
 export const MILESTONES: Milestone[] = [
-  { id: 'm1', label: '初出茅庐', target: 5_000, gold: 1_000, boost: 1 },
-  { id: 'm2', label: '初级商人', target: 20_000, gold: 3_000, boost: 1 },
-  { id: 'm3', label: '见习商人', target: 60_000, gold: 8_000, boost: 2 },
-  { id: 'm4', label: '海上商人', target: 150_000, gold: 20_000, boost: 3 },
-  { id: 'm5', label: '东方富商', target: 400_000, gold: 50_000, boost: 5 },
-  { id: 'm6', label: '大航海王', target: 1_000_000, gold: 120_000, boost: 10 },
+  { id: 'm1', label: '初出茅庐', target: 5_000, gold: 1_000, boost: 1, icon: 'target' },
+  { id: 'm2', label: '初级商人', target: 20_000, gold: 3_000, boost: 1, icon: 'coin' },
+  { id: 'm3', label: '见习商人', target: 60_000, gold: 8_000, boost: 2, icon: 'crate' },
+  { id: 'm4', label: '海上商人', target: 150_000, gold: 20_000, boost: 3, icon: 'compass' },
+  { id: 'm5', label: '东方富商', target: 400_000, gold: 50_000, boost: 5, icon: 'amphora' },
+  { id: 'm6', label: '大航海王', target: 1_000_000, gold: 120_000, boost: 10, icon: 'crown' },
   // ── v1.1.0 通关后阶段 ──
-  { id: 'm7', label: '七海豪商', target: 3_000_000, gold: 250_000, boost: 12 },
-  { id: 'm8', label: '海上巨富', target: 10_000_000, gold: 800_000, boost: 20 },
-  { id: 'm9', label: '七海霸主', target: 100_000_000, gold: 8_000_000, boost: 50 },
+  { id: 'm7', label: '七海豪商', target: 3_000_000, gold: 250_000, boost: 12, icon: 'globe' },
+  { id: 'm8', label: '海上巨富', target: 10_000_000, gold: 800_000, boost: 20, icon: 'gem' },
+  { id: 'm9', label: '七海霸主', target: 100_000_000, gold: 8_000_000, boost: 50, icon: 'horn' },
 ]
 
 /** 贸易成就：按到达城市数 / 买过商品数 / 卖过商品数 / 交易过商品数（买卖并集）解锁 */
 export interface AchievementDef {
   id: string
   label: string
-  icon: string
+  icon: GlyphName
   desc: string
   target: number
   kind: 'visited' | 'bought' | 'sold' | 'traded'
@@ -675,30 +835,30 @@ export interface AchievementDef {
 
 export const ACHIEVEMENTS: AchievementDef[] = [
   // ── 足迹 ──
-  { id: 'av1', icon: '🧭', label: '初次远航', desc: '到达 2 座城市', target: 2, kind: 'visited' },
-  { id: 'av2', icon: '🗺️', label: '见识渐广', desc: '到达 6 座城市', target: 6, kind: 'visited' },
-  { id: 'av3', icon: '🌏', label: '环游四海', desc: '到达 12 座城市', target: 12, kind: 'visited' },
-  { id: 'av4', icon: '🌐', label: '世界尽头', desc: '到达 18 座城市', target: 18, kind: 'visited' },
-  { id: 'av5', icon: '🌍', label: '全球通', desc: '到达全部 21 座城市', target: 21, kind: 'visited' },
+  { id: 'av1', icon: 'compass', label: '初次远航', desc: '到达 2 座城市', target: 2, kind: 'visited' },
+  { id: 'av2', icon: 'map', label: '见识渐广', desc: '到达 6 座城市', target: 6, kind: 'visited' },
+  { id: 'av3', icon: 'globe', label: '环游四海', desc: '到达 12 座城市', target: 12, kind: 'visited' },
+  { id: 'av4', icon: 'orbit', label: '世界尽头', desc: '到达 18 座城市', target: 18, kind: 'visited' },
+  { id: 'av5', icon: 'globe', label: '全球通', desc: '到达全部 23 座城市', target: 23, kind: 'visited' },
   // ── 采购 ──
-  { id: 'ab1', icon: '📥', label: '尝鲜买家', desc: '买过 5 种商品', target: 5, kind: 'bought' },
-  { id: 'ab2', icon: '🛒', label: '收购达人', desc: '买过 12 种商品', target: 12, kind: 'bought' },
-  { id: 'ab3', icon: '📦', label: '万货通', desc: '买过 20 种商品', target: 20, kind: 'bought' },
-  { id: 'ab4', icon: '💎', label: '全品收购家', desc: `买过全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'bought' },
+  { id: 'ab1', icon: 'loadIn', label: '尝鲜买家', desc: '买过 5 种商品', target: 5, kind: 'bought' },
+  { id: 'ab2', icon: 'cart', label: '收购达人', desc: '买过 12 种商品', target: 12, kind: 'bought' },
+  { id: 'ab3', icon: 'box', label: '万货通', desc: '买过 20 种商品', target: 20, kind: 'bought' },
+  { id: 'ab4', icon: 'gem', label: '全品收购家', desc: `买过全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'bought' },
   // ── 出售 ──
-  { id: 'as1', icon: '💰', label: '第一桶金', desc: '卖出过 5 种商品', target: 5, kind: 'sold' },
-  { id: 'as2', icon: '🤝', label: '销售行家', desc: '卖出过 12 种商品', target: 12, kind: 'sold' },
-  { id: 'as3', icon: '📈', label: '大批发商', desc: '卖出过 20 种商品', target: 20, kind: 'sold' },
-  { id: 'as4', icon: '👑', label: '垄断商人', desc: `卖出过全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'sold' },
+  { id: 'as1', icon: 'purse', label: '第一桶金', desc: '卖出过 5 种商品', target: 5, kind: 'sold' },
+  { id: 'as2', icon: 'exchange', label: '销售行家', desc: '卖出过 12 种商品', target: 12, kind: 'sold' },
+  { id: 'as3', icon: 'trendUp', label: '大批发商', desc: '卖出过 20 种商品', target: 20, kind: 'sold' },
+  { id: 'as4', icon: 'crown', label: '垄断商人', desc: `卖出过全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'sold' },
   // ── 买过且卖过（并集）──
-  { id: 'at1', icon: '⚖️', label: '两头通吃', desc: '交易过（买或卖）10 种商品', target: 10, kind: 'traded' },
-  { id: 'at2', icon: '🔄', label: '全链路商人', desc: `交易过（买或卖）全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'traded' },
+  { id: 'at1', icon: 'scale', label: '两头通吃', desc: '交易过（买或卖）10 种商品', target: 10, kind: 'traded' },
+  { id: 'at2', icon: 'swap', label: '全链路商人', desc: `交易过（买或卖）全部 ${GOODS.length} 种商品`, target: GOODS.length, kind: 'traded' },
 ]
 
 /** 传奇功勋：通关（大航海王）之后的长线目标，全部基于已持久化的计数器，老存档自动结算 */
 export interface LegendDef {
   id: string
-  icon: string
+  icon: GlyphName
   label: string
   desc: string
   kind: 'assets' | 'trades' | 'profit' | 'distance' | 'best' | 'ships' | 'crew' | 'cities' | 'atlas' | 'events'
@@ -708,16 +868,16 @@ export interface LegendDef {
 }
 
 export const LEGENDS: LegendDef[] = [
-  { id: 'lg-cities', icon: '🌐', label: '万国来朝', desc: `到访全部 ${CITIES.length} 座城市`, kind: 'cities', target: CITIES.length, gold: 80_000, boost: 4 },
-  { id: 'lg-atlas', icon: '📖', label: '万货图鉴', desc: `买卖过全部 ${GOODS.length} 种商品`, kind: 'atlas', target: GOODS.length, gold: 80_000, boost: 4 },
-  { id: 'lg-fleet', icon: '🛳️', label: '船队大亨', desc: `集齐全部 5 艘常规船（传奇宝船除外）`, kind: 'ships', target: 5, gold: 100_000, boost: 5 },
-  { id: 'lg-crew', icon: '🍺', label: '众星云集', desc: `招募全部 ${CREW.length} 位船员`, kind: 'crew', target: CREW.length, gold: 120_000, boost: 5 },
-  { id: 'lg-best', icon: '🏅', label: '世纪豪赌', desc: '单笔利润达到 10 万金', kind: 'best', target: 100_000, gold: 120_000, boost: 5 },
-  { id: 'lg-trades', icon: '🔁', label: '商路不息', desc: '完成 500 笔交易', kind: 'trades', target: 500, gold: 150_000, boost: 6 },
-  { id: 'lg-distance', icon: '🧭', label: '海上生涯', desc: '累计航行 10 万海里', kind: 'distance', target: 100_000, gold: 150_000, boost: 6 },
-  { id: 'lg-profit', icon: '📈', label: '日进斗金', desc: '累计利润 200 万金', kind: 'profit', target: 2_000_000, gold: 200_000, boost: 8 },
-  { id: 'lg-events', icon: '🌊', label: '命运弄人', desc: '经历 100 次海上事件', kind: 'events', target: 100, gold: 60_000, boost: 3 },
-  { id: 'lg-wealth', icon: '👑', label: '富可敌国', desc: '总资产达到 500 万金', kind: 'assets', target: 5_000_000, gold: 300_000, boost: 10 },
+  { id: 'lg-cities', icon: 'orbit', label: '万国来朝', desc: `到访全部 ${CITIES.length} 座城市`, kind: 'cities', target: CITIES.length, gold: 80_000, boost: 4 },
+  { id: 'lg-atlas', icon: 'book', label: '万货图鉴', desc: `买卖过全部 ${GOODS.length} 种商品`, kind: 'atlas', target: GOODS.length, gold: 80_000, boost: 4 },
+  { id: 'lg-fleet', icon: 'shipRoyal', label: '船队大亨', desc: `集齐全部 5 艘常规船（传奇宝船除外）`, kind: 'ships', target: 5, gold: 100_000, boost: 5 },
+  { id: 'lg-crew', icon: 'beer', label: '众星云集', desc: `招募全部 ${CREW.length} 位船员`, kind: 'crew', target: CREW.length, gold: 120_000, boost: 5 },
+  { id: 'lg-best', icon: 'medal', label: '世纪豪赌', desc: '单笔利润达到 10 万金', kind: 'best', target: 100_000, gold: 120_000, boost: 5 },
+  { id: 'lg-trades', icon: 'swap', label: '商路不息', desc: '完成 500 笔交易', kind: 'trades', target: 500, gold: 150_000, boost: 6 },
+  { id: 'lg-distance', icon: 'compass', label: '海上生涯', desc: '累计航行 10 万海里', kind: 'distance', target: 100_000, gold: 150_000, boost: 6 },
+  { id: 'lg-profit', icon: 'trendUp', label: '日进斗金', desc: '累计利润 200 万金', kind: 'profit', target: 2_000_000, gold: 200_000, boost: 8 },
+  { id: 'lg-events', icon: 'wave', label: '命运弄人', desc: '经历 100 次海上事件', kind: 'events', target: 100, gold: 60_000, boost: 3 },
+  { id: 'lg-wealth', icon: 'crown', label: '富可敌国', desc: '总资产达到 500 万金', kind: 'assets', target: 5_000_000, gold: 300_000, boost: 10 },
 ]
 
 /** 集齐全部传奇功勋后的终极称号 */
@@ -745,7 +905,7 @@ export const SEASON_LEN = 300
 export interface SeasonDef {
   id: string
   name: string
-  icon: string
+  icon: GlyphName
   /** 面向玩家的效果说明 */
   desc: string
   /** 该季风覆盖的海域：驶入这些港口航速 +20% */
@@ -756,25 +916,25 @@ export interface SeasonDef {
 
 export const SEASONS: SeasonDef[] = [
   {
-    id: 'spring', name: '春季 · 东信风', icon: '🌸',
+    id: 'spring', name: '春季 · 东信风', icon: 'flower',
     desc: '东亚航线提速 20%，茶丝纸漆需求看涨',
     windCities: ['china', 'japan', 'malacca', 'java', 'borneo'],
     boostGoods: ['tea', 'silk', 'porcelain', 'nest', 'paper', 'lacquer'],
   },
   {
-    id: 'summer', name: '夏季 · 西南季风', icon: '☀️',
+    id: 'summer', name: '夏季 · 西南季风', icon: 'sun',
     desc: '印度洋航线提速 20%，香料染料需求看涨',
     windCities: ['india', 'srilanka', 'arabia', 'oman', 'persia', 'madagascar'],
     boostGoods: ['spice', 'clove', 'coffee', 'pearl', 'frankincense', 'indigo', 'cinnamon'],
   },
   {
-    id: 'autumn', name: '秋季 · 西风带', icon: '🍂',
+    id: 'autumn', name: '秋季 · 西风带', icon: 'leaf',
     desc: '欧洲航线提速 20%，美食珍馐需求看涨',
     windCities: ['norway', 'england', 'france', 'netherlands', 'spain', 'egypt'],
     boostGoods: ['wine', 'wool', 'whisky', 'perfume', 'watch', 'cheese', 'truffle', 'caviar'],
   },
   {
-    id: 'winter', name: '冬季 · 东北季风', icon: '❄️',
+    id: 'winter', name: '冬季 · 东北季风', icon: 'snow',
     desc: '新大陆航线提速 20%，矿产皮货需求看涨',
     windCities: ['africa', 'aztec', 'inca', 'panama'],
     boostGoods: ['gold', 'silver', 'gem', 'cacao', 'fur', 'tobacco', 'diamond', 'alpaca', 'leather'],
@@ -806,11 +966,6 @@ export function repTierName(rep: number): string {
   let name = REP_TIERS[0].name
   for (const t of REP_TIERS) if (rep >= t.min) name = t.name
   return name
-}
-
-/** 声望换算的价格优惠百分比（买入折扣 / 卖出加成，上限 15%） */
-export function repBonusPct(rep: number): number {
-  return Math.min(15, Math.floor(rep / 5))
 }
 
 // ── 船员委托（v1.1.0）─────────────────────────────────────────────────────────
@@ -855,7 +1010,7 @@ export const CREW_QUESTS: CrewQuestDef[] = [
   // 辛巴达（阿拉伯 · 航海家）
   { id: 'q_sinbad_1', crewId: 'c_sinbad', stage: 1, title: '第七次远航', desc: '把船开到印度，那是辛巴达故事开始的地方', cond: { kind: 'visit', cityId: 'india' }, gold: 8_000, boost: 1 },
   { id: 'q_sinbad_2', crewId: 'c_sinbad', stage: 2, title: '风暴前方', desc: '完成 100 笔交易，老船长教你看云识风', cond: { kind: 'trades', target: 100 }, gold: 25_000, boost: 2 },
-  { id: 'q_sinbad_3', crewId: 'c_sinbad', stage: 3, title: '七海传说', desc: '到访全部 21 座城市，走完辛巴达没走完的路', cond: { kind: 'cities', target: 21 }, gold: 80_000, boost: 6 },
+  { id: 'q_sinbad_3', crewId: 'c_sinbad', stage: 3, title: '七海传说', desc: '到访全部 23 座城市，走完辛巴达没走完的路', cond: { kind: 'cities', target: 23 }, gold: 80_000, boost: 6 },
   // 郑和（马六甲 · 大航海家）
   { id: 'q_zhenghe_1', crewId: 'c_zhenghe', stage: 1, title: '宝船队的遗产', desc: '购入大型商船，重现宝船的气势', cond: { kind: 'ship', shipId: 'galleon' }, gold: 30_000, boost: 3 },
   { id: 'q_zhenghe_2', crewId: 'c_zhenghe', stage: 2, title: '满剌加的旧盟', desc: '在马六甲攒下「港口常客」的名声（声望 40）', cond: { kind: 'rep', cityId: 'malacca', target: 40 }, gold: 50_000, boost: 4 },
@@ -915,20 +1070,33 @@ export const CREW_QUESTS: CrewQuestDef[] = [
 
 export interface VoyageEventDef {
   id: string
-  icon: string
+  icon: GlyphName
   title: string
   kind: 'good' | 'bad'
+  desc: string
 }
 
 export const VOYAGE_EVENTS: VoyageEventDef[] = [
-  { id: 'pirate', icon: '🏴‍☠️', title: '遭遇海盗船', kind: 'bad' },
-  { id: 'storm', icon: '⛈️', title: '暴风雨来袭', kind: 'bad' },
-  { id: 'quarantine', icon: '🚩', title: '港口检疫排队', kind: 'bad' },
-  { id: 'wind', icon: '💨', title: '顺风顺水', kind: 'good' },
-  { id: 'bottle', icon: '🍾', title: '捞起漂流瓶', kind: 'good' },
-  { id: 'dolphin', icon: '🐬', title: '海豚引航', kind: 'good' },
-  { id: 'cargo', icon: '📦', title: '海上漂货', kind: 'good' },
-  { id: 'deal', icon: '🤝', title: '港口商机', kind: 'good' },
+  { id: 'pirate', icon: 'pirate', title: '遭遇海盗船', kind: 'bad', desc: '海平线窜出黑帆拦住去路。有舰炮组可迎战缴获战利品，破财消灾用金币换平安，硬拼则全看运气。' },
+  { id: 'storm', icon: 'storm', title: '暴风雨来袭', kind: 'bad', desc: '巨浪拍船、航程延误。备好修理木料可自动加固船体，延误减半。' },
+  { id: 'quarantine', icon: 'flag', title: '港口检疫排队', kind: 'bad', desc: '目的港突发检疫，进港延迟数秒。持有通商特许状可免排队直接靠岸。' },
+  { id: 'reef', icon: 'barrier', title: '暗礁搁浅', kind: 'bad', desc: '船底擦上暗礁偏离航线、绕行延误。备有修理木料可快速补舱，把延误压到最小。' },
+  { id: 'mutiny', icon: 'skull', title: '船员哗变', kind: 'bad', desc: '风浪久航、补给见底，船员鼓噪生事，被勒索一笔现金才肯平息。' },
+  { id: 'fog', icon: 'compass', title: '浓雾迷航', kind: 'bad', desc: '海雾锁路、星罗难辨，只能减速绕行，航程平白多耗数秒。' },
+  { id: 'fire', icon: 'flame', title: '船舱失火', kind: 'bad', desc: '舱内走水，随机烧毁一批货物。修理木料可即时扑灭，免遭损失。' },
+  { id: 'doldrums', icon: 'anchor', title: '无风带滞留', kind: 'bad', desc: '闯进赤道无风带，帆布垂落、寸步难行，航程被大幅拉长。' },
+  { id: 'whirl', icon: 'wave', title: '漩涡暗流', kind: 'bad', desc: '被海底暗流卷离航线，被迫绕行，白白多耗一段航程。' },
+  { id: 'wind', icon: 'wind', title: '顺风顺水', kind: 'good', desc: '一路好风相送，航程大幅缩短，等于白捡一段路程。' },
+  { id: 'bottle', icon: 'bottle', title: '捞起漂流瓶', kind: 'good', desc: '海面漂来旧瓶：藏宝图未集齐时可能捡到碎片，否则兑出几枚旧金币。' },
+  { id: 'dolphin', icon: 'dolphin', title: '海豚引航', kind: 'good', desc: '一群海豚跃出船首领航，讨个好彩头，获加速卡 ×1。' },
+  { id: 'cargo', icon: 'box', title: '海上漂货', kind: 'good', desc: '捞起随浪漂浮的货物补进货舱，畅销货也能白捡；货舱已满则无缘。' },
+  { id: 'deal', icon: 'exchange', title: '港口商机', kind: 'good', desc: '顺路做成一笔小生意，落袋一笔金币，稳稳的额外进账。' },
+  { id: 'merchant', icon: 'ship', title: '偶遇商船', kind: 'good', desc: '途中邂逅同航商船，顺手倒卖一批货，落袋一笔金币。' },
+  { id: 'festival', icon: 'cheers', title: '海上节庆', kind: 'good', desc: '两地船队海上相逢、举杯同庆，领到赏金还获加速卡 ×1。' },
+  { id: 'whale', icon: 'crystal', title: '巨鲸护航', kind: 'good', desc: '一头巨鲸贴着船舷引路，顺水推舟，航程明显缩短。' },
+  { id: 'spring', icon: 'beer', title: '甘泉补给', kind: 'good', desc: '泊近小岛补足淡水给养，士气大振，获加速卡 ×1。' },
+  { id: 'wreck', icon: 'gem', title: '海难遗财', kind: 'good', desc: '捞起沉船散落的财宝箱，白得一笔不小的金币。' },
+  { id: 'current', icon: 'bolt', title: '幸运洋流', kind: 'good', desc: '恰好搭上强劲洋流，顺流而下，航程被大幅缩短。' },
 ]
 
 /** 市场刷新周期（秒） */

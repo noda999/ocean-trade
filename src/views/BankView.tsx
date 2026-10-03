@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { creditLimit } from '../game/state'
 import { useGame } from '../game/store'
+import { Glyph } from '../components/Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 港口银行（v1.4.0）：信用额度随借随还，债务每市场周期计息 0.15%
@@ -25,7 +26,7 @@ export default function BankView() {
         className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
         onClick={() => setExpanded(e => !e)}
       >
-        <span className="text-sm">🏦</span>
+        <Glyph name="bank" size={16} color="#a07030" />
         <span className="text-xs font-800" style={{ color: '#3d2b10' }}>港口银行</span>
         <span
           className="px-1.5 py-0.5 rounded-md font-800 text-[10px]"

@@ -2,7 +2,8 @@
 //  各城市标志性建筑（纯 SVG 手绘，统一画风）
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
+import { ICON_VER } from './iconVer'
 
 interface Props {
   size?: number
@@ -802,6 +803,96 @@ export function LandmarkPanama({ size = 96 }: Props) {
   )
 }
 
+/** 🇹🇭 暹罗 · 金顶佛塔（素可泰式玉米塔 + 翘角山墙主殿 + 水上小舟） */
+export function LandmarkSiam({ size = 96 }: Props) {
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow rx={34} />
+      {/* 台基 */}
+      <rect x="8" y="90" width="80" height="8" rx="3" fill="#d9c8a4" />
+      <rect x="12" y="86" width="72" height="5" rx="2.5" fill="#eddfbe" />
+      {/* 中央大金塔（层叠收分的玉米状主塔） */}
+      <path d="M48 16 L53 26 L51 30 L55 36 L52 40 L57 47 L53 51 L59 60 L37 60 L43 51 L39 47 L44 40 L41 36 L45 30 L43 26 Z" fill="#f0c04a" />
+      <path d="M48 16 L53 26 L51 30 L55 36 L52 40 L57 47 L53 51 L59 60 L48 60 Z" fill="#e0a832" opacity="0.55" />
+      <path d="M44 34 Q48 30 52 34" stroke="#fff5cc" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.8" />
+      {/* 塔尖宝珠 */}
+      <rect x="47" y="8" width="2" height="7" rx="1" fill="#e3b566" />
+      <circle cx="48" cy="6" r="2.6" fill="#f5c830" />
+      <circle cx="48" cy="6" r="1" fill="#fff6cc" />
+      {/* 两侧白色小塔（锡兰式 chedi + 金尖） */}
+      {[16, 80].map((x, i) => (
+        <g key={i}>
+          <path d={`M${x - 7} 86 Q${x - 9} 68 ${x} 60 Q${x + 9} 68 ${x + 7} 86 Z`} fill="#fbf3e2" />
+          <path d={`M${x} 60 Q${x + 5} 66 ${x + 4} 74 L${x} 74 Z`} fill="#e8dcc0" opacity="0.7" />
+          <rect x={x - 1.2} y="52" width="2.4" height="9" rx="1.2" fill="#e3b566" />
+          <circle cx={x} cy="50" r="2.2" fill="#f5c830" />
+        </g>
+      ))}
+      {/* 主殿山墙（金色描边） */}
+      <path d="M28 66 L48 50 L68 66 Z" fill="#e8933a" />
+      <path d="M28 66 L48 52 L68 66" stroke="#c9721f" strokeWidth="1.5" fill="none" />
+      {/* 主殿墙身 */}
+      <rect x="32" y="66" width="32" height="20" rx="2" fill="#fbf3e2" />
+      <path d="M44 86 L44 76 Q48 72 52 76 L52 86 Z" fill="#8d6a4a" opacity="0.85" />
+      <path d="M35 86 L35 78 Q37.5 75 40 78 L40 86 Z" fill="#b99a72" opacity="0.75" />
+      <path d="M56 86 L56 78 Q58.5 75 61 78 L61 86 Z" fill="#b99a72" opacity="0.75" />
+      {/* 门楣金饰 */}
+      <rect x="42" y="72" width="12" height="2" rx="1" fill="#e3b566" />
+      {/* 水面与水上市场小舟 */}
+      <path d="M0 94 Q24 91 48 94 Q72 97 96 94 L96 104 L0 104 Z" fill="#5fc0e0" opacity="0.55" />
+      <path d="M22 97 L34 97 L32 101 L24 101 Z" fill="#c8622a" />
+      <rect x="27" y="92" width="1.6" height="6" fill="#7a5530" />
+      <ellipse cx="30" cy="90" rx="3.4" ry="2.4" fill="#e8933a" />
+    </svg>
+  )
+}
+
+/** 🇮🇹 意大利 · 罗马斗兽场（三层拱券 + 残破顶檐 + 地中海柏） */
+export function LandmarkItaly({ size = 96 }: Props) {
+  const rows = [
+    { top: 52, bottom: 63 },
+    { top: 63, bottom: 74 },
+    { top: 74, bottom: 87 },
+  ]
+  return (
+    <svg width={size} height={size * 1.08} viewBox="0 0 96 104" fill="none">
+      <Shadow rx={38} />
+      {/* 暖阳 */}
+      <circle cx="80" cy="16" r="7" fill="#f5c830" opacity="0.9" />
+      {/* 地面 */}
+      <path d="M0 90 Q24 87 48 90 Q72 93 96 90 L96 104 L0 104 Z" fill="#c9b48c" />
+      {/* 主体（环廊外墙） */}
+      <path d="M10 88 L12 52 Q48 40 84 52 L86 88 Z" fill="#e8d8b0" />
+      <path d="M12 52 Q48 40 84 52" stroke="#d4c49a" strokeWidth="2.5" fill="none" />
+      {/* 三层拱券 */}
+      {rows.map((r, ri) => (
+        <g key={ri}>
+          {[15, 26, 37, 48, 59, 70].map((x, i) => (
+            <path
+              key={i}
+              d={`M${x} ${r.bottom} L${x} ${r.top + 5} Q${x + 3.5} ${r.top} ${x + 7} ${r.top + 5} L${x + 7} ${r.bottom} Z`}
+              fill="#a08a5c"
+              opacity={0.9 - ri * 0.18}
+            />
+          ))}
+        </g>
+      ))}
+      {/* 残破的顶檐（遗迹感） */}
+      {[[11, 51], [21, 47], [33, 45], [48, 44], [63, 45], [75, 47], [83, 51]].map(([x, y], i) => (
+        <rect key={i} x={x} y={y} width="7" height="4.5" rx="1.2" fill="#ded0aa" />
+      ))}
+      {/* 地中海柏 */}
+      {[6, 90].map((x, i) => (
+        <g key={i}>
+          <ellipse cx={x} cy={70} rx="3.2" ry={i === 0 ? 16 : 13} fill="#3a6a3a" />
+          <ellipse cx={x + (i === 0 ? 1 : -1)} cy={66} rx="1.6" ry="9" fill="#4a7a44" opacity="0.7" />
+          <rect x={x - 1} y="84" width="2" height="6" fill="#5a4028" />
+        </g>
+      ))}
+    </svg>
+  )
+}
+
 export const LANDMARKS: Record<string, (p: Props) => ReactElement> = {
   china: LandmarkChina,
   india: LandmarkIndia,
@@ -825,6 +916,9 @@ export const LANDMARKS: Record<string, (p: Props) => ReactElement> = {
   borneo: LandmarkBorneo,
   madagascar: LandmarkMadagascar,
   panama: LandmarkPanama,
+  // v1.5.0 新增 2 港地标
+  siam: LandmarkSiam,
+  italy: LandmarkItaly,
 }
 
 /** 🪙→🔶 黄金货物图标：纯 SVG 金条（区别于 🪙 硬币） */
@@ -843,7 +937,36 @@ export function GoldBar({ size = 18 }: Props) {
   )
 }
 
-export function CityLandmark({ id, size = 96 }: { id: string; size?: number }) {
+export function CityLandmark({ id, size = 96, crop, forceSvg }: { id: string; size?: number; crop?: number; forceSvg?: boolean }) {
+  const [failed, setFailed] = useState(false)
+  // forceSvg：跳过位图，直接用内置手绘 SVG 地标（平面地图用：满画布、无裁剪、风格统一）
+  if (!failed && !forceSvg) {
+    const h = Math.round(size * (crop ?? 1.08))
+    return (
+      <img
+        src={`./icons/${id}.png?v=${ICON_VER}`}
+        width={size}
+        height={h}
+        alt=""
+        draggable={false}
+        style={{
+          display: 'block',
+          // 显式内联宽高 + maxWidth:none：
+          // Tailwind preflight 的 `img { max-width: 100% }` 会把绝对定位链上
+          // （.city-hit 宽高为 0 → .city-lm → img）的图片钳制成 ~0 宽，
+          // 导致地标只剩几个像素大；同时 height:auto 会破坏 crop 裁剪比例。
+          width: size,
+          height: h,
+          maxWidth: 'none',
+          // crop 模式：等比放大铺满宽度并裁掉上部天空（源图是带大片天空的场景插画，
+          // 建筑集中在下半部），底部对齐保证建筑落地线仍贴着城市锚点
+          objectFit: crop ? 'cover' : 'contain',
+          objectPosition: crop ? '50% 100%' : undefined,
+        }}
+        onError={() => setFailed(true)}
+      />
+    )
+  }
   const L = LANDMARKS[id]
   if (!L) return null
   return <L size={size} />

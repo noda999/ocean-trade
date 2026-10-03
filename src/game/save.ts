@@ -9,7 +9,7 @@
 
 import { CITIES, CITY_BY_ID, EQUIP_BY_ID, GOOD_BY_ID, INVEST_LEVELS, MAP_FRAGS_NEED, ORDER_ACTIVE_MAX, ORDER_BOARD_MAX, PIRATE_BY_ID, REP_MAX, SHIPS, SUPPLY_BY_ID } from './data'
 import { ensureMarkets, type CityEvent } from './engine'
-import { initialState, type Bounty, type GameState, type TradeOrder } from './state'
+import { initialState, type Bounty, type GameState, type SellRecord, type TradeOrder, type Voyage } from './state'
 
 const SAVE_KEY = 'ocean-trade-save-v1'
 const SAVE_VERSION = 1
@@ -85,7 +85,7 @@ function sanitize(raw: any): GameState | null {
         const kind = e.kind
         const rawGood = typeof e.goodId === 'string' ? e.goodId : ''
         const until = e.until
-        if ((kind !== 'boom' && kind !== 'shortage' && kind !== 'blockade')) continue
+        if ((kind !== 'boom' && kind !== 'shortage' && kind !== 'blockade' && kind !== 'festival')) continue
         // 封锁没有目标商品：强制清空，防止非法 goodId 在界面上被索引
         if (kind === 'blockade') {
           if (typeof until !== 'number' || !Number.isFinite(until) || until <= 0) continue
@@ -156,6 +156,35 @@ function sanitize(raw: any): GameState | null {
   let mapFrags = Math.max(0, Math.min(MAP_FRAGS_NEED, Math.round(Number(raw.mapFrags) || 0)))
   if (mapFrags >= MAP_FRAGS_NEED && !digCity) mapFrags = 0
 
+  /** 有限数字兜底：脏档里数字变成字符串会导致后续 TICK 做字符串拼接 → 全图 NaN 或航行软锁 */
+  const num = (v: unknown, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v : d)
+  /** 航行状态校验：结构非法（或 elapsed/duration 非数字）一律当无航行，避免永久卡死 */
+  /** 卖出流水（v1.5.1）：逐项校验，坏数据直接丢弃（不影响其余字段） */
+  const sellLogOf = (v: unknown): SellRecord[] => {
+    if (!Array.isArray(v)) return []
+    const out: SellRecord[] = []
+    for (const x of v.slice(0, 120)) {
+      if (!x || typeof x !== 'object') continue
+      const r = x as Record<string, unknown>
+      if (typeof r.id !== 'number' || !CITY_BY_ID[r.cityId] || !GOOD_BY_ID[r.goodId]) continue
+      const qty = Number(r.qty)
+      const unit = Number(r.unit)
+      const revenue = Number(r.revenue)
+      const profit = Number(r.profit)
+      if (![qty, unit, revenue, profit].every(Number.isFinite)) continue
+      out.push({ id: r.id, t: Number(r.t) || 0, cityId: r.cityId, goodId: r.goodId, qty, unit, revenue, profit })
+    }
+    return out
+  }
+  const voyageOf = (v: unknown): Voyage | null => {
+    if (!v || typeof v !== 'object') return null
+    const x = v as Record<string, unknown>
+    if (typeof x.from !== 'string' || !CITY_BY_ID[x.from]) return null
+    if (typeof x.to !== 'string' || !CITY_BY_ID[x.to]) return null
+    const duration = num(x.duration)
+    if (duration <= 0) return null
+    return { from: x.from, to: x.to, elapsed: Math.min(num(x.elapsed), duration), duration }
+  }
   return {
     ...base,
     ...raw,
@@ -164,6 +193,7 @@ function sanitize(raw: any): GameState | null {
     hiredCrew: strList(raw.hiredCrew),
     goodsBought: strList(raw.goodsBought),
     goodsSold: strList(raw.goodsSold),
+    sellLog: sellLogOf(raw.sellLog),
     claimed: strList(raw.claimed),
     legendsClaimed: strList(raw.legendsClaimed),
     legendsSeen: strList(raw.legendsSeen),
@@ -184,9 +214,28 @@ function sanitize(raw: any): GameState | null {
     digCity: mapFrags >= MAP_FRAGS_NEED ? digCity : null,
     markets: ensureMarkets(raw.markets),
     visited: strList(raw.visited).length ? strList(raw.visited) : [raw.cityId],
-    stats: { ...base.stats, ...(raw.stats ?? {}) },
+    stats: (() => {
+      const out = { ...base.stats }
+      const r = raw.stats
+      if (r && typeof r === 'object') {
+        for (const k of Object.keys(out) as (keyof typeof out)[]) {
+          const val = (r as Record<string, unknown>)[k]
+          if (typeof val === 'number' && Number.isFinite(val)) out[k] = val
+        }
+      }
+      return out
+    })(),
     toasts: [],
     log: Array.isArray(raw.log) ? raw.log.slice(0, 40) : base.log,
+    clock: num(raw.clock, base.clock),
+    boost: num(raw.boost, base.boost),
+    seq: num(raw.seq, base.seq),
+    marketTimer: num(raw.marketTimer, base.marketTimer),
+    spiceTimer: num(raw.spiceTimer, base.spiceTimer),
+    eventTimer: num(raw.eventTimer, base.eventTimer),
+    newsTimer: num(raw.newsTimer, base.newsTimer),
+    orderTimer: num(raw.orderTimer, base.orderTimer),
+    voyage: voyageOf(raw.voyage),
   }
 }
 

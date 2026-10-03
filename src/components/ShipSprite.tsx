@@ -1,6 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  商船 SVG（集装箱货轮画风，可换配色 / 朝向 / 高亮）
+//  商船（默认用 AI 全彩位图 public/icons/<icon>.png；缺图时回落到内置 SVG）
+//  可换配色 / 朝向 / 高亮
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { useState } from 'react'
+import { ICON_VER } from './iconVer'
+import { UI_SPRITE, UI_SPRITE_COLS, UI_SPRITE_ROWS } from './uiSprite'
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -27,10 +32,73 @@ interface Props {
   flip?: boolean
   /** 船体倾斜角度（度） */
   tilt?: number
+  /** 位图名（对应 public/icons/<icon>.png，通常是 ship.icon）；不传或加载失败则画 SVG */
+  icon?: string
 }
 
-export function ShipSprite({ color, size = 46, highlight = false, flip = false, tilt = 0 }: Props) {
+export function ShipSprite({ color, size = 46, highlight = false, flip = false, tilt = 0, icon }: Props) {
   const h = size * 0.68
+  const [failed, setFailed] = useState(false)
+
+  // 优先使用 AI 全彩位图，保留金色高亮环与翻转 / 倾斜
+  if (icon && !failed) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          display: 'inline-block',
+          width: size,
+          height: h,
+          transform: `scaleX(${flip ? -1 : 1}) rotate(${tilt}deg)`,
+          transition: 'transform .4s ease',
+          overflow: 'visible',
+          isolation: 'isolate',
+        }}
+      >
+        {highlight && (
+          <span
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '84%',
+              width: size * 0.92,
+              height: size * 0.26,
+              transform: 'translate(-50%, -50%)',
+              background: '#f5c830',
+              opacity: 0.28,
+              borderRadius: '50%',
+              filter: 'blur(2px)',
+            }}
+          />
+        )}
+        {UI_SPRITE[icon] ? (
+          // 精灵图格：取格窗口竖直居中（船图在 128px 方格中水平铺满、垂直居中）
+          <span
+            style={{
+              display: 'block',
+              width: size,
+              height: h,
+              backgroundImage: `url(./icons/ui-sprite.png?v=${ICON_VER})`,
+              backgroundSize: `${UI_SPRITE_COLS * size}px ${UI_SPRITE_ROWS * size}px`,
+              backgroundPosition: `-${UI_SPRITE[icon][0] * size}px -${UI_SPRITE[icon][1] * size + (size - h) / 2}px`,
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+        ) : (
+          <img
+            src={`./icons/${icon}.png?v=${ICON_VER}`}
+            width={size}
+            height={h}
+            alt=""
+            draggable={false}
+            style={{ display: 'block', objectFit: 'contain' }}
+            onError={() => setFailed(true)}
+          />
+        )}
+      </div>
+    )
+  }
+
   const dark = shade(color, -0.34)
   const mid = shade(color, -0.14)
   const light = shade(color, 0.34)

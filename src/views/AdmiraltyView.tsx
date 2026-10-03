@@ -1,6 +1,7 @@
 import { CITY_BY_ID, MAP_FRAGS_NEED, PIRATE_BY_ID } from '../game/data'
 import { raidPower, raidWinRate } from '../game/state'
 import { useGame } from '../game/store'
+import { Glyph } from '../components/Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 海事署（v1.4.0）：通缉悬赏（出击海盗巢穴）+ 深海秘藏（藏宝图挖掘）
@@ -31,7 +32,9 @@ export default function AdmiraltyView() {
     <>
       {/* ── 通缉悬赏 ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="font-800 text-sm" style={{ color: '#3d2b10' }}>🏴‍☠️ 通缉悬赏</span>
+        <span className="font-800 text-sm inline-flex items-center gap-1.5" style={{ color: '#3d2b10' }}>
+          <Glyph name="pirate" size={18} />通缉悬赏
+        </span>
         <span className="text-xs ml-auto" style={{ color: '#a07030' }}>累计大捷 {state.stats.raidsWon ?? 0} 次</span>
       </div>
       <div className="panel-white p-3 mb-4" style={{ borderRadius: 14 }}>
@@ -42,8 +45,8 @@ export default function AdmiraltyView() {
         ) : (
           <>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: '#fdeaea' }}>
-                {pirate.icon}
+              <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: '#fdeaea' }}>
+                <Glyph name={pirate.icon} size={34} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>
@@ -70,7 +73,9 @@ export default function AdmiraltyView() {
               style={{ opacity: canRaid ? 1 : 0.5 }}
               onClick={() => dispatch({ type: 'RAID' })}
             >
-              ⚔️ 出击巢穴（消耗舰炮组 ×1 · 失利损失 8% 现金）
+              <span className="inline-flex items-center gap-1.5 justify-center">
+                <Glyph name="swords" size={16} />出击巢穴（消耗舰炮组 ×1 · 失利损失 8% 现金）
+              </span>
             </button>
             {!canRaid && (
               <div className="text-[10px] mt-1.5 text-center" style={{ color: '#c05050' }}>
@@ -83,7 +88,9 @@ export default function AdmiraltyView() {
 
       {/* ── 深海秘藏 ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="font-800 text-sm" style={{ color: '#3d2b10' }}>🗺️ 深海秘藏</span>
+        <span className="font-800 text-sm inline-flex items-center gap-1.5" style={{ color: '#3d2b10' }}>
+          <Glyph name="map" size={15} />深海秘藏
+        </span>
         <span className="text-xs ml-auto" style={{ color: '#a07030' }}>已挖出 {state.stats.treasures ?? 0} 处宝藏</span>
       </div>
       <div className="panel-white p-3" style={{ borderRadius: 14 }}>
@@ -94,7 +101,7 @@ export default function AdmiraltyView() {
               className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-900"
               style={{ background: i < frags ? '#f5c87a' : '#f4eee1', color: i < frags ? '#7a4a10' : '#c9bda8' }}
             >
-              {i < frags ? '🗺' : '?'}
+              {i < frags ? <Glyph name="map" size={14} /> : '?'}
             </span>
           ))}
           <span className="text-xs ml-2 font-800" style={{ color: '#8a6a40' }}>{frags} / {MAP_FRAGS_NEED} 碎片</span>
@@ -111,7 +118,9 @@ export default function AdmiraltyView() {
               style={{ opacity: atTarget && !state.voyage ? 1 : 0.5 }}
               onClick={() => dispatch({ type: 'DIG_TREASURE' })}
             >
-              {atTarget ? '⛏️ 出海挖掘沉没神殿' : `航行至 ${CITY_BY_ID[digTarget]?.name}`}
+              {atTarget
+                ? <span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="pick" size={16} />出海挖掘沉没神殿</span>
+                : `航行至 ${CITY_BY_ID[digTarget]?.name}`}
             </button>
           </>
         ) : (
