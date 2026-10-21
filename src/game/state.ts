@@ -230,12 +230,6 @@ export type Action =
   | { type: 'CLOSE_VICTORY' }
   /** 调试面板专用：直接改写状态（仅 dev 生效，生产构建里整段被剔除） */
   | { type: 'DEBUG_PATCH'; patch: Partial<GameState>; stats?: Partial<GameState['stats']> }
-  /** 看广告奖励（TapTap 激励视频），amount 为发放金币数 */
-  | { type: 'AD_REWARD'; amount: number }
-  /** 看广告立即刷新全市场行情（跳过 marketTimer 等待） */
-  | { type: 'AD_REFRESH_MARKET' }
-  /** 看广告加速航行：剩余航程减半 */
-  | { type: 'AD_ACCEL_VOYAGE' }
 
 export function initialState(): GameState {
   return {
@@ -2117,37 +2111,6 @@ function coreReducer(state: GameState, action: Action): GameState {
       s.daily = { ...s.daily, goals: s.daily.goals.map(x => x.id === action.id ? { ...x, claimed: true } : x) }
       pushToast(s, 'gift', `每日目标完成：+${DAILY_REWARD_GOLD} 金，加速卡 ×${DAILY_REWARD_BOOST}`, 'good')
       pushLog(s, `完成每日目标「${g.label}」：+${DAILY_REWARD_GOLD} 金，加速卡 ×${DAILY_REWARD_BOOST}`, 'good')
-      return s
-    }
-
-    case 'AD_REWARD': {
-      const s: GameState = { ...state, toasts: [...state.toasts] }
-      s.money += action.amount
-      pushToast(s, 'coin', `看广告得奖励 +${action.amount} 金`, 'good')
-      pushLog(s, `看广告奖励 ${action.amount} 金`, 'good')
-      return s
-    }
-
-    case 'AD_REFRESH_MARKET': {
-      const s: GameState = {
-        ...state,
-        markets: evolveMarkets(state.markets),
-        marketTimer: MARKET_CYCLE,
-        toasts: [...state.toasts],
-      }
-      pushToast(s, 'gift', '看广告：市场行情已刷新', 'good')
-      pushLog(s, '看广告刷新市场行情', 'good')
-      return s
-    }
-
-    case 'AD_ACCEL_VOYAGE': {
-      const s: GameState = { ...state, toasts: [...state.toasts] }
-      if (!s.voyage) { pushToast(s, 'ban', '当前没有航行任务', 'bad'); return s }
-      const v = s.voyage
-      const remain = Math.max(0, v.duration - v.elapsed)
-      s.voyage = { ...v, elapsed: v.elapsed + remain * 0.5 }
-      pushToast(s, 'bolt', '看广告：剩余航程减半', 'good')
-      pushLog(s, '看广告加速航行（剩余航程减半）', 'good')
       return s
     }
 

@@ -49,7 +49,7 @@ export default function EstateView() {
       {/* 当前港宅邸 —— 左图右文：方形地区图 1:1 完整显示，不裁切构图 */}
       <div className="panel-white p-3 mb-4 flex items-center gap-3" style={{ borderRadius: 16, borderLeft: '4px solid #c9a24b' }}>
         <img
-          src={`/icons/${curId}.png`}
+          src={`./icons/${curId}.png`}
           alt={curDef.base}
           className="w-28 h-28 rounded-xl object-cover flex-shrink-0"
           style={{ border: '1px solid rgba(0,0,0,.06)' }}
@@ -101,7 +101,7 @@ export default function EstateView() {
               style={{ borderRadius: 14, opacity: lv > 0 || here ? 1 : 0.62, borderLeft: `4px solid ${here ? '#c9a24b' : '#e5d6b8'}` }}
             >
               <img
-                src={`/icons/${c.id}.png`}
+                src={`./icons/${c.id}.png`}
                 alt={def.base}
                 className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
                 style={{ border: '1px solid rgba(0,0,0,.06)' }}

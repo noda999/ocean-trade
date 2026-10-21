@@ -3,7 +3,6 @@ import { CREW_QUESTS, LEGENDS, MILESTONES, seasonOf } from './game/data'
 import { shipOf } from './game/engine'
 import { claimable, crewQuestClaimable, legendClaimable } from './game/state'
 import { GameProvider, useGame } from './game/store'
-import { adManager } from './game/ads'
 import MarketView from './views/MarketView'
 import CargoView from './views/CargoView'
 import DockView from './views/DockView'
@@ -21,9 +20,6 @@ import { Glyph, type GlyphName } from './components/Glyph'
 import { audio } from './game/audio'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
-
-/** 看一次激励视频广告奖励的金币数 */
-const AD_REWARD_MONEY = 200
 
 const NAV: { id: Tab; icon: GlyphName; label: string; emoji?: string }[] = [
   { id: 'map', icon: 'map', label: '地图' },
@@ -68,7 +64,6 @@ function TopBar({ onIntel, onSettings }: { onIntel: () => void; onSettings: () =
             <Glyph name="coin" size={16} color="#a07030" />
             <span className="font-900 text-xs" style={{ color: '#3d2b10' }}>{Math.floor(state.money).toLocaleString()}</span>
           </div>
-          <button className="top-icon-btn" onClick={() => { audio.sfx('click'); adManager.onReward(() => dispatch({ type: 'AD_REWARD', amount: AD_REWARD_MONEY })); adManager.showRewarded() }} title="看广告领金币" style={{ fontSize: 22, lineHeight: '24px' }}>🎁</button>
           <button className="top-icon-btn" onClick={() => { audio.sfx('click'); onIntel() }} title="情报网络"><Glyph name="spyglass" size={24} /></button>
           <button className="top-icon-btn" onClick={() => { audio.sfx('click'); onSettings() }} title="存档设置"><Glyph name="gear" size={24} /></button>
         </div>
@@ -210,11 +205,6 @@ function Game() {
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)
     }
-  }, [])
-
-  // 初始化 TapTap 广告（各场景的看完奖励回调由对应按钮在点击时绑定）
-  useEffect(() => {
-    adManager.init().catch(() => {})
   }, [])
 
   return (

@@ -3,7 +3,6 @@ import { CITY_BY_ID, GOOD_BY_ID, START_CITY } from '../game/data'
 import { cargoUnits, voyageSeconds } from '../game/engine'
 import { shipNow } from '../game/state'
 import { useGame } from '../game/store'
-import { adManager } from '../game/ads'
 import { CityLandmark } from '../components/Landmarks'
 import FlatWorld from './FlatWorld'
 import GlobeWorld from './GlobeWorld'
@@ -102,12 +101,6 @@ export default function MapView({ onOpenIntel }: { onOpenIntel: () => void }) {
                 <span className="text-xs" style={{ color: 'rgba(255,220,150,0.75)' }}>
                   载货 {hold}/{ship.cap}
                 </span>
-                <button
-                  className="speed-up-btn px-3 py-1 text-xs"
-                  onPointerDown={e => { e.stopPropagation(); adManager.onReward(() => dispatch({ type: 'AD_ACCEL_VOYAGE' })); adManager.showRewarded() }}
-                >
-                  <span className="inline-flex items-center gap-1">📺 看广告加速</span>
-                </button>
                 <button
                   className="speed-up-btn ml-auto px-3 py-1 text-xs"
                   onPointerDown={e => { e.stopPropagation(); dispatch({ type: 'USE_BOOST' }) }}
