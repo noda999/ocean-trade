@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { ACHIEVEMENTS, CITIES, CREW, CREW_QUESTS, GOODS, LEGENDS, LEGEND_TITLE, MILESTONES, VOYAGE_EVENTS } from '../game/data'
 import { nextTitle, rankFor, titleFor } from '../game/engine'
 import {
-  allLegendsDone, claimable, crewQuestClaimable, crewQuestProgress, crewQuestTarget,
-  crewQuestValue, crewQuestVisible, legendClaimable, legendProgress, legendValue, milestoneProgress,
+  allLegendsDone, checkinDone, claimable, crewQuestClaimable, crewQuestProgress, crewQuestTarget,
+  crewQuestValue, crewQuestVisible, dailyGoalProgress, dailyGoalValue, legendClaimable, legendProgress, legendValue, milestoneProgress,
 } from '../game/state'
 import { useGame } from '../game/store'
 import { fmt } from './CargoView'
@@ -127,6 +127,80 @@ export default function QuestView() {
               </div>
             )
           })}
+        </div>
+
+        {/* 每日签到（v1.6.0） */}
+        <div className="panel-white p-3 mb-4" style={{ borderRadius: 14 }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Glyph name="gift" size={19} color="#d0741f" />
+            <span className="font-800 text-sm" style={{ color: '#3d2b10' }}>每日签到</span>
+            <span className="ml-auto text-xs font-800" style={{ color: checkinDone(state) ? '#4cba6a' : '#c0a070' }}>
+              连续 {state.checkin.streak} 天
+            </span>
+          </div>
+          <div className="text-xs mb-2" style={{ color: '#a07030' }}>
+            每日签到领金币，连续天数越多奖励越丰厚（封顶 7 天）
+          </div>
+          <button
+            className="btn-orange w-full py-2.5 text-sm font-900"
+            disabled={checkinDone(state)}
+            style={{ opacity: checkinDone(state) ? 0.55 : 1 }}
+            onClick={() => dispatch({ type: 'CHECK_IN' })}
+          >
+            <span className="inline-flex items-center gap-1.5 justify-center">
+              <Glyph name="gift" size={15} />{checkinDone(state) ? '今日已签到' : '签到领奖'}
+            </span>
+          </button>
+        </div>
+
+        {/* 每日目标（v1.6.0） */}
+        <div className="font-800 text-sm mb-2" style={{ color: '#3d2b10' }}>每日目标</div>
+        <div className="flex flex-col gap-2 mb-4">
+          {state.daily.goals.length === 0 ? (
+            <div className="panel-white p-4 text-center text-xs" style={{ borderRadius: 14, color: '#c0a070' }}>
+              今日目标生成中，稍候刷新
+            </div>
+          ) : (
+            state.daily.goals.map(g => {
+              const done = g.claimed
+              const val = dailyGoalValue(state, g)
+              const p = dailyGoalProgress(state, g)
+              const can = !done && val >= g.target
+              return (
+                <div key={g.id} className="panel-white p-3" style={{ borderRadius: 14, opacity: done ? 0.72 : 1 }}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: done ? '#e6f6e9' : can ? '#fff3d6' : '#fff5ec' }}
+                    >
+                      {done ? <Glyph name="checkCircle" size={20} color="#4cba6a" /> : <Glyph name="target" size={20} color="#c98a30" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-800 text-sm" style={{ color: '#3d2b10' }}>{g.label}</div>
+                      <div className="text-xs" style={{ color: '#a07030' }}>奖励 600 金 + 加速卡 ×1</div>
+                    </div>
+                    {can ? (
+                      <button className="btn-orange text-xs px-3 py-1.5" onClick={() => dispatch({ type: 'CLAIM_DAILY', id: g.id })}>
+                        领取
+                      </button>
+                    ) : (
+                      <span className="text-xs font-800" style={{ color: done ? '#4cba6a' : '#c0a070' }}>
+                        {done ? '已领取' : `${Math.round(p * 100)}%`}
+                      </span>
+                    )}
+                  </div>
+                  <div className="prog-track h-2">
+                    <div className="prog-fill" style={{ width: `${p * 100}%`, background: done ? '#4cba6a' : undefined }} />
+                  </div>
+                  {!done && (
+                    <div className="text-[10px] mt-1 text-right font-700" style={{ color: '#c0a070' }}>
+                      {Math.min(val, g.target).toLocaleString()} / {g.target.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              )
+            })
+          )}
         </div>
 
         {/* 传奇功勋（可折叠） */}
@@ -479,7 +553,7 @@ export default function QuestView() {
           <ShareCard state={state} assets={assets} title={legendComplete ? LEGEND_TITLE : title} onClose={() => setShareOpen(false)} />
         )}
         {codexOpen && (
-          <GoodsCodex bought={state.goodsBought} sold={state.goodsSold} sellLog={state.sellLog} visited={state.visited} onClose={() => setCodexOpen(false)} />
+          <GoodsCodex bought={state.goodsBought} sold={state.goodsSold} sellLog={state.sellLog} visited={state.visited} relicKnown={!!state.cargo.relic || (state.stats.treasures ?? 0) > 0} onClose={() => setCodexOpen(false)} />
         )}
         {cityCodexOpen && (
           <CityCodex visited={state.visited} onClose={() => setCityCodexOpen(false)} />

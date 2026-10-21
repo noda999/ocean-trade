@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CITIES, CITY_BY_ID, GOODS, GOOD_BY_ID, GOOD_DESC } from '../game/data'
+import { CITIES, CITY_BY_ID, GOODS, GOOD_BY_ID, GOOD_DESC, MAP_FRAGS_NEED } from '../game/data'
 import { Glyph } from './Glyph'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,8 +27,8 @@ const GOODS_FILTERS: { key: Filter; label: string }[] = [
 const fmt = (n: number) => n.toLocaleString()
 
 export default function GoodsCodex(
-  { bought, sold, sellLog, visited, onClose }:
-  { bought: string[]; sold: string[]; sellLog: { id: number; t: number; cityId: string; goodId: string; qty: number; unit: number; revenue: number; profit: number }[]; visited: string[]; onClose: () => void },
+  { bought, sold, sellLog, visited, relicKnown, onClose }:
+  { bought: string[]; sold: string[]; sellLog: { id: number; t: number; cityId: string; goodId: string; qty: number; unit: number; revenue: number; profit: number }[]; visited: string[]; relicKnown: boolean; onClose: () => void },
 ) {
   const [page, setPage] = useState<Page>('goods')
   const [filter, setFilter] = useState<Filter>('all')
@@ -37,6 +37,9 @@ export default function GoodsCodex(
   const boughtSet = new Set(bought)
   const soldSet = new Set(sold)
   const visitedSet = new Set(visited)
+
+  // 沉没神殿珍宝：挖掘获得也算「已知」，避免已挖到却仍显示 ??? + 引导
+  const knownOf = (id: string) => boughtSet.has(id) || soldSet.has(id) || (id === 'relic' && relicKnown)
 
   useEffect(() => {
     function onKey(ev: KeyboardEvent) {
@@ -167,7 +170,7 @@ export default function GoodsCodex(
                 {goodsList.map(g => {
                   const b = boughtSet.has(g.id)
                   const s = soldSet.has(g.id)
-                  const known = b || s
+                  const known = knownOf(g.id)
                   const showOrigin = known || revealedOrigin[g.id]
                   return (
                     <div
@@ -285,7 +288,7 @@ export default function GoodsCodex(
         const g = GOOD_BY_ID[selected]
         const b = boughtSet.has(g.id)
         const s = soldSet.has(g.id)
-        const known = b || s
+        const known = knownOf(g.id)
         const showOrigin = known || revealedOrigin[g.id]
         const desc = GOOD_DESC[g.id]
         return (
@@ -316,7 +319,9 @@ export default function GoodsCodex(
               ) : known ? (
                 <div className="text-[12px]" style={{ color: '#b0a890' }}>（普通货物，暂无更多图鉴笔记）</div>
               ) : (
-                <div className="text-[12px]" style={{ color: '#b0a890' }}>尚未收集，出海贸易解锁详情</div>
+                <div className="text-[12px]" style={{ color: g.id === 'relic' ? '#c08a3a' : '#b0a890' }}>
+                  {g.id === 'relic' ? `唯集齐 ${MAP_FRAGS_NEED} 张藏宝图、到目标港外海挖掘方可现世；碎片可由交付委托、海上漂流瓶、击溃海盗获得` : '尚未收集，出海贸易解锁详情'}
+                </div>
               )}
               <button
                 className="mt-3 text-xs px-4 py-1.5 font-800"

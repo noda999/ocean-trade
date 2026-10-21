@@ -21,6 +21,7 @@ import { useState, type CSSProperties } from 'react'
 import { GOOD_PATHS } from './GoodsGlyph'
 import { FIGURE_PATHS } from './FiguresGlyph'
 import { ArtIcon } from './ArtIcon'
+import { UI_SPRITE } from './uiSprite'
 
 /** name → path 列表（每条 path 一条描边）· 通用 UI 图标 */
 const UI_PATHS = {
@@ -204,11 +205,14 @@ interface Props {
   title?: string
 }
 
-/** 按名渲染图标：优先使用 AI 全彩位图（public/icons/<name>.png），
- *  位图缺失（如尚未补充的 check / arrowRight 等）时回落到内置 SVG 描边。 */
+/** 按名渲染图标：优先使用 AI 全彩位图（sprite 或 public/icons/<name>.png），
+ *  位图缺失（如尚未补充的 check / arrowRight 等纯 UI 图标）时直接走内置 SVG 描边，
+ *  不再发起 404 请求。 */
 export function Glyph({ name, size = 18, strokeWidth = 1.7, color, className, style, title }: Props) {
   const [failed, setFailed] = useState(false)
-  if (!failed) {
+  // 仅有 UI_SPRITE 里的 UI 图标、商品图标、角色图标有对应位图；其余纯 UI 图标直接 SVG
+  const hasBitmap = name in UI_SPRITE || name in GOOD_PATHS || name in FIGURE_PATHS
+  if (hasBitmap && !failed) {
     return (
       <ArtIcon
         name={name}

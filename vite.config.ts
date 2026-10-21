@@ -24,6 +24,7 @@ export default defineConfig(({ mode }) => {
 react(),
       tailwindcss(),
       xhsMinitoolCompat(mode === 'xhs'),
+      taptapH5Compat(mode === 'taptap'),
       figmaSiteConfiguration(siteConfiguration),
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
@@ -296,6 +297,32 @@ function xhsMinitoolCompat(enabled: boolean): Plugin {
           file.code = stripRemoteFont(file.code)
         }
       }
+    },
+  }
+}
+
+/**
+ * TapTap H5 小游戏适配（仅在 `npm run build:taptap` 生效）。
+ *
+ * TapTap 容器在自家平台域名的子路径下运行游戏（zip 内仅一个文件夹、含 index.html），
+ * 因此必须相对路径 base（由 --base=./ 提供）。这里只补两件容器相关的事：
+ * - 竖屏全屏 viewport（禁缩放 + viewport-fit=cover，真机安全区）
+ * - 屏蔽 /favicon.ico 自动请求（404 噪音）
+ */
+function taptapH5Compat(enabled: boolean): Plugin {
+  const VIEWPORT =
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />'
+  return {
+    name: 'taptap-h5-compat',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        if (!enabled) return html
+        return html
+          .replace(/<meta name="viewport"[^>]*>/, VIEWPORT)
+          .replace(/<\/head>/, '<link rel="icon" href="data:," />\n  </head>')
+      },
     },
   }
 }

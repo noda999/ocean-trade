@@ -3,8 +3,9 @@ import { CITIES, CITY_BY_ID, CITY_EVENT_INFO, GOOD_BY_ID, SECRET_OF_CITY, isSecr
 import {
   anchorPrice, bestSellHint, cargoUnits, eventBuyMult, eventSellMult, isBlockaded, isScarce, sellPrice,
 } from '../game/engine'
-import { cityEventOf, investBonusOf, repBonusOf, repOf, secretUnlocked, shipNow } from '../game/state'
+import { cityEventOf, houseBonusOf, investBonusOf, repBonusOf, repOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
+import { adManager } from '../game/ads'
 import { CityLandmark } from '../components/Landmarks'
 import BankView from './BankView'
 import { Glyph } from '../components/Glyph'
@@ -42,6 +43,7 @@ export default function MarketView() {
   const canTrade = here && !sailing && !viewBlockaded
   const investBonus = here ? investBonusOf(state, viewCityId) : { buy: 0, sell: 0, dividend: 0 }
   const repDisc = repBonusOf(state, viewCityId)
+  const houseBonus = houseBonusOf(state, viewCityId)
   // 快报只播报已探明港口（未探明的行情需先买情报网络或亲自到访）
   const newsList = Object.entries(state.cityEvents)
     .filter(([cid, ev]) => ev.until > state.clock && (state.intelOwned || state.visited.includes(cid)))
@@ -274,6 +276,18 @@ export default function MarketView() {
         </div>
       )}
 
+      {/* ── 自家行馆优惠（v1.6）：查看港有宅邸时露出新玩法 ──────────────── */}
+      {houseBonus.buy > 0 && (
+        <div className="px-4 pb-2">
+          <div className="panel-white px-3 py-2 flex items-center gap-2 text-xs font-800" style={{ borderRadius: 14, border: '1.5px solid #c9a24b', color: '#a07030' }}>
+            <span className="inline-flex items-center gap-1.5">
+              <Glyph name="city" size={14} />
+              自家行馆在此坐镇：买入 -{houseBonus.buy}% · 卖出 +{houseBonus.sell}%（船坞·行馆可扩建提升）
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ── 7. 异港查看提示 ─────────────────────────────────────────────── */}
       {!here && (
         <div className="px-4 pb-2">
@@ -306,6 +320,20 @@ export default function MarketView() {
         </div>
       )}
 
+      {/* ── 8.5 看广告刷新行情 ─────────────────────────────────────────────── */}
+      {!sailing && (
+        <div className="px-4 pb-2">
+          <button
+            className="w-full text-left text-xs font-800 flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{ background: '#fff5ec', color: '#f5913a', border: '1.5px solid #f5c87a' }}
+            onClick={() => { audio.sfx('click'); adManager.onReward(() => dispatch({ type: 'AD_REFRESH_MARKET' })); adManager.showRewarded() }}
+          >
+            <span className="text-base leading-none">📺</span>
+            <span>看广告立即刷新全市场行情（跳过 {refreshIn}s 等待）</span>
+          </button>
+        </div>
+      )}
+
       {/* ── 9. 货物列表（玩家最关心的内容，紧跟辅助面板之后）─────────────── */}
       <div className="px-4 pb-6 flex flex-col gap-2">
         {tradedIds.map(id => {
@@ -320,9 +348,9 @@ export default function MarketView() {
           const best = bestSellHint(g.id, state.markets, ship.bonus, isKnown, state.cityId)
           const buyMult = eventBuyMult(viewEv, g.id)
           const sellMult = eventSellMult(viewEv, g.id)
-          // 显示价 = 真实结算价：含丰产/抢购、声望与投资折扣
-          const buyUnit = Math.max(8, Math.round(m.price * buyMult * (1 - repDisc / 100) * (1 - investBonus.buy / 100)))
-          const unit = Math.round(sellPrice(g, cm, ship.bonus + repDisc + investBonus.sell) * sellMult)
+          // 显示价 = 真实结算价：含丰产/抢购、声望、投资与宅邸折扣
+          const buyUnit = Math.max(8, Math.round(m.price * buyMult * (1 - repDisc / 100) * (1 - investBonus.buy / 100) * (1 - houseBonus.buy / 100)))
+          const unit = Math.round(sellPrice(g, cm, ship.bonus + repDisc + investBonus.sell + houseBonus.sell) * sellMult)
           const margin = Math.round(((best.price - m.price) / m.price) * 100)
           const expanded = open === g.id
           const roomUse = Math.max(0, Math.min(room, m.stock))

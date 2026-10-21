@@ -3,11 +3,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
-  AI_SHIPS, BOUNTY_CYCLE, BOUNTY_RATE, BOUNTY_TTL, CITIES, CITY_BY_ID, CITY_EVENT_CYCLE, CITY_EVENT_DURATION, CITY_EVENT_INFO, CITY_EVENT_MAX, CREW_BY_ID, CREW_QUESTS, DIG_BASE_REWARD, DIG_RELIC_QTY, DIG_STEP_REWARD, EQUIP_BY_ID, GOOD_BY_ID, INTEL_PRICE, INVEST_LEVELS, LEGENDS, LEGEND_TITLE, LOAN_CRASH_RATIO, LOAN_CREDIT_MAX, LOAN_CREDIT_MIN, LOAN_CREDIT_RATE, LOAN_INTEREST, MAP_FRAGS_NEED, MARKET_CYCLE, MILESTONES,
+  AI_SHIPS, BOUNTY_CYCLE, BOUNTY_RATE, BOUNTY_TTL, CITIES, CITY_BY_ID, CITY_EVENT_CYCLE, CITY_EVENT_DURATION, CITY_EVENT_INFO, CITY_EVENT_MAX, CREW_BY_ID, CREW_COURSES, CREW_GIFTS, CREW_FAVOR_BONUS_PER, CREW_FAVOR_BONUS_STEP, CREW_FAVOR_MAX, CREW_MAX_LEVEL, CREW_STORIES, CREW_TRAIN_BASE, CREW_TRAIN_RATE, CREW_QUESTS, DIG_BASE_REWARD, HOUSE_BONUS_PER_LEVEL, HOUSES, HOUSE_COSTS, HOUSE_STAGE_NAMES, DIG_RELIC_QTY, DIG_STEP_REWARD, EQUIP_BY_ID, GOOD_BY_ID, INTEL_PRICE, INVEST_LEVELS, INVEST_PROJECTS, LEGENDS, LEGEND_TITLE, LOAN_CRASH_RATIO, LOAN_CREDIT_MAX, LOAN_CREDIT_MIN, LOAN_CREDIT_RATE, LOAN_INTEREST, MAP_FRAGS_NEED, MARKET_CYCLE, MILESTONES,
   ORDER_ACTIVE_MAX, ORDER_BASE_RATE, ORDER_BOARD_MAX, ORDER_CYCLE, ORDER_DIST_RATE, PIRATES, PIRATE_BY_ID, RAID_BASE_POWER, RAID_CANNON_POWER, RAID_SHIP_POWER, REP_GAIN_ARRIVE, REP_GAIN_TRADE, REP_MAX, SECRET_OF_CITY, SEASONS, SHIPS, SPICE_CYCLE, START_CITY, START_MONEY, SUPPLY_BY_ID, TARIFF_BASE, TARIFF_RATE, VOYAGE_EVENTS,
   isSecretGood,
   seasonOf,
-  type CityEventKind, type CrewQuestDef, type EquipDef, type LegendDef, type Milestone, type QuestCond, type ShipClass,
+  type City, type CityEventKind, type CrewQuestDef, type EquipDef, type Good, type LegendDef, type Milestone, type QuestCond, type ShipClass,
 } from './data'
 import {
   cargoUnits, cargoValue, clamp, createMarkets, distance, eventBuyMult, eventSellMult, evolveMarkets, isBlockaded, rankFor, sellPrice, shipOf,
@@ -69,6 +69,8 @@ export interface TradeOrder {
   deadline: number
   /** 是否已被玩家接下 */
   taken: boolean
+  /** 委托理由文案（纯文本，丰富可读性） */
+  reason: string
 }
 
 /** 海事悬赏（v1.4.0）：出击海盗巢穴，胜则领赏 */
@@ -79,6 +81,31 @@ export interface Bounty {
   reward: number
   /** 过期时刻（游戏时钟秒） */
   deadline: number
+}
+
+/** 每日目标（v1.6.0）：真实日历日内的小任务，进度按当日 stats 增量计算 */
+export interface DailyGoal {
+  id: string
+  /** 统计项：trades / profit / distance / ordersDelivered / events / raidsWon */
+  kind: string
+  label: string
+  target: number
+  /** 当日开始时的统计基线，进度 = 当前值 - base */
+  base: number
+  claimed: boolean
+}
+
+export interface DailyState {
+  /** 目标所属日期（YYYY-MM-DD），跨天自动刷新 */
+  date: string
+  goals: DailyGoal[]
+}
+
+export interface CheckinState {
+  /** 最近签到日期（YYYY-MM-DD） */
+  last: string
+  /** 连续签到天数 */
+  streak: number
 }
 
 export interface GameState {
@@ -93,6 +120,12 @@ export interface GameState {
   ownedShips: string[]
   /** 已雇佣的船员（id 列表，见 data.tsx CREW） */
   hiredCrew: string[]
+  /** 船员修习的课程等级（v1.7）：crewId → { courseId → 0..CREW_MAX_LEVEL } */
+  crewCourses: Record<string, Record<string, number>>
+  /** 船员好感（v1.6）：crewId → 0-100，送礼累积 */
+  crewFavor: Record<string, number>
+  /** 各地宅邸（v1.6）：cityId → 0-3 级，缺省 0 级 */
+  houses: Record<string, number>
   /** 玩家给船取的名字（空字符串 = 显示默认名） */
   shipName: string
   boost: number
@@ -125,8 +158,8 @@ export interface GameState {
   supplies: Record<string, number>
   /** 港口商情事件（v1.3.0）：cityId → 丰产/抢购/封锁 */
   cityEvents: Record<string, CityEvent>
-  /** 港口投资等级（v1.3.0）：cityId → 0-3 级 */
-  invest: Record<string, number>
+  /** 港口投资（v1.7）：cityId → { projectId → 1 }，每港 3 个可选项目 */
+  invest: Record<string, Record<string, number>>
   /** 委托板订单（v1.3.0），含未接与进行中 */
   orders: TradeOrder[]
   /** 银行债务（v1.4.0）：本金 + 已计利息 */
@@ -139,6 +172,10 @@ export interface GameState {
   mapFrags: number
   /** 碎片集齐后指向的目标港；null = 尚未集齐（v1.4.0） */
   digCity: string | null
+  /** 每日目标（v1.6.0） */
+  daily: DailyState
+  /** 每日签到（v1.6.0） */
+  checkin: CheckinState
   stats: { trades: number; profit: number; distance: number; events: number; best: number; ordersDelivered: number; raidsWon: number; treasures: number }
   toasts: Toast[]
   log: LogEntry[]
@@ -162,6 +199,8 @@ export type Action =
   | { type: 'SELL_ALL' }
   | { type: 'BUY_SHIP'; shipId: string }
   | { type: 'HIRE_CREW'; crewId: string }
+  | { type: 'TRAIN_CREW'; crewId: string; courseId: string }
+  | { type: 'GIFT_CREW'; crewId: string; giftId: string }
   | { type: 'SELECT_SHIP'; shipId: string }
   | { type: 'SET_SHIP_NAME'; name: string }
   | { type: 'USE_BOOST' }
@@ -171,7 +210,8 @@ export type Action =
   | { type: 'BUY_EQUIP'; id: string }
   | { type: 'BUY_SUPPLY'; id: string; qty: number }
   | { type: 'USE_SUPPLY'; id: string }
-  | { type: 'INVEST' }
+  | { type: 'INVEST'; projectId: string }
+  | { type: 'BUY_HOUSE'; cityId: string }
   | { type: 'ACCEPT_ORDER'; id: string }
   | { type: 'DELIVER_ORDER'; id: string }
   | { type: 'ABANDON_ORDER'; id: string }
@@ -182,12 +222,20 @@ export type Action =
   | { type: 'DIG_TREASURE' }
   | { type: 'RESOLVE_PIRATE'; choice: 'cannon' | 'bribe' | 'fight' }
   | { type: 'DROP_TOAST'; id: number }
+  | { type: 'CHECK_IN' }
+  | { type: 'CLAIM_DAILY'; id: string }
   | { type: 'RESTART' }
   /** 用存档覆盖整局状态（读档） */
   | { type: 'HYDRATE'; state: GameState }
   | { type: 'CLOSE_VICTORY' }
   /** 调试面板专用：直接改写状态（仅 dev 生效，生产构建里整段被剔除） */
   | { type: 'DEBUG_PATCH'; patch: Partial<GameState>; stats?: Partial<GameState['stats']> }
+  /** 看广告奖励（TapTap 激励视频），amount 为发放金币数 */
+  | { type: 'AD_REWARD'; amount: number }
+  /** 看广告立即刷新全市场行情（跳过 marketTimer 等待） */
+  | { type: 'AD_REFRESH_MARKET' }
+  /** 看广告加速航行：剩余航程减半 */
+  | { type: 'AD_ACCEL_VOYAGE' }
 
 export function initialState(): GameState {
   return {
@@ -200,6 +248,9 @@ export function initialState(): GameState {
     shipId: 'sloop',
     ownedShips: ['sloop'],
     hiredCrew: [],
+    crewCourses: {},
+    crewFavor: {},
+    houses: {},
     shipName: '',
     boost: 3,
     intelOwned: false,
@@ -225,6 +276,8 @@ export function initialState(): GameState {
     bountyTimer: 20,
     mapFrags: 0,
     digCity: null,
+    daily: { date: '', goals: [] },
+    checkin: { last: '', streak: 0 },
     stats: { trades: 0, profit: 0, distance: 0, events: 0, best: 0, ordersDelivered: 0, raidsWon: 0, treasures: 0 },
     toasts: [],
     log: [{ id: 1, t: 0, text: '你在中国的港口接过了第一艘商船，远洋贸易开始了。', kind: 'info' }],
@@ -255,17 +308,59 @@ export function assetsOf(s: GameState): number {
   return totalAssets(s.money, s.cargo, s.cityId, s.markets, shipOf(s.shipId).bonus)
 }
 
-/** 船员带来的总加成：speed = 航速 %，trade = 利润 % */
+/** 船员带来的总加成：speed = 航速 %，trade = 利润 %（含修习课程 + 好感加成） */
 export function crewBonusOf(s: GameState): { speed: number; trade: number } {
   let speed = 0
   let trade = 0
   for (const id of s.hiredCrew) {
     const c = CREW_BY_ID[id]
     if (!c) continue
+    const courses = s.crewCourses[id] ?? {}
+    for (const cid in courses) {
+      const def = CREW_COURSES[cid]
+      const lv = courses[cid]
+      if (!def || !lv) continue
+      speed += lv * def.speed
+      trade += lv * def.trade
+    }
+    const favor = Math.min(s.crewFavor[id] ?? 0, CREW_FAVOR_MAX)
+    const favorBonus = Math.floor(favor / CREW_FAVOR_BONUS_STEP) * CREW_FAVOR_BONUS_PER
     speed += c.speed
-    trade += c.trade
+    trade += c.trade + favorBonus
   }
   return { speed, trade }
+}
+
+/** 船员修习某课程当前等级（缺省 0） */
+export function crewCourseLevelOf(s: GameState, id: string, courseId: string): number {
+  return s.crewCourses[id]?.[courseId] ?? 0
+}
+/** 船员总养成等级（所有课程之和），封顶 CREW_MAX_LEVEL，决定下一课学费 */
+export function crewTotalLevelOf(s: GameState, id: string): number {
+  const courses = s.crewCourses[id] ?? {}
+  return Math.min(CREW_MAX_LEVEL, Object.values(courses).reduce((a, b) => a + b, 0))
+}
+/** 升到下一级所需金币（lv = 当前总等级，0 起，指数递增） */
+export function crewTrainCost(lv: number): number {
+  return Math.round(CREW_TRAIN_BASE * Math.pow(CREW_TRAIN_RATE, lv))
+}
+
+/** 船员好感带来的额外利润加成 %（每满 CREW_FAVOR_BONUS_STEP 好感 +CREW_FAVOR_BONUS_PER%） */
+export function crewFavorProfitOf(s: GameState, id: string): number {
+  const favor = Math.min(s.crewFavor[id] ?? 0, CREW_FAVOR_MAX)
+  return Math.floor(favor / CREW_FAVOR_BONUS_STEP) * CREW_FAVOR_BONUS_PER
+}
+
+/** 某城宅邸等级（缺省 0） */
+export function houseLevelOf(s: GameState, cityId: string): number {
+  return s.houses[cityId] ?? 0
+}
+
+/** 某城宅邸带来的 buy / sell 价格加成 %（每级 HOUSE_BONUS_PER_LEVEL，取整到 0.1 防浮点长尾） */
+export function houseBonusOf(s: GameState, cityId: string): { buy: number; sell: number } {
+  const lv = houseLevelOf(s, cityId)
+  const v = Math.round(lv * HOUSE_BONUS_PER_LEVEL * 10) / 10
+  return { buy: v, sell: v }
 }
 
 /** 已安装船具的总加成 */
@@ -381,21 +476,26 @@ export function cityEventOf(s: GameState, cityId: string): CityEvent | undefined
   return s.cityEvents[cityId]
 }
 
-/** 港口投资等级（0-3） */
+/** 港口已投项目数（0-3），沿用旧的"投资等级"口径 */
 export function investLevelOf(s: GameState, cityId: string): number {
-  return Math.max(0, Math.min(INVEST_LEVELS.length, Math.round(s.invest[cityId] ?? 0)))
+  const projects = s.invest[cityId] ?? {}
+  let n = 0
+  for (const d of INVEST_PROJECTS[cityId] ?? []) if ((projects[d.id] ?? 0) > 0) n++
+  return Math.min(3, n)
 }
 
-/** 投资累计效果：买入折扣% / 卖出加成% / 每市场周期分红 */
+/** 投资累计效果：汇总该港已投项目的买入折扣 / 卖出加成 / 分红 */
 export function investBonusOf(s: GameState, cityId: string): { buy: number; sell: number; dividend: number } {
-  const lvl = investLevelOf(s, cityId)
+  const projects = s.invest[cityId] ?? {}
   let buy = 0
   let sell = 0
   let dividend = 0
-  for (let i = 0; i < lvl; i++) {
-    buy += INVEST_LEVELS[i].buy
-    sell += INVEST_LEVELS[i].sell
-    dividend += INVEST_LEVELS[i].dividend
+  for (const def of INVEST_PROJECTS[cityId] ?? []) {
+    const lv = projects[def.id] ?? 0
+    if (!lv) continue
+    buy += def.buy * lv
+    sell += def.sell * lv
+    dividend += def.dividend * lv
   }
   return { buy, sell, dividend }
 }
@@ -443,16 +543,102 @@ export function raidWinRate(s: GameState): number {
 /** 碎片来源钩子：交付委托 / 漂流瓶 / 击溃海盗 */
 function maybeFindFrag(s: GameState, chance: number): void {
   if (s.mapFrags >= MAP_FRAGS_NEED || Math.random() > chance) return
+  const first = s.mapFrags === 0
   s.mapFrags += 1
   if (s.mapFrags >= MAP_FRAGS_NEED) {
     const pool = CITIES.filter(c => c.id !== s.cityId)
     s.digCity = pool[Math.floor(Math.random() * pool.length)].id
-    pushToast(s, 'map', '藏宝图集齐了！去市政厅查看沉宝地点', 'good')
+    pushToast(s, 'map', '藏宝图集齐了！去海事署（船坞）查看沉宝地点', 'good')
     pushLog(s, `藏宝图碎片集齐（${MAP_FRAGS_NEED}/${MAP_FRAGS_NEED}）：图中指向 ${CITY_BY_ID[s.digCity].name} 外海`, 'good')
+  } else if (first) {
+    pushToast(s, 'map', `捞起藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）！交付委托 / 漂流瓶 / 击溃海盗也能获得`, 'good')
+    pushLog(s, `获得藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）。碎片来源：交付限时委托 · 海上漂流瓶 · 击溃悬赏海盗`, 'good')
   } else {
     pushToast(s, 'map', `捞起藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）`, 'good')
     pushLog(s, `获得藏宝图碎片（${s.mapFrags}/${MAP_FRAGS_NEED}）`, 'good')
   }
+}
+
+// ── 每日目标 / 签到（v1.6.0）─────────────────────────────────────────────────
+
+/** 每日目标模板：随机抽 3 个，进度按当日 stats 增量计算 */
+const DAILY_GOAL_TEMPLATES: { kind: string; label: string; target: number }[] = [
+  { kind: 'trades', label: '完成 8 笔交易', target: 8 },
+  { kind: 'profit', label: '赚取 4,000 金利润', target: 4000 },
+  { kind: 'distance', label: '航行 1,000 海里', target: 1000 },
+  { kind: 'ordersDelivered', label: '交付 2 张限时委托', target: 2 },
+  { kind: 'events', label: '经历 4 次海上事件', target: 4 },
+  { kind: 'raidsWon', label: '击溃 1 次海盗', target: 1 },
+]
+
+/** 每个每日目标的奖励（金币 + 加速卡） */
+const DAILY_REWARD_GOLD = 600
+const DAILY_REWARD_BOOST = 1
+
+function dayString(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function today(): string {
+  return dayString(new Date())
+}
+
+function yesterday(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return dayString(d)
+}
+
+/** 签到奖励：基础 100 金，连续天数越多越多，封顶 7 天 */
+function checkinReward(streak: number): number {
+  return 100 + (Math.min(streak, 7) - 1) * 50
+}
+
+function dailyStat(s: GameState, kind: string): number {
+  switch (kind) {
+    case 'trades': return s.stats.trades
+    case 'profit': return Math.max(0, Math.round(s.stats.profit))
+    case 'distance': return s.stats.distance
+    case 'ordersDelivered': return s.stats.ordersDelivered ?? 0
+    case 'events': return s.stats.events
+    case 'raidsWon': return s.stats.raidsWon ?? 0
+    default: return 0
+  }
+}
+
+/** 按当日基线计算目标进度值（供 UI 实时显示） */
+export function dailyGoalValue(s: GameState, g: DailyGoal): number {
+  return Math.max(0, dailyStat(s, g.kind) - g.base)
+}
+
+/** 目标完成比例 0-1 */
+export function dailyGoalProgress(s: GameState, g: DailyGoal): number {
+  return Math.min(1, dailyGoalValue(s, g) / g.target)
+}
+
+/** 今天是否已签到 */
+export function checkinDone(s: GameState): boolean {
+  return s.checkin.last === today()
+}
+
+/** 随机生成当天的 3 个每日目标（互不重复） */
+function rollDailyGoals(s: GameState): DailyState {
+  const date = today()
+  const pool = [...DAILY_GOAL_TEMPLATES]
+  const goals: DailyGoal[] = []
+  for (let i = 0; i < 3 && pool.length; i++) {
+    const idx = Math.floor(Math.random() * pool.length)
+    const t = pool.splice(idx, 1)[0]
+    goals.push({
+      id: `${date}-${t.kind}`,
+      kind: t.kind,
+      label: t.label,
+      target: t.target,
+      base: dailyStat(s, t.kind),
+      claimed: false,
+    })
+  }
+  return { date, goals }
 }
 
 /** 委托板：本港可接的单（未接、未过期、发布港 = 当前港） */
@@ -468,6 +654,113 @@ export function activeOrders(s: GameState): TradeOrder[] {
 /** 委托是否满足交付条件（人在目的地 + 货够 + 未过期） */
 export function orderDeliverable(s: GameState, o: TradeOrder): boolean {
   return s.cityId === o.toCity && s.clock <= o.deadline && (s.cargo[o.goodId]?.qty ?? 0) >= o.qty
+}
+
+type ReasonTpl = (g: string, from: string, to: string) => string
+
+/** 商品 → 货色类别（用于按类别生成专属委托理由；共 83 种全覆盖） */
+const GOOD_CATEGORY: Record<string, string> = {
+  // 织物服饰
+  silk: 'textile', cotton: 'textile', wool: 'textile', fur: 'textile', leather: 'textile',
+  alpaca: 'textile', carpet: 'textile', tapestry: 'textile', batik: 'textile', indigo: 'textile',
+  // 香料调味
+  spice: 'spice', clove: 'spice', nutmeg: 'spice', cinnamon: 'spice', vanilla: 'spice', saffron: 'spice',
+  // 酒水饮品
+  whisky: 'drink', wine: 'drink', rum: 'drink', tea: 'drink', coffee: 'drink', cacao: 'drink',
+  // 食品食材
+  grain: 'food', cheese: 'food', honey: 'food', sugar: 'food', salt: 'food', olive: 'food', date: 'food',
+  caviar: 'food', truffle: 'food', pineapple: 'food', jasmine: 'food', nest: 'food',
+  // 珠宝贵金
+  pearl: 'gem', gold: 'gem', gem: 'gem', silver: 'gem', diamond: 'gem', amber: 'gem',
+  sapphire: 'gem', jade: 'gem', emerald: 'gem', seashell: 'gem',
+  // 香氛花卉
+  perfume: 'aroma', rose: 'aroma', frankincense: 'aroma', agarwood: 'aroma', ambergris: 'aroma',
+  incenseburner: 'aroma', tulip: 'aroma',
+  // 兵器军械
+  sword: 'weapon', longbow: 'weapon', scimitar: 'weapon', armor: 'weapon', kris: 'weapon',
+  tumi: 'weapon', obsidian: 'weapon',
+  // 嗜好品（烟、槟榔等提神解乏之物）
+  tobacco: 'indulgence', betel: 'indulgence',
+  // 原料建材
+  timber: 'material', teak: 'material', marble: 'material', copper: 'material',
+  // 工艺器物（含隐藏特产与奇珍秘藏）
+  porcelain: 'craft', watch: 'craft', paper: 'craft', lacquer: 'craft', miniature: 'craft',
+  sitar: 'craft', guitar: 'craft', violin: 'craft', murano: 'craft', delft: 'craft', book: 'craft',
+  fleur: 'craft', scroll: 'craft', rune: 'craft', papyrus: 'craft', sundisc: 'craft', mask: 'craft',
+  elephantegg: 'craft', relic: 'craft',
+}
+
+/** 各类别专属委托理由文案池 */
+const CATEGORY_REASONS: Record<string, ReasonTpl[]> = {
+  textile: [
+    (g, from, to) => `${to}的裁缝行会求购上等${g}，赶制今冬华服`,
+    (g, from, to) => `商队带回样布，${to}的贵妇们抢着要${from}的${g}`,
+    (g, from, to) => `${g}在${to}卖得起价，御寒体面两相宜`,
+  ],
+  spice: [
+    (g, from, to) => `${to}的厨房缺${g}调味，主厨催单催得紧`,
+    (g, from, to) => `一船${g}从${from}出发，还没到${to}就被订走大半`,
+    (g, from, to) => `听闻${to}人把${g}当宝，价比黄金`,
+  ],
+  drink: [
+    (g, from, to) => `${to}的酒馆闹酒荒，老板急寻${from}的${g}`,
+    (g, from, to) => `一场大宴在${to}候着，${g}是压轴的体面`,
+    (g, from, to) => `远航的人最懂${g}的好，${to}码头正缺货`,
+  ],
+  food: [
+    (g, from, to) => `${to}粮价看涨，快把这批${g}运过去`,
+    (g, from, to) => `${from}收成丰裕，${g}正好解${to}的燃眉之急`,
+    (g, from, to) => `${to}大厨点名要${from}的${g}，宴席等米下锅`,
+  ],
+  gem: [
+    (g, from, to) => `${to}的珠宝匠在找原料，${g}有多少收多少`,
+    (g, from, to) => `贵族婚期将近，${to}急着凑一批${g}作聘礼`,
+    (g, from, to) => `${g}在${to}是硬通货，出手不愁买家`,
+  ],
+  aroma: [
+    (g, from, to) => `${to}的香氛铺子缺货，点名要${from}的${g}`,
+    (g, from, to) => `神庙与闺阁都爱${g}，${to}的订单催得急`,
+    (g, from, to) => `半城都飘着${g}的香，${to}还嫌不够`,
+  ],
+  weapon: [
+    (g, from, to) => `${to}的军械库下订${g}，军情如火`,
+    (g, from, to) => `${from}锻出的${g}声名在外，${to}出重金求购`,
+    (g, from, to) => `商路不太平，${to}商队急着添置${g}护身`,
+  ],
+  material: [
+    (g, from, to) => `${to}船坞开工，${g}是下水的关键料`,
+    (g, from, to) => `铸炮与营建都要用${g}，${to}正在大采购`,
+    (g, from, to) => `${from}的${g}成色好，${to}工坊排队来取`,
+  ],
+  craft: [
+    (g, from, to) => `${to}的收藏家看中了${from}的${g}，不惜重金`,
+    (g, from, to) => `一件${g}在${to}能进博物馆，行家抢着要`,
+    (g, from, to) => `${from}匠人的${g}独此一家，${to}慕名求购`,
+  ],
+  indulgence: [
+    (g, from, to) => `${to}的老主顾们馋这口${g}，货一到就被抢光`,
+    (g, from, to) => `水手们在${to}码头翘首以盼，就等${from}的${g}`,
+    (g, from, to) => `${g}在${to}是有名的解乏好物，回头客成群`,
+  ],
+}
+
+/** 未命中分类时的通用文案池（兜底，避免未来新增商品无文案） */
+const FALLBACK_REASONS: ReasonTpl[] = [
+  (g, from, to) => `${to}的商行急寻货源，愿出高价收购${g}`,
+  (g, from, to) => `${from}商会托付：把这批${g}平安送到${to}`,
+  (g, from, to) => `听闻${to}的${g}行情连日看涨，机不可失`,
+  (g, from, to) => `${to}总督府筹办节庆，点名要${from}的${g}`,
+]
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/** 按货色类别随机抽取一条专属委托理由文案 */
+export function orderReason(from: City, to: City, good: Good): string {
+  const cat = GOOD_CATEGORY[good.id]
+  const pool = (cat && CATEGORY_REASONS[cat]) || FALLBACK_REASONS
+  return pick(pool)(good.name, from.name, to.name)
 }
 
 /** 随机生成一张委托单（从已探明的港口出发） */
@@ -489,7 +782,7 @@ function genOrder(s: GameState): TradeOrder | null {
   const sail = voyageSeconds(from, to, shipOf('sloop'))
   const deadline = s.clock + Math.max(80, sail * 2.6 + 40)
   s.seq += 1
-  return { id: `o${s.seq}`, fromCity: from.id, toCity: to.id, goodId, qty, reward, deadline, taken: false }
+  return { id: `o${s.seq}`, fromCity: from.id, toCity: to.id, goodId, qty, reward, deadline, taken: false, reason: orderReason(from, to, good) }
 }
 
 // ── 船员委托 ──────────────────────────────────────────────────────────────────
@@ -738,6 +1031,71 @@ function rollEvent(s: GameState): void {
       pushLog(s, '幸运洋流：航程缩短 22%', 'good')
       break
     }
+    case 'corsair': {
+      s.voyage = { ...v, duration: v.duration + 4 }
+      pushToast(s, 'helm', '私掠船追袭：被迫改道，延误 4 秒', 'bad')
+      pushLog(s, '私掠船追袭：被迫改道，延误 4 秒', 'bad')
+      break
+    }
+    case 'kraken': {
+      s.voyage = { ...v, elapsed: clamp(v.elapsed - v.duration * 0.12, 0, v.duration) }
+      pushToast(s, 'hourglass', '海怪惊扰：航速骤降，航程变慢', 'bad')
+      pushLog(s, '海怪惊扰：航程变慢约 12%', 'bad')
+      break
+    }
+    case 'sirens': {
+      const loss = Math.min(s.money, 150 + Math.round(Math.random() * 250))
+      s.money -= loss
+      pushToast(s, 'purse', `海妖之歌：花 ${loss} 金安抚船员`, 'bad')
+      pushLog(s, `海妖之歌：安抚船员损失 ${loss} 金`, 'bad')
+      break
+    }
+    case 'oasis': {
+      const gain = 150 + Math.round(Math.random() * 200)
+      s.money += gain
+      s.boost += 1
+      pushToast(s, 'coin', `无名小岛：补给 +${gain} 金，获加速卡 ×1`, 'good')
+      pushLog(s, `无名小岛补给：+${gain} 金，加速卡 ×1`, 'good')
+      break
+    }
+    case 'envoy': {
+      const gain = 400 + Math.round(Math.random() * 500)
+      s.money += gain
+      pushToast(s, 'crown', `王国使节船：赏金 +${gain} 金`, 'good')
+      pushLog(s, `王国使节船：赏金 +${gain} 金`, 'good')
+      break
+    }
+    case 'lighthouse': {
+      s.voyage = { ...v, elapsed: v.elapsed + v.duration * 0.12 }
+      pushToast(s, 'spyglass', '灯塔引航：航程缩短', 'good')
+      pushLog(s, '灯塔引航：航程缩短 12%', 'good')
+      break
+    }
+    case 'smuggle': {
+      const gain = 400 + Math.round(Math.random() * 500)
+      s.money += gain
+      pushToast(s, 'gift', `走私黑市：暴利 +${gain} 金`, 'good')
+      pushLog(s, `走私黑市：暴利 +${gain} 金`, 'good')
+      break
+    }
+    case 'seabird': {
+      s.voyage = { ...v, elapsed: v.elapsed + v.duration * 0.1 }
+      pushToast(s, 'sparkles', '海鸟指路：抄了近道，航程缩短', 'good')
+      pushLog(s, '海鸟指路：航程缩短 10%', 'good')
+      break
+    }
+    case 'dehydrate': {
+      s.voyage = { ...v, elapsed: clamp(v.elapsed - v.duration * 0.12, 0, v.duration) }
+      pushToast(s, 'sun', '暴晒脱水：船员体力不支，航程变慢', 'bad')
+      pushLog(s, '暴晒脱水：航程变慢约 12%', 'bad')
+      break
+    }
+    case 'iceberg': {
+      s.voyage = { ...v, duration: v.duration + 4 }
+      pushToast(s, 'snow', '冰山漂近：改道绕行，延误 4 秒', 'bad')
+      pushLog(s, '冰山漂近：改道绕行，延误 4 秒', 'bad')
+      break
+    }
     case 'deal':
     default: {
       const gain = 200 + Math.round(Math.random() * 600)
@@ -775,6 +1133,9 @@ function coreReducer(state: GameState, action: Action): GameState {
         pushToast(s, season.icon, `${season.name}：${season.desc}`, 'info')
         pushLog(s, `${season.name}到来：${season.desc}`, 'info')
       }
+
+      // 每日目标：跨天刷新（真实日历日，不随游戏内 clock 走）
+      if (s.daily.date !== today()) s.daily = rollDailyGoals(s)
 
       // 其它商船沿航线循环
       for (const a of s.aiShips) {
@@ -1199,6 +1560,94 @@ function coreReducer(state: GameState, action: Action): GameState {
       return s
     }
 
+    // ── 进修课程（v1.7）：在所选课程间分配养成等级，总等级封顶 CREW_MAX_LEVEL ──
+    case 'TRAIN_CREW': {
+      const c = CREW_BY_ID[action.crewId]
+      const course = CREW_COURSES[action.courseId]
+      if (!c || !course || !state.hiredCrew.includes(c.id) || !c.courses.includes(action.courseId)) return state
+      const total = crewTotalLevelOf(state, c.id)
+      if (total >= CREW_MAX_LEVEL) return state
+      const cur = crewCourseLevelOf(state, c.id, action.courseId)
+      const cost = crewTrainCost(total)
+      if (state.money < cost) {
+        const s0: GameState = { ...state, toasts: [...state.toasts] }
+        pushToast(s0, 'coin', `金币不足，还差 ${(cost - state.money).toLocaleString()} 金`, 'bad')
+        return s0
+      }
+      const s: GameState = {
+        ...state,
+        money: state.money - cost,
+        crewCourses: { ...state.crewCourses, [c.id]: { ...state.crewCourses[c.id], [action.courseId]: cur + 1 } },
+        toasts: [...state.toasts],
+      }
+      pushToast(s, 'sparkles', `${c.name} 修习「${course.name}」至 Lv.${cur + 1}（${course.speed ? `航速+${course.speed}% ` : ''}${course.trade ? `利润+${course.trade}%` : ''}）`.trim(), 'good')
+      pushLog(s, `在酒馆让${c.role}「${c.name}」修习「${course.name}」（Lv.${cur + 1}）`, 'good')
+      return s
+    }
+
+    // ── 赠送礼物（v1.7）：买性格定制礼物，送对大涨、送错下跌 ──────────────────
+    case 'GIFT_CREW': {
+      const c = CREW_BY_ID[action.crewId]
+      const gift = CREW_GIFTS.find(g => g.id === action.giftId)
+      if (!c || !gift || !state.hiredCrew.includes(c.id)) return state
+      if (state.money < gift.cost) {
+        const s0: GameState = { ...state, toasts: [...state.toasts] }
+        pushToast(s0, 'coin', `金币不足，还差 ${(gift.cost - state.money).toLocaleString()} 金`, 'bad')
+        return s0
+      }
+      const favor = state.crewFavor[action.crewId] ?? 0
+      const likeHit = gift.tags.filter(t => c.likes.includes(t)).length
+      const hateHit = gift.tags.filter(t => c.dislikes.includes(t)).length
+      let delta: number
+      let note: string
+      if (hateHit > 0) { delta = -3; note = '似乎不太对胃口' }
+      else if (likeHit > 0) { delta = 2 + likeHit; note = likeHit >= 2 ? '正合心意！' : '眉开眼笑' }
+      else { delta = 1; note = '礼貌收下' }
+      const nf = Math.max(0, Math.min(CREW_FAVOR_MAX, favor + delta))
+      const s: GameState = {
+        ...state,
+        money: state.money - gift.cost,
+        crewFavor: { ...state.crewFavor, [action.crewId]: nf },
+        toasts: [...state.toasts],
+      }
+      const tag = nf >= CREW_FAVOR_MAX ? '情同手足' : delta > 0 ? `好感 +${delta}` : `好感 ${delta}`
+      pushToast(s, 'gift', `送给 ${c.name}「${gift.name}」，${note}（${tag}）`, delta > 0 ? 'good' : 'bad')
+      pushLog(s, `在酒馆赠${c.role}「${c.name}」${gift.name}（${note}）`, delta > 0 ? 'good' : 'bad')
+      // 好感跨过故事阈值：解锁一段往事（酒馆卡片可读全文）
+      const def = CREW_STORIES[c.id]
+      if (def && delta > 0) {
+        const unlocked = def.stories.find(st => favor < st.at && nf >= st.at)
+        if (unlocked) {
+          pushToast(s, 'book', `${c.name} 说起了一段往事……（酒馆卡片可读）`, 'info')
+          pushLog(s, `【${c.name}·往事】${unlocked.text}`, 'info')
+        }
+      }
+      return s
+    }
+
+    // ── 购置宅邸（v1.6）：长期金币消耗口，按城提供交易优惠 ──────────────────
+    case 'BUY_HOUSE': {
+      const def = HOUSES[action.cityId]
+      const lv = state.houses[action.cityId] ?? 0
+      if (!def || lv >= HOUSE_STAGE_NAMES.length || state.cityId !== action.cityId) return state
+      const cost = HOUSE_COSTS[lv]
+      if (state.money < cost) {
+        const s0: GameState = { ...state, toasts: [...state.toasts] }
+        pushToast(s0, 'coin', `金币不足，还差 ${(cost - state.money).toLocaleString()} 金`, 'bad')
+        return s0
+      }
+      const city = CITY_BY_ID[action.cityId]
+      const s: GameState = {
+        ...state,
+        money: state.money - cost,
+        houses: { ...state.houses, [action.cityId]: lv + 1 },
+        toasts: [...state.toasts],
+      }
+      pushToast(s, 'city', `${city.name}·${def.base}（${HOUSE_STAGE_NAMES[lv]}）置办完成`, 'good')
+      pushLog(s, `在 ${city.name} 置办了${def.base}（${HOUSE_STAGE_NAMES[lv]}）`, 'good')
+      return s
+    }
+
     case 'SELECT_SHIP': {
       if (!state.ownedShips.includes(action.shipId)) return state
       const s: GameState = { ...state, shipId: action.shipId, toasts: [...state.toasts] }
@@ -1358,25 +1807,26 @@ function coreReducer(state: GameState, action: Action): GameState {
       return s
     }
 
-    // ── 港口投资（v1.3.0）────────────────────────────────────────────────────
+    // ── 港口投资（v1.7）：每港 3 个地区专属项目，自由选择先投哪个 ──────────────
     case 'INVEST': {
       const s: GameState = { ...state, invest: { ...state.invest }, toasts: [...state.toasts] }
       if (s.voyage) { pushToast(s, 'ban', '航行途中无法办理投资，靠港后再来', 'bad'); return s }
-      const lvl = investLevelOf(s, s.cityId)
-      if (lvl >= INVEST_LEVELS.length) { pushToast(s, 'hall', '本港投资已满级，感谢贡献', 'info'); return s }
-      const def = INVEST_LEVELS[lvl]
+      const def = (INVEST_PROJECTS[s.cityId] ?? []).find(d => d.id === action.projectId)
+      if (!def) return state
+      if ((s.invest[s.cityId]?.[def.id] ?? 0) > 0) { pushToast(s, 'hall', `「${def.name}」已经投过了`, 'info'); return s }
       if (s.money < def.cost) {
         pushToast(s, 'coin', `金币不足，还差 ${(def.cost - s.money).toLocaleString()} 金`, 'bad')
         return s
       }
+      const lvlBefore = investLevelOf(s, s.cityId)
       s.money -= def.cost
-      s.invest = { ...s.invest, [s.cityId]: lvl + 1 }
+      s.invest = { ...s.invest, [s.cityId]: { ...s.invest[s.cityId], [def.id]: 1 } }
       const bonus = investBonusOf(s, s.cityId)
       gainRep(s, s.cityId, 10)
       const secret = SECRET_OF_CITY[s.cityId]
-      const unlockNote = lvl + 1 === 1 && secret ? `，解锁隐藏特产「${GOOD_BY_ID[secret].name}」` : ''
-      pushToast(s, 'hall', `${CITY_BY_ID[s.cityId].name}投资升至 ${lvl + 1} 级「${def.title}」${unlockNote}`, 'good')
-      pushLog(s, `在${CITY_BY_ID[s.cityId].name}投资 ${def.cost.toLocaleString()} 金成为「${def.title}」：买入 -${bonus.buy}% · 卖出 +${bonus.sell}% · 每周期分红 ${bonus.dividend} 金${unlockNote}`, 'good')
+      const unlockNote = lvlBefore === 0 && secret ? `，解锁隐藏特产「${GOOD_BY_ID[secret].name}」` : ''
+      pushToast(s, 'hall', `${CITY_BY_ID[s.cityId].name}「${def.name}」投资落定${unlockNote}`, 'good')
+      pushLog(s, `在${CITY_BY_ID[s.cityId].name}投资「${def.name}」（${def.cost.toLocaleString()} 金）：买入 -${bonus.buy}% · 卖出 +${bonus.sell}% · 每周期分红 ${bonus.dividend} 金${unlockNote}`, 'good')
       return s
     }
 
@@ -1513,20 +1963,26 @@ function coreReducer(state: GameState, action: Action): GameState {
       const rate = raidWinRate(s)
       useSupply(s, 's_cannon')
       const atCity = CITY_BY_ID[b.cityId]
+      // 宅邸交融（v1.6）：在悬赏港置办的宅邸提供海盗情报 / 事后打点
+      const houseLv = houseLevelOf(state, b.cityId)
+      const houseBonus = Math.round(b.reward * houseLv * 0.12)
       if (Math.random() < rate) {
-        s.money += b.reward
+        s.money += b.reward + houseBonus
         s.stats.raidsWon = (s.stats.raidsWon ?? 0) + 1
         gainRep(s, b.cityId, 15)
         s.bounty = null
         s.bountyTimer = BOUNTY_CYCLE
-        pushToast(s, pirate.icon, `大捷！击溃 ${pirate.name}，缴获赏金 ${b.reward.toLocaleString()} 金`, 'good')
-        pushLog(s, `出击 ${pirate.name}（战力 ${pirate.strength}）大捷：领取${atCity.name}赏金 ${b.reward.toLocaleString()} 金，声望 +15`, 'good')
+        pushToast(s, pirate.icon, `大捷！击溃 ${pirate.name}，缴获赏金 ${(b.reward + houseBonus).toLocaleString()} 金`, 'good')
+        const houseNote = houseBonus > 0 ? `（行馆总管的海盗情报加成 +${houseBonus.toLocaleString()} 金）` : ''
+        pushLog(s, `出击 ${pirate.name}（战力 ${pirate.strength}）大捷：领取${atCity.name}赏金 ${b.reward.toLocaleString()} 金${houseNote}，声望 +15`, 'good')
         maybeFindFrag(s, 0.6)
       } else {
-        const loss = Math.min(Math.round(s.money * 0.08), 30_000)
+        const raw = Math.round(s.money * 0.08 * (1 - houseLv * 0.15))
+        const loss = Math.min(raw, 30_000)
         s.money -= loss
+        const houseNote = houseLv > 0 ? `（行馆管家事后打点，修理费减了 ${houseLv * 15}%）` : ''
         pushToast(s, 'explode', `出击失利！${pirate.name} 击伤船舷，修理费 ${loss.toLocaleString()} 金`, 'bad')
-        pushLog(s, `出击 ${pirate.name} 失利：付修理费 ${loss.toLocaleString()} 金，悬赏仍在`, 'bad')
+        pushLog(s, `出击 ${pirate.name} 失利：付修理费 ${loss.toLocaleString()} 金${houseNote}，悬赏仍在`, 'bad')
       }
       return s
     }
@@ -1631,6 +2087,67 @@ function coreReducer(state: GameState, action: Action): GameState {
       const s: GameState = { ...state, money: state.money - INTEL_PRICE, intelOwned: true, toasts: [...state.toasts] }
       pushToast(s, 'crystal', '情报网络已开通，全球价格一览无余', 'good')
       pushLog(s, `花费 ${INTEL_PRICE} 金开通全球情报网络`, 'info')
+      return s
+    }
+
+    // ── 每日签到（v1.6.0）─────────────────────────────────────────────────────
+    case 'CHECK_IN': {
+      const s: GameState = { ...state, stats: { ...state.stats }, toasts: [...state.toasts] }
+      if (s.checkin.last === today()) {
+        pushToast(s, 'gift', '今天已经签到过了，明天再来', 'info')
+        return s
+      }
+      const streak = s.checkin.last === yesterday() ? s.checkin.streak + 1 : 1
+      const reward = checkinReward(streak)
+      s.money += reward
+      s.checkin = { last: today(), streak }
+      pushToast(s, 'gift', `签到成功！连续 ${streak} 天，+${reward} 金`, 'good')
+      pushLog(s, `每日签到：连续 ${streak} 天，奖励 ${reward} 金`, 'good')
+      return s
+    }
+
+    // ── 领取每日目标（v1.6.0）─────────────────────────────────────────────────
+    case 'CLAIM_DAILY': {
+      const g = state.daily.goals.find(x => x.id === action.id)
+      if (!g || g.claimed) return state
+      if (dailyGoalValue(state, g) < g.target) return state
+      const s: GameState = { ...state, stats: { ...state.stats }, toasts: [...state.toasts] }
+      s.money += DAILY_REWARD_GOLD
+      s.boost += DAILY_REWARD_BOOST
+      s.daily = { ...s.daily, goals: s.daily.goals.map(x => x.id === action.id ? { ...x, claimed: true } : x) }
+      pushToast(s, 'gift', `每日目标完成：+${DAILY_REWARD_GOLD} 金，加速卡 ×${DAILY_REWARD_BOOST}`, 'good')
+      pushLog(s, `完成每日目标「${g.label}」：+${DAILY_REWARD_GOLD} 金，加速卡 ×${DAILY_REWARD_BOOST}`, 'good')
+      return s
+    }
+
+    case 'AD_REWARD': {
+      const s: GameState = { ...state, toasts: [...state.toasts] }
+      s.money += action.amount
+      pushToast(s, 'coin', `看广告得奖励 +${action.amount} 金`, 'good')
+      pushLog(s, `看广告奖励 ${action.amount} 金`, 'good')
+      return s
+    }
+
+    case 'AD_REFRESH_MARKET': {
+      const s: GameState = {
+        ...state,
+        markets: evolveMarkets(state.markets),
+        marketTimer: MARKET_CYCLE,
+        toasts: [...state.toasts],
+      }
+      pushToast(s, 'gift', '看广告：市场行情已刷新', 'good')
+      pushLog(s, '看广告刷新市场行情', 'good')
+      return s
+    }
+
+    case 'AD_ACCEL_VOYAGE': {
+      const s: GameState = { ...state, toasts: [...state.toasts] }
+      if (!s.voyage) { pushToast(s, 'ban', '当前没有航行任务', 'bad'); return s }
+      const v = s.voyage
+      const remain = Math.max(0, v.duration - v.elapsed)
+      s.voyage = { ...v, elapsed: v.elapsed + remain * 0.5 }
+      pushToast(s, 'bolt', '看广告：剩余航程减半', 'good')
+      pushLog(s, '看广告加速航行（剩余航程减半）', 'good')
       return s
     }
 

@@ -27,7 +27,10 @@ $fs = [System.IO.File]::Open($outPath, [System.IO.FileMode]::CreateNew)
 try {
     $zip = New-Object System.IO.Compression.ZipArchive($fs, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
-        Get-ChildItem $root -Recurse -File | Sort-Object FullName | ForEach-Object {
+        Get-ChildItem $root -Recurse -File | Where-Object {
+            # 小红书白名单禁止 mp3/音频，打包时剔除 audio/（游戏会自动回落合成器 BGM）
+            $_.FullName.Substring($root.Length + 1).Replace('\', '/') -notmatch '^audio/'
+        } | Sort-Object FullName | ForEach-Object {
             $relative = $_.FullName.Substring($root.Length + 1).Replace('\', '/')
             $entry = $zip.CreateEntry($relative, [System.IO.Compression.CompressionLevel]::Optimal)
             $stream = $entry.Open()

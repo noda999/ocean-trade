@@ -1,7 +1,7 @@
 {
   "name": "figma-make-app",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.7.0",
   "type": "module",
   "engines": {
     "node": "22.x"
@@ -10,6 +10,8 @@
     "dev": "vite",
     "build": "vite build",
     "build:xhs": "vite build --mode xhs --base=./ --outDir dist-xhs",
+    "build:taptap": "vite build --mode taptap --base=./ --outDir dist-taptap",
+    "pack:taptap": "npm run build:taptap && python scripts/pack-taptap.py",
     "build:all": "npm run build && npm run build:xhs",
     "pack:xhs": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pack-xhs.ps1",
     "pack:all": "npm run build:all && npm run pack:xhs",

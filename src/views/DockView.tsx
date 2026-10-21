@@ -9,14 +9,16 @@ import TavernView from './TavernView'
 import WorkshopView from './WorkshopView'
 import HallView from './HallView'
 import AdmiraltyView from './AdmiraltyView'
+import EstateView from './EstateView'
 
-/** 港口内的 5 个设施分区：船坞 / 酒馆 / 工坊 / 市政厅 / 海事署 */
-const SECTIONS: { id: 'ships' | 'tavern' | 'workshop' | 'hall' | 'navy'; icon: GlyphName; label: string; hint: string }[] = [
+/** 港口内的 6 个设施分区：船坞 / 酒馆 / 工坊 / 市政厅 / 海事署 / 行馆 */
+const SECTIONS: { id: 'ships' | 'tavern' | 'workshop' | 'hall' | 'navy' | 'estate'; icon: GlyphName; label: string; hint: string }[] = [
   { id: 'ships', icon: 'anchor', label: '船坞', hint: '更快的船省时间，更大的舱赚更多，更高的加成提高利润率' },
-  { id: 'tavern', icon: 'beer', label: '酒馆', hint: '招募航海好手：永久加成 + 每人 3 段专属委托（去功勋页领取奖励）' },
+  { id: 'tavern', icon: 'beer', label: '酒馆', hint: '招募航海好手：永久加成 + 专属委托；「特训」与「送礼」养成船员，好感加深会解锁往事故事' },
   { id: 'workshop', icon: 'anvil', label: '工坊', hint: '船具永久生效，补给在海上事件里自动派上用场' },
   { id: 'hall', icon: 'hall', label: '市政厅', hint: '投资港口享永久折扣与分红，2 级起关税减半；委托板限期送货，报酬丰厚' },
   { id: 'navy', icon: 'navy', label: '海事署', hint: '接通缉令出击海盗领赏金；集齐藏宝图碎片挖掘深海秘藏' },
+  { id: 'estate', icon: 'city', label: '行馆', hint: '在每座港口置办宅邸：降交易税费、提买卖收益，宅邸按当地风土设计可收藏' },
 ]
 
 type SectionId = typeof SECTIONS[number]['id']
@@ -50,25 +52,28 @@ export default function DockView() {
         <div className="font-900 text-xl mb-2 inline-flex items-center gap-2" style={{ color: '#3d2b10' }}>
           <Glyph name={cur.icon} size={21} />{cur.label}
         </div>
-        {/* 设施切换：5 个分区，窄屏可横向滚动 */}
-        <div className="flex gap-0.5 p-1 rounded-xl mb-2 overflow-x-auto" style={{ background: '#efe2c8' }}>
+        {/* 设施切换：6 个分区，两排按钮 */}
+        <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-xl mb-2" style={{ background: '#efe2c8' }}>
           {SECTIONS.map(x => {
-            const badge = x.id === 'tavern' ? state.hiredCrew.length : x.id === 'workshop' ? state.equipOwned.length : 0
+            const badge = x.id === 'tavern' ? state.hiredCrew.length
+              : x.id === 'workshop' ? state.equipOwned.length
+              : x.id === 'estate' ? Object.values(state.houses).filter(lv => lv > 0).length
+              : 0
             const deliverable = x.id === 'hall' && deliverableCount > 0
             const active = section === x.id
             return (
               <button
                 key={x.id}
-                className={`${x.id}-toggle flex-shrink-0 text-xs font-800 px-2.5 py-1.5 rounded-lg inline-flex items-center gap-1`}
+                className={`${x.id}-toggle text-sm font-800 px-2 py-2 rounded-lg inline-flex items-center justify-center gap-1.5`}
                 style={{
                   background: active ? '#fff' : 'transparent',
                   color: active ? '#d97320' : '#a07030',
                 }}
                 onClick={() => setSection(x.id)}
               >
-                <Glyph name={x.icon} size={13} />{x.label}
+                <Glyph name={x.icon} size={20} />{x.label}
                 {deliverable ? (
-                  <span className="text-[9px] font-900 px-1.5 rounded-full" style={{ background: '#4cba6a', color: '#fff' }}>交付</span>
+                  <span className="text-[10px] font-900 px-1.5 rounded-full" style={{ background: '#4cba6a', color: '#fff' }}>交付</span>
                 ) : badge > 0 ? (
                   <span> {badge}</span>
                 ) : null}
@@ -85,6 +90,8 @@ export default function DockView() {
         {section === 'hall' && <HallView />}
 
         {section === 'navy' && <AdmiraltyView />}
+
+        {section === 'estate' && <EstateView />}
 
         {section === 'ships' && (<>
         {/* 当前座舰 */}

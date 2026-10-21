@@ -1,4 +1,4 @@
-import { CITY_BY_ID, GOOD_BY_ID, INVEST_LEVELS, ORDER_ACTIVE_MAX, SECRET_OF_CITY } from '../game/data'
+import { CITY_BY_ID, GOOD_BY_ID, INVEST_LEVELS, INVEST_PROJECTS, INVEST_VOICES, ORDER_ACTIVE_MAX, SECRET_OF_CITY } from '../game/data'
 import {
   activeOrders, boardOrders, investBonusOf, investLevelOf, orderDeliverable,
 } from '../game/state'
@@ -24,8 +24,8 @@ export default function HallView() {
   const lvl = investLevelOf(state, state.cityId)
   const bonus = investBonusOf(state, state.cityId)
   const maxed = lvl >= INVEST_LEVELS.length
-  const next = maxed ? null : INVEST_LEVELS[lvl]
-  const affordable = !!next && state.money >= next.cost
+  const projects = INVEST_PROJECTS[state.cityId] ?? []
+  const invested = state.invest[state.cityId] ?? {}
 
   const board = boardOrders(state)
   const active = activeOrders(state)
@@ -77,22 +77,56 @@ export default function HallView() {
           )}
         </div>
 
-        {maxed ? (
-          <div className="text-xs text-center py-2 rounded-xl" style={{ background: 'rgba(0,0,0,0.15)' }}>
+        {/* 港务官寄语（v1.7）：投资后按等级出现，满级是专属感谢词 */}
+        {(() => {
+          const voices = INVEST_VOICES[city.id]
+          if (!voices) return null
+          const said = maxed ? voices[2] : lvl > 0 ? voices[lvl - 1] : null
+          if (!said) return null
+          return (
+            <div className="text-xs italic leading-relaxed mb-3 px-2.5 py-2 rounded-xl" style={{ background: 'rgba(0,0,0,0.12)', color: 'rgba(255,255,255,0.95)' }}>
+              「{said}」
+            </div>
+          )
+        })()}
+
+        {/* 投资项目（v1.7）：3 个地区专属方向，可自由选择先投哪个 */}
+        <div className="flex flex-col gap-2">
+          {projects.map(p => {
+            const done = (invested[p.id] ?? 0) > 0
+            const can = !done && state.money >= p.cost
+            const eff = [p.buy ? `买入 -${p.buy}%` : '', p.sell ? `卖出 +${p.sell}%` : '', p.dividend ? `分红 ${p.dividend} 金` : ''].filter(Boolean).join(' · ')
+            return (
+              <div key={p.id} className="flex items-center gap-2 rounded-xl px-2.5 py-2" style={{ background: 'rgba(0,0,0,0.12)' }}>
+                <Glyph name={p.icon as any} size={18} color="#fff" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-900">{p.name}</div>
+                  <div className="text-[11px] opacity-85">{p.desc}</div>
+                  <div className="text-[10px] opacity-80">{eff}</div>
+                </div>
+                {done ? (
+                  <span className="text-xs font-900 px-2 py-1 rounded-lg flex-shrink-0" style={{ background: 'rgba(255,255,255,0.25)' }}>已投</span>
+                ) : (
+                  <button
+                    className="text-xs font-900 px-2 py-1.5 rounded-lg flex-shrink-0"
+                    style={{ background: 'white', color: '#d97320', opacity: can ? 1 : 0.55 }}
+                    disabled={!can}
+                    onClick={() => dispatch({ type: 'INVEST', projectId: p.id })}
+                  >
+                    {p.cost.toLocaleString()} 金
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {maxed && (
+          <div className="text-xs text-center py-2 rounded-xl mt-2" style={{ background: 'rgba(0,0,0,0.15)' }}>
             <span className="inline-flex items-center gap-1 justify-center">
-              <Glyph name="check" size={13} />本港投资已满级「{INVEST_LEVELS[INVEST_LEVELS.length - 1].title}」，感谢你的贡献
+              <Glyph name="check" size={13} />本港投资已满级「{INVEST_LEVELS[INVEST_LEVELS.length - 1].title}」，此港永远为你留一盏灯
             </span>
           </div>
-        ) : (
-          <button
-            className="btn-orange w-full py-2.5 text-sm font-900"
-            style={{ background: 'white', color: '#d97320', opacity: affordable ? 1 : 0.55 }}
-            onClick={() => dispatch({ type: 'INVEST' })}
-          >
-            <span className="inline-flex items-center gap-1.5 justify-center">
-              <Glyph name="coin" size={15} />投资成为「{next!.title}」 · {next!.cost.toLocaleString()} 金
-            </span>
-          </button>
         )}
       </div>
 
@@ -126,6 +160,11 @@ export default function HallView() {
                     报酬 <b style={{ color: '#4cba6a' }}>{o.reward.toLocaleString()} 金</b>
                     {' · '}剩余 <b style={{ color: left < 30 ? '#e05050' : '#8a6a40' }}>{timeLeft(left)}</b>
                   </div>
+                  {o.reason && (
+                    <div className="text-[11px] mt-1 leading-snug" style={{ color: '#b08a50', fontStyle: 'italic' }}>
+                      「{o.reason}」
+                    </div>
+                  )}
                 </div>
                 <button
                   className="btn-orange flex-shrink-0 px-3 py-2 text-xs font-900"
@@ -173,6 +212,11 @@ export default function HallView() {
                     货舱 {held}/{o.qty} · 送达得 <b style={{ color: '#4cba6a' }}>{o.reward.toLocaleString()} 金</b>
                     {' · '}剩余 <b style={{ color: left < 30 ? '#e05050' : '#8a6a40' }}>{timeLeft(left)}</b>
                   </div>
+                  {o.reason && (
+                    <div className="text-[11px] mt-1 leading-snug" style={{ color: '#b08a50', fontStyle: 'italic' }}>
+                      「{o.reason}」
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col gap-1.5 flex-shrink-0">
                   {deliverable && (

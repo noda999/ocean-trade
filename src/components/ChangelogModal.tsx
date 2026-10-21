@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Glyph, type GlyphName } from './Glyph'
 
 const STORAGE_KEY = 'ocean-trade-changelog-seen'
-const CURRENT_VERSION = 'v1.5.0'
+const CURRENT_VERSION = 'v1.7.0'
 
 interface ChangeItem {
   icon: GlyphName
@@ -11,9 +11,9 @@ interface ChangeItem {
 }
 
 const ITEMS: ChangeItem[] = [
-  { icon: 'book', title: '三大图鉴上线', desc: '商品图鉴（83 种货的产地 / 销地推荐航线）、城市图鉴（每座港换成招牌特产插画）、海上事件图鉴（20 种奇遇集齐解锁「命运弄人」）全部入册，没见过的先留 ???，是收藏党的长线目标。' },
-  { icon: 'trophy', title: '功勋页卡片化折叠', desc: '传奇功勋、船员委托、贸易成就三大长列表改为可点开的卡片式折叠栏，每张都带图标、计数与进度条，默认收起——页面清爽，想看哪块点哪块。' },
-  { icon: 'horn', title: '背景音乐 BGM', desc: '首次操作后自动播放程序化合成的大航海轻音乐（海浪 + 古筝 / 乌德拨弦 + 笛 + 弦乐铺底，中东 Hijaz 异域音阶 × 中国五声），零音频文件。可在「设置」里开关并调音量。' },
+  { icon: 'beer', title: '船员能上课、能送礼了', desc: '8 门课自由分配 10 级；按性格挑礼物，送对涨好感、送错会跌，还能解锁往事。' },
+  { icon: 'hall', title: '每港 3 个投资项目', desc: '进货折扣、卖价加成、周期分红任选，投满关税全免。' },
+  { icon: 'city', title: '宅邸与体验优化', desc: '23 港可置宅加买卖加成；数值更紧凑，修复显示与存档兼容问题。' },
 ]
 
 interface Props {
@@ -84,10 +84,10 @@ export default function ChangelogModal({ forceOpen = false, onClose }: Props) {
             <Glyph name="sparkles" size={28} color="#3d2b10" />
             <div>
               <div className="font-900 text-lg" style={{ color: '#3d2b10' }}>
-                新版本上线
+                本次更新
               </div>
               <div className="text-xs font-700" style={{ color: 'rgba(61,43,16,0.75)' }}>
-                {CURRENT_VERSION} · 船坞界面精简 · 商品图鉴补全 · 海上事件图鉴
+                {CURRENT_VERSION} · 船员养成 · 港口投资 · 宅邸
               </div>
             </div>
           </div>

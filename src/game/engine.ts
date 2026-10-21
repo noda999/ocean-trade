@@ -154,7 +154,7 @@ export function sellPrice(good: Good, cm: CityMarket, shipBonus: number): number
 // ── 港口商情（v1.3.0）：丰产 / 抢购 / 封锁 ────────────────────────────────────
 
 export interface CityEvent {
-  kind: 'boom' | 'shortage' | 'blockade'
+  kind: 'boom' | 'shortage' | 'blockade' | 'festival'
   /** 受影响的商品（封锁无目标商品，为空串） */
   goodId: string
   /** 结束时刻（游戏时钟秒） */

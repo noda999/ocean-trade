@@ -322,7 +322,7 @@ class AudioManager {
     watch = window.setTimeout(onFail, 2000)
     try {
       ctx.decodeAudioData(
-        bin.buffer.slice(0),
+        bin.buffer.slice(0) as ArrayBuffer,
         (audioBuf) => {
           if (settled) return
           settled = true

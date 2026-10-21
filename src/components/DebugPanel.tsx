@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, type CSSProperties } from 'react'
-import { CITIES, CREW, CREW_QUESTS, EQUIPS, GOODS, LEGENDS, SHIPS, SUPPLIES } from '../game/data'
+import { CITIES, CREW, CREW_QUESTS, EQUIPS, GOODS, INVEST_PROJECTS, LEGENDS, SHIPS, SUPPLIES } from '../game/data'
 import { crewQuestClaimable, legendClaimable, type GameState } from '../game/state'
 import { useGame } from '../game/store'
 import { Glyph } from './Glyph'
@@ -65,8 +65,10 @@ export default function DebugPanel() {
   }
 
   function maxInvest() {
-    const invest: Record<string, number> = { ...state.invest }
-    for (const c of CITIES) invest[c.id] = 3
+    const invest: Record<string, Record<string, number>> = {}
+    for (const c of CITIES) {
+      invest[c.id] = Object.fromEntries((INVEST_PROJECTS[c.id] ?? []).map(d => [d.id, 1]))
+    }
     patch({ invest })
   }
 

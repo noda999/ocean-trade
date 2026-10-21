@@ -341,6 +341,39 @@ export const CITY_BY_ID: Record<string, City> = Object.fromEntries(
   CITIES.map(c => [c.id, c]),
 )
 
+// ── 各地宅邸（v1.6）：每城一处，3 级，按地区特色设计 —— 买房为长期金币消耗口 ──
+export const HOUSE_STAGE_NAMES = ['小宅', '大宅', '府邸'] as const
+/** 每级房屋给该城 buy / sell 价格加成各 +% */
+export const HOUSE_BONUS_PER_LEVEL = 1.2
+/** 购房（Lv0→1）与升 2 / 3 级的花费（统一阶梯，城市富庶差异靠加成之外的收藏体验体现） */
+export const HOUSE_COSTS: [number, number, number] = [100_000, 300_000, 800_000]
+/** 每城一处宅邸：base = 特色宅名（会自动拼接「·小宅/大宅/府邸」），desc = 地区特色描述 */
+export const HOUSES: Record<string, { base: string; desc: string }> = {
+  norway: { base: '峡湾木屋', desc: '深峡湾畔的云杉木屋，壁炉与毛皮抵御漫长极夜' },
+  england: { base: '雾都石邸', desc: '红砖灰瓦的伦敦宅，壁炉旁陈着陈年威士忌' },
+  france: { base: '塞纳酒庄', desc: '葡萄园环抱的石砌酒庄，酒窖藏满勃艮第' },
+  egypt: { base: '尼罗庄园', desc: '河畔椰枣荫下的土黄宅院，粮仓常年满囤' },
+  persia: { base: '丝路庭院', desc: '拱廊环绕的波斯庭院，玫瑰与地毯堆满厅堂' },
+  arabia: { base: '沙漠商栈', desc: '夯土与椰枣木的商栈，珍珠藏于暗格' },
+  india: { base: '香料行馆', desc: '红砂岩拱门行馆，空气里浮着香料与靛蓝' },
+  srilanka: { base: '宝石凉亭', desc: '印度洋椰影下的凉亭，宝石匣流光四溢' },
+  china: { base: '飞檐府邸', desc: '朱漆飞檐的临海府邸，瓷器与丝绸堆满回廊' },
+  japan: { base: '数寄屋', desc: '枯山水庭院中的茶室木屋，刀与漆器悬于壁' },
+  malacca: { base: '海峡商馆', desc: '骑楼连排的商馆，万国商旗在门前林立' },
+  java: { base: '火山木楼', desc: '火山灰沃土上的高脚木楼，咖啡香漫整院' },
+  africa: { base: '黄金海岸别墅', desc: '海岬崖上的白石别墅，宝石箱满盈' },
+  aztec: { base: '石砌神庙宅', desc: '金字塔旁的石砌宅院，白银暗藏于祭坛下' },
+  inca: { base: '云中石宫', desc: '安第斯山巅的巨石宅宫，黄金点缀梁柱' },
+  spain: { base: '橄榄庄园', desc: '安达卢西亚的庄园，橄榄园邻着小小斗牛场' },
+  netherlands: { base: '风车宅', desc: '运河畔的砖砌窄屋，风车与郁金香为邻' },
+  oman: { base: '乳香驿站', desc: '海湾白墙驿站，乳香与珍珠在夜里散香' },
+  borneo: { base: '雨林高脚屋', desc: '雨林深处的红木高脚屋，燕窝悬于梁下' },
+  madagascar: { base: '香草椰屋', desc: '香草丛中的椰叶小屋，狐猴攀着屋檐' },
+  panama: { base: '两洋岗哨宅', desc: '地峡小丘上的岗哨宅，烟草在梁间熏香' },
+  siam: { base: '湄南水榭', desc: '浮于河上的柚木水榭，香料与蔗糖随波飘香' },
+  italy: { base: '运河商馆', desc: '运河边的拱窗商馆，贡多拉泊在门前' },
+}
+
 // ── 隐藏特产（v1.4.0）：本港投资 ≥ 1 级解锁挂牌与购买；集中注入，避免散改 23 个城市定义 ──
 
 /** 每座城市的隐藏特产（进 exports，产地价便宜） */
@@ -552,6 +585,163 @@ export const INVEST_LEVELS: InvestLevelDef[] = [
   { cost: 160_000, buy: 4, sell: 4, dividend: 1_100, title: '荣誉市民' },
 ]
 
+/** 各港口港务官/商会的寄语（v1.7）：按当前投资等级显示，满级时是专属感谢词 */
+export const INVEST_VOICES: Record<string, [string, string, string]> = {
+  norway:      ['卑尔根的码头认钱也认人，你既入了股，往后木料先紧着你挑。', '汉萨的老账房说了，你这名字可以记进商会的铜册了。', '北海的风冷，可挪威的港口记得每一个守信的人。这面铜牌，挂你船上。'],
+  england:     ['皇家交易所的地板上，给你留了个位置。', '东印度公司的先生们开始打听你的船期了——这是好事。', '女王陛下的海关见了你的旗，会先敬礼再验货。英格兰认你这位朋友。'],
+  france:      ['波尔多的酒窖里，永远为你留着一桶。', '商会的晚宴上，你的座位已经排到了公爵那桌。', '法兰西的港口向懂生活的人敞开。这枚徽章，配你的船正合适。'],
+  egypt:       ['亚历山大的灯塔照着你进港，账房先生会把数目算得公道。', '帕夏的书记官已把你的名字写进港册，往后少些盘查。', '尼罗河的粮船靠岸时，第一个卸货的总是你的船。埃及记得恩人。'],
+  persia:      ['设拉子的玫瑰园，为你多开了一扇门。', '商队的驼铃里有你的名号了，沙漠里的路会好走些。', '波斯的商人不轻易交朋友，但对你，愿以地毯上的花纹起誓。'],
+  arabia:      ['马斯喀特的市场里，你的话有人听了。', '采珠人的船队愿意跟着你走——他们信你。', '沙漠的待客之道：客人住三日便是家人。你已是我们的人。'],
+  india:       ['苏拉特的码头，你的货先过秤，价钱好商量。', '商会的账簿上，你的那一页写得比谁都体面。', '恒河的水洗过多少商人的誓，莫卧儿记得守约的人。你算一个。'],
+  srilanka:    ['科伦坡的宝石街，愿意让你挑头一水的好货。', '肉桂园的香气里，你的名字已经被念叨熟了。', '锡兰的宝石匠说，好石头配好眼光。这枚蓝宝，只给你看。'],
+  china:       ['泉州的市舶司给你留了文牒，报关少些周折。', '十三行的行商愿意与你合股，这是难得的体面。', '天朝的港口重信义。你既以诚来，便以礼待——这方印，收好。'],
+  japan:       ['长崎的奉行所给你备了朱印状，入港不必候潮。', '堺市的商人开始按你的船期备货了，这是敬重。', '武士重一诺。你守了约，日本便记住了你。这柄刀，赠知音。'],
+  malacca:     ['马六甲的关吏见你的货单，会少问两句。', '香料仓的钥匙，有一把配了你的名字。', '海峡的风记得每一艘守信用的船。马六甲以香料敬你这位朋友。'],
+  java:        ['巴达维亚的仓库给你留了通风最好的位置。', '香料园的管事说，你的船一到就先装货。', '爪哇的火山与海都认了你的旗。这一袋豆子，是新收的头一茬。'],
+  africa:      ['好望角的总督府给你留了茶位，路过就来坐坐。', '东印度公司的账房开始为你留舱位了，风暴季也不误。', '两洋交汇之处，风浪最烈，朋友最真。好望角认你这位老主顾。'],
+  aztec:       ['大市场的摊主们认得你的船旗了，可可豆先紧着你。', '祭司说你的到来是好兆头，市场里给你留了最好的摊位。', '可可与皮革换来的情谊，比金子沉。阿兹特克不会忘。'],
+  inca:        ['库斯科的驿道为你多备了一队脚夫。', '山城的织工愿意先给你看新染的羊驼毛。', '安第斯的山风高，情谊更高。这枚图米，是我们的心意。'],
+  spain:       ['塞维利亚的交易所给你留了位置，金银船期先告诉你。', '船坞的工匠会优先修你的船，这是股东的体面。', '西班牙的日头烈，待朋友更烈。这杯酒，敬你的信义。'],
+  netherlands: ['阿姆斯特丹的交易所里，你的名字能赊到好价。', '郁金香拍卖行的好货，会先给你留一束。', '荷兰人算账精，可对守信的朋友从不含糊。这枚徽章，值一船信任。'],
+  oman:        ['马斯喀特的港口给你备了仓，乳香先紧着你装。', '航海世家的老船长们肯与你同席了，这是敬意。', '阿曼的帆影曾布满印度洋。如今，你的船也算其中一道。'],
+  borneo:      ['汶莱的河口码头，你的船可以直接靠岸。', '燕窝洞的采手愿意先给你留头一水的货。', '婆罗洲的雨林雨多，人情浓。你的事，就是汶莱的事。'],
+  madagascar:  ['塔马塔夫的集市给你留了棚位，香草随你挑。', '庄园主们的账本上，你的名字被圈了红。', '这片岛的香草与朗姆，愿为懂它的人多香一分。敬你。'],
+  panama:      ['巴拿马的驿道给你留了骡队，货物过境快些。', '地峡的商栈愿意为你加宽一条道。', '两洋之间的路，认的是可靠的人。你走通了这条路，也就走进了巴拿马。'],
+  siam:        ['大城的码头给你留了泊位，柚木先给你量。', '皇家的商船队愿意与你同行，这是难得的信任。', '湄南河的水流过多少商船，暹罗记得每一艘守约的。你是其一。'],
+  italy:       ['里亚托桥的商人们，开始用你的名号谈价了。', '总督府的晚宴，你的席位在临窗那一侧。', '威尼斯的商人不轻易许诺，可一旦许诺，便以金币起誓。你已得了我们的誓。'],
+}
+
+/** 单个投资项目（v1.7）：每个港口 3 个地区专属方向，效果侧重不同 */
+export interface InvestProjectDef {
+  id: string
+  name: string
+  icon: string
+  desc: string
+  cost: number
+  buy: number
+  sell: number
+  dividend: number
+}
+/** 各港口投资方向（v1.7）：可自由选择先投哪个，而非单一等级 */
+export const INVEST_PROJECTS: Record<string, InvestProjectDef[]> = {
+  norway: [
+    { id: 'p1', name: '卑尔根木料仓', icon: 'crate', desc: '木材毛皮的吞吐全握在手里', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '汉萨商栈合股', icon: 'purse', desc: '北海上最好的货先过你的手', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '北海航路基金', icon: 'bank', desc: '船队每趟归来都给你分一份', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  england: [
+    { id: 'p1', name: '皇家交易所席位', icon: 'exchange', desc: '在伦敦的地板上占一个名号', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '东印度公司股份', icon: 'purse', desc: '远东的船期先送到你案头', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '伦敦保险行', icon: 'bank', desc: '每艘进出港的船都有你一份保金', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  france: [
+    { id: 'p1', name: '波尔多酒窖', icon: 'bottle', desc: '一桶好酒就是一张通行证', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '里昂丝绸行', icon: 'purse', desc: '贵族们的料子由你定价', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '巴黎香料基金', icon: 'bank', desc: '宫廷的香气里藏着分红', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  spain: [
+    { id: 'p1', name: '塞维利亚船坞', icon: 'anchor', desc: '修船优先，出海更快', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '美洲金银航线', icon: 'coin', desc: '新大陆的银子先过你的舱', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '王室债劵', icon: 'bank', desc: '国王借钱，你来收息', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  netherlands: [
+    { id: 'p1', name: '阿姆斯特丹仓栈', icon: 'crate', desc: '全欧洲的货都在这儿转手', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '郁金香拍卖行', icon: 'flower', desc: '一朵花也能卖出天价', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '东印度联营基金', icon: 'bank', desc: '低地国家的钱生钱', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  italy: [
+    { id: 'p1', name: '里亚托商铺', icon: 'market', desc: '桥头的铺面租金稳当', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '玻璃工坊合股', icon: 'gem', desc: '穆拉诺的玻璃，供不应求', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '总督府债劵', icon: 'bank', desc: '共和国从不赖账', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  egypt: [
+    { id: 'p1', name: '亚历山大粮仓', icon: 'wheat', desc: '尼罗河的粮食由你周转', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '尼罗河香料行', icon: 'purse', desc: '东西方的香气在此换手', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '帕夏航运基金', icon: 'bank', desc: '粮船每次靠岸都分你一份', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  persia: [
+    { id: 'p1', name: '设拉子玫瑰园', icon: 'flower', desc: '玫瑰水与藏红花的源头', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '地毯商队', icon: 'purse', desc: '丝路的花纹卖到欧洲', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '丝路基金', icon: 'bank', desc: '驼铃一响，银子就来', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  arabia: [
+    { id: 'p1', name: '马斯喀特珍珠行', icon: 'gem', desc: '采珠人的第一手好货', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '咖啡商栈', icon: 'purse', desc: '摩卡的味道你说了算', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '采珠船队基金', icon: 'bank', desc: '每季的珍珠都有你一份', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  india: [
+    { id: 'p1', name: '苏拉特棉花仓', icon: 'crate', desc: '棉布的源头价由你开', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '香料批发行', icon: 'purse', desc: '胡椒与靛蓝的定价权', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '莫卧儿商队基金', icon: 'bank', desc: '帝国的商道为你生息', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  srilanka: [
+    { id: 'p1', name: '科伦坡宝石行', icon: 'gem', desc: '宝石街的好货先给你挑', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '肉桂园', icon: 'leaf', desc: '锡兰肉桂只此一家', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '宝石匠行会基金', icon: 'bank', desc: '每一刀打磨都有你的份', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  china: [
+    { id: 'p1', name: '泉州码头仓', icon: 'crate', desc: '丝绸与瓷器的出海口', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '十三行商号', icon: 'purse', desc: '天朝的货由你经手', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '市舶司基金', icon: 'bank', desc: '海贸的税银也分红', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  japan: [
+    { id: 'p1', name: '长崎唐馆', icon: 'crate', desc: '唯一的通商窗口由你打理', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '堺市漆器行', icon: 'purse', desc: '漆器与刀剑的行情', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '朱印船基金', icon: 'bank', desc: '官许的船队稳赚不赔', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  malacca: [
+    { id: 'p1', name: '香料仓', icon: 'crate', desc: '丁香与豆蔻的集散地', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '海峡商栈', icon: 'purse', desc: '过海峡的船都得问你价', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '苏丹航运基金', icon: 'bank', desc: '海峡的过路钱分成', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  java: [
+    { id: 'p1', name: '巴达维亚咖啡园', icon: 'leaf', desc: '爪哇豆的第一茬归你', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '糖坊', icon: 'purse', desc: '蔗糖的甜头你尝最大一口', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '香料园基金', icon: 'bank', desc: '火山灰养出的好收成', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  africa: [
+    { id: 'p1', name: '好望角补给站', icon: 'anchor', desc: '过路船都得在此补水修帆', cost: 25_000, buy: 4, sell: 4, dividend: 0 },
+    { id: 'p2', name: '象牙黄金贸易行', icon: 'gem', desc: '两洋之间的硬通货', cost: 70_000, buy: 2, sell: 6, dividend: 0 },
+    { id: 'p3', name: '东印度航线基金', icon: 'bank', desc: '风暴季也有人替你赚钱', cost: 160_000, buy: 2, sell: 2, dividend: 1_400 },
+  ],
+  aztec: [
+    { id: 'p1', name: '可可园', icon: 'leaf', desc: '苦豆子成了硬通货', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '皮革市集', icon: 'purse', desc: '大市场的皮货由你验', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '大市场基金', icon: 'bank', desc: '摊主的租金细水长流', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  inca: [
+    { id: 'p1', name: '羊驼牧场', icon: 'leaf', desc: '云中之城的柔软毛料', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '山城织坊', icon: 'purse', desc: '织工的染布卖给谁由你说', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '驿道基金', icon: 'bank', desc: '每队脚夫都替你走一段', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  oman: [
+    { id: 'p1', name: '乳香仓', icon: 'crate', desc: '神庙与宫廷都要的香', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '铜器商栈', icon: 'purse', desc: '印度洋的铜价看你的脸色', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '印度洋船队基金', icon: 'bank', desc: '老船长的帆影里有你的份', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  borneo: [
+    { id: 'p1', name: '燕窝洞', icon: 'crate', desc: '头一水的燕窝归你', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '海贝集市', icon: 'purse', desc: '雨林与海货在此换手', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '河口商栈基金', icon: 'bank', desc: '汶莱的事就是你的事', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  madagascar: [
+    { id: 'p1', name: '香草园', icon: 'leaf', desc: '香草荚的头一茬', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '朗姆酒坊', icon: 'bottle', desc: '甘蔗烧出的烈性利润', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '庄园联营基金', icon: 'bank', desc: '香草与朗姆都替你生息', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  panama: [
+    { id: 'p1', name: '地峡驿道', icon: 'truck', desc: '两洋之间的货由你搬', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '烟草商栈', icon: 'purse', desc: '烟叶的行情你定调', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '两洋转运基金', icon: 'bank', desc: '骡队每趟都有你的份', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+  siam: [
+    { id: 'p1', name: '柚木林', icon: 'crate', desc: '最好的船材出自你手', cost: 25_000, buy: 8, sell: 0, dividend: 0 },
+    { id: 'p2', name: '香料行', icon: 'purse', desc: '暹罗的香卖遍东方', cost: 70_000, buy: 0, sell: 8, dividend: 0 },
+    { id: 'p3', name: '皇家商船基金', icon: 'bank', desc: '皇家的船队与你同利', cost: 160_000, buy: 2, sell: 2, dividend: 900 },
+  ],
+}
+
 /** 限时委托：刷新周期 / 委托板容量 / 同时最多接单数 */
 export const ORDER_CYCLE = 40
 export const ORDER_BOARD_MAX = 6
@@ -595,7 +785,7 @@ export const PIRATE_BY_ID: Record<string, PirateDef> = Object.fromEntries(
 export const BOUNTY_CYCLE = 75
 export const BOUNTY_TTL = 260
 /** 赏金 = strength × 随机系数 */
-export const BOUNTY_RATE: [number, number] = [100, 150]
+export const BOUNTY_RATE: [number, number] = [90, 130]
 
 /** 出击战力 = 基础 + 船级×系数 + 舰炮组库存×系数 */
 export const RAID_BASE_POWER = 15
@@ -604,8 +794,8 @@ export const RAID_CANNON_POWER = 12
 
 /** 深海秘藏：集齐 4 块碎片后可在目标港挖掘 */
 export const MAP_FRAGS_NEED = 4
-export const DIG_BASE_REWARD = 30_000
-export const DIG_STEP_REWARD = 15_000
+export const DIG_BASE_REWARD = 22_000
+export const DIG_STEP_REWARD = 10_000
 export const DIG_RELIC_QTY = 4
 
 /** 银行：每市场周期计息比例 / 信用额度（资产×比例，上下限）/ 破产清算线（债务 > 资产×比例） */
@@ -647,7 +837,69 @@ export interface CrewMember {
   look: CrewLook
   /** 卡片主色 */
   color: string
+  /** 可进修的课程 id（见 CREW_COURSES），按性格定制 */
+  courses: string[]
+  /** 偏好的礼物标签（见 CREW_GIFTS.tags）：送中则好感大涨 */
+  likes: string[]
+  /** 讨厌的礼物标签：送中则好感下跌 */
+  dislikes: string[]
 }
+
+/** 船员培训（v1.6）：长期消耗金币的成长线 —— 每级给航速 / 利润加成各 +2%，封顶 10 级 */
+export const CREW_MAX_LEVEL = 10
+export const CREW_TRAIN_BASE = 4_000
+export const CREW_TRAIN_RATE = 2.4
+export const CREW_TRAIN_BONUS = 2
+/** 船员送礼（v1.6）：好感养成，金币消耗口 */
+export const CREW_GIFT_COST = 15_000
+export const CREW_FAVOR_MAX = 100
+/** 每满 CREW_FAVOR_BONUS_STEP 点好感，额外 +CREW_FAVOR_BONUS_PER% 利润加成 */
+export const CREW_FAVOR_BONUS_STEP = 12
+export const CREW_FAVOR_BONUS_PER = 1
+
+/** 训练课程（v1.7）：每名船员按性格只能修部分课程；总养成等级封顶 CREW_MAX_LEVEL，在所选课程间自由分配 */
+export interface CrewCourseDef {
+  id: string
+  name: string
+  icon: string
+  desc: string
+  /** 每级给航速 / 利润加成 % */
+  speed: number
+  trade: number
+}
+export const CREW_COURSES: Record<string, CrewCourseDef> = {
+  nav:   { id: 'nav',   name: '航海术', icon: 'compass',  desc: '熟记洋流与航线，航速提升',     speed: 1.8, trade: 0 },
+  trade: { id: 'trade', name: '经商课', icon: 'purse',    desc: '讨价还价的门道，利润提升',     speed: 0,   trade: 1.8 },
+  gun:   { id: 'gun',   name: '炮术',   icon: 'target',   desc: '操炮与威慑，利润微增',         speed: 0.4, trade: 1.2 },
+  charm: { id: 'charm', name: '交际术', icon: 'cheers',   desc: '应酬与周旋，利润提升',         speed: 0,   trade: 1.4 },
+  scout: { id: 'scout', name: '瞭望术', icon: 'spyglass', desc: '识天辨货，航速与利润兼得',     speed: 1.0, trade: 0.6 },
+  cook:  { id: 'cook',  name: '膳食',   icon: 'flame',    desc: '一手好菜稳住人心，利润微增',   speed: 0,   trade: 1.0 },
+  medic: { id: 'medic', name: '医道',   icon: 'bottle',   desc: '草药与急救，航速利润兼得',     speed: 0.6, trade: 0.6 },
+  lore:  { id: 'lore',  name: '海图考', icon: 'book',     desc: '考据海图秘闻，航速利润兼得',   speed: 0.8, trade: 0.8 },
+}
+
+/** 礼物（v1.7）：用金币购买后送给船员；契合其偏好则好感大涨，踩雷则下跌 */
+export interface CrewGiftDef {
+  id: string
+  name: string
+  cost: number
+  tags: string[]
+  desc: string
+}
+export const CREW_GIFTS: CrewGiftDef[] = [
+  { id: 'rum',     name: '陈年朗姆',   cost: 12_000, tags: ['drink'],     desc: '海盗与老水手的最爱' },
+  { id: 'blade',   name: '镶宝石短刀', cost: 26_000, tags: ['weapon'],   desc: '锋利又有面子' },
+  { id: 'silk',    name: '江南丝绸',   cost: 18_000, tags: ['luxury'],   desc: '柔软华贵' },
+  { id: 'gem',     name: '异色宝石',   cost: 30_000, tags: ['gem'],      desc: '一眼辨得出成色' },
+  { id: 'chart',   name: '手绘海图',   cost: 16_000, tags: ['nav'],      desc: '标注了隐秘航线' },
+  { id: 'spice',   name: '珍稀香料',   cost: 14_000, tags: ['spice'],    desc: '远处港口的硬通货' },
+  { id: 'lute',    name: '鲁特琴',     cost: 15_000, tags: ['music'],    desc: '甲板上的消遣' },
+  { id: 'book',    name: '绝版古籍',   cost: 20_000, tags: ['book'],     desc: '记载航海秘闻' },
+  { id: 'tobacco', name: '上等烟叶',   cost: 10_000, tags: ['smoke'],    desc: '饭后一袋最惬意' },
+  { id: 'medal',   name: '荣誉勋章',   cost: 22_000, tags: ['honor'],    desc: '象征英勇与忠义' },
+  { id: 'perfume', name: '远东香水',   cost: 19_000, tags: ['luxury'],   desc: '香气撩人' },
+  { id: 'herb',    name: '名贵草药',   cost: 13_000, tags: ['medicine'], desc: '调理身子' },
+]
 
 /** 18 位可雇佣的航海好手，散落在世界各港 */
 export const CREW: CrewMember[] = [
@@ -656,72 +908,108 @@ export const CREW: CrewMember[] = [
     desc: '红旗帮当家，海图过目不忘，海盗见了都绕道',
     color: '#d94141',
     look: { skin: '#ffd9b3', hair: '#1a1a1a', hairStyle: 'long', hat: 'bandana', hatColor: '#d94141', accessory: 'earring' },
+    courses: ['nav', 'trade', 'charm'],
+    likes: ['honor', 'luxury', 'weapon'],
+    dislikes: ['drink', 'smoke'],
   },
   {
     id: 'c_mary', name: '玛丽·雷德', role: '航海家', cityId: 'england', cost: 12_000, speed: 0, trade: 8,
     desc: '曾是私掠船长，讨价还价从没输过',
     color: '#c1452b',
     look: { skin: '#ffd9b3', hair: '#c1452b', hairStyle: 'long', hat: 'tricorn', hatColor: '#3a2d20', hatColor2: '#241b13', accessory: 'eyepatch' },
+    courses: ['trade', 'charm', 'gun'],
+    likes: ['gem', 'book', 'weapon'],
+    dislikes: ['luxury', 'smoke'],
   },
   {
     id: 'c_sinbad', name: '辛巴达', role: '航海家', cityId: 'arabia', cost: 10_000, speed: 8, trade: 0,
     desc: '七次远航的老船长，总能抢在风暴前进港',
     color: '#c9a24b',
     look: { skin: '#e0a878', hair: '#201510', hairStyle: 'short', hat: 'turban', hatColor: '#efe3c2', hatColor2: '#f8f0d8', beardStyle: 'full', beardColor: '#201510' },
+    courses: ['nav', 'lore', 'scout'],
+    likes: ['gem', 'book', 'drink'],
+    dislikes: ['luxury'],
   },
   {
     id: 'c_zhenghe', name: '郑和', role: '大航海家', cityId: 'malacca', cost: 30_000, speed: 10, trade: 6,
     desc: '七下西洋的舰队总帅，宝船队的传奇',
     color: '#f0a83c',
     look: { skin: '#ffd9b3', hair: '#1a1a1a', hairStyle: 'bun', hat: 'none', hatColor: '#f0a83c' },
+    courses: ['nav', 'lore', 'trade'],
+    likes: ['book', 'gem', 'luxury'],
+    dislikes: ['drink'],
   },
   {
     id: 'c_raja', name: '拉吉·辛', role: '水手长', cityId: 'india', cost: 6_000, speed: 0, trade: 4,
     desc: '装卸又快又稳，压舱货也能卖出好价钱',
     color: '#4c9e5f',
     look: { skin: '#b57a4a', hair: '#141414', hairStyle: 'short', hat: 'turban', hatColor: '#4c9e5f', hatColor2: '#7cc08d', accessory: 'earring' },
+    courses: ['trade', 'medic', 'cook'],
+    likes: ['spice', 'medicine'],
+    dislikes: ['weapon', 'honor'],
   },
   {
     id: 'c_kotaro', name: '小太郎', role: '水手', cityId: 'japan', cost: 5_000, speed: 5, trade: 0,
     desc: '桅杆上蹿下跳，收帆张帆只要一半时间',
     color: '#4a6fa5',
     look: { skin: '#ffd9b3', hair: '#141414', hairStyle: 'short', hat: 'bandana', hatColor: '#4a6fa5' },
+    courses: ['nav', 'scout', 'gun'],
+    likes: ['weapon', 'drink'],
+    dislikes: ['luxury'],
   },
   {
     id: 'c_john', name: '老约翰', role: '老水手', cityId: 'norway', cost: 4_000, speed: 4, trade: 0,
     desc: '在北海漂了四十年，闭着眼都能认出洋流',
     color: '#2e4057',
     look: { skin: '#ffd9b3', hair: '#e8e8e8', hairStyle: 'bald', hat: 'tricorn', hatColor: '#2e4057', hatColor2: '#1f2d3d', beardStyle: 'full', beardColor: '#e8e8e8' },
+    courses: ['nav', 'medic'],
+    likes: ['drink', 'smoke'],
+    dislikes: ['luxury', 'perfume'],
   },
   {
     id: 'c_pierre', name: '皮埃尔', role: '大厨', cityId: 'france', cost: 5_500, speed: 0, trade: 5,
     desc: '一手好炖菜让港口官员心情大好，税费都少了',
     color: '#9b6ee0',
     look: { skin: '#ffd9b3', hair: '#6b4a2f', hairStyle: 'short', hat: 'chef', hatColor: '#9b6ee0', beardStyle: 'mustache', beardColor: '#6b4a2f' },
+    courses: ['cook', 'charm', 'medic'],
+    likes: ['spice', 'luxury', 'drink'],
+    dislikes: ['weapon'],
   },
   {
     id: 'c_diaz', name: '迪亚士', role: '航海家', cityId: 'spain', cost: 8_000, speed: 6, trade: 0,
     desc: '绕过好望角的狠人，最懂怎么走顺风航线',
     color: '#6b2737',
     look: { skin: '#e8b88a', hair: '#1d1710', hairStyle: 'short', hat: 'tricorn', hatColor: '#6b2737', hatColor2: '#4d1b27', accessory: 'pipe' },
+    courses: ['nav', 'gun', 'scout'],
+    likes: ['drink', 'book', 'weapon'],
+    dislikes: ['luxury'],
   },
   {
     id: 'c_katalina', name: '卡塔丽娜', role: '炮手', cityId: 'aztec', cost: 7_000, speed: 3, trade: 5,
     desc: '红发炮神，商路安全她说了算',
     color: '#b23a48',
     look: { skin: '#c98a5a', hair: '#141414', hairStyle: 'long', hat: 'feather', hatColor: '#b23a48', hatColor2: '#e8542f', accessory: 'earring' },
+    courses: ['gun', 'charm', 'scout'],
+    likes: ['weapon', 'honor', 'drink'],
+    dislikes: ['perfume', 'luxury'],
   },
   {
     id: 'c_kwame', name: '夸梅', role: '水手', cityId: 'africa', cost: 4_500, speed: 4, trade: 2,
     desc: '好望角老水手，风浪越大他划得越欢',
     color: '#3f9e8e',
     look: { skin: '#8a5a3a', hair: '#141414', hairStyle: 'short', hat: 'bandana', hatColor: '#f5c830', accessory: 'scar' },
+    courses: ['scout', 'nav', 'medic'],
+    likes: ['drink', 'smoke', 'music'],
+    dislikes: ['luxury'],
   },
   {
     id: 'c_daisy', name: '范黛西', role: '瞭望手', cityId: 'netherlands', cost: 6_500, speed: 6, trade: 0,
     desc: '站在桅顶就能望见十海里外的商机',
     color: '#e8874a',
     look: { skin: '#ffd9b3', hair: '#e8c96b', hairStyle: 'long', hat: 'sailor', hatColor: '#2b5e8f' },
+    courses: ['scout', 'trade', 'lore'],
+    likes: ['gem', 'book', 'luxury'],
+    dislikes: ['drink', 'smoke'],
   },
   // ── v1.2.0 新增 6 位船员（补齐此前没有船员的港口） ──
   {
@@ -729,38 +1017,222 @@ export const CREW: CrewMember[] = [
     desc: '尼罗河畔的大商贾，货船排队等她验货',
     color: '#d4a017',
     look: { skin: '#c98a5a', hair: '#141414', hairStyle: 'long', hat: 'bandana', hatColor: '#d4a017', hatColor2: '#f5e6b8', accessory: 'earring' },
+    courses: ['trade', 'charm', 'lore'],
+    likes: ['gem', 'luxury', 'perfume'],
+    dislikes: ['drink'],
   },
   {
     id: 'c_rustam', name: '鲁斯塔姆', role: '护卫队长', cityId: 'persia', cost: 8_000, speed: 3, trade: 4,
     desc: '波斯史诗里的英雄后人，押过的货一趟没丢过',
     color: '#8a4f2d',
     look: { skin: '#e0a878', hair: '#201510', hairStyle: 'short', hat: 'turban', hatColor: '#8a4f2d', hatColor2: '#c98a50', beardStyle: 'full', beardColor: '#201510', accessory: 'scar' },
+    courses: ['gun', 'medic', 'charm'],
+    likes: ['weapon', 'honor', 'book'],
+    dislikes: ['luxury', 'perfume'],
   },
   {
     id: 'c_vira', name: '维拉', role: '珠宝匠', cityId: 'srilanka', cost: 9_500, speed: 0, trade: 6,
     desc: '一眼辨真假宝石，卖价总能再抬一手',
     color: '#c05299',
     look: { skin: '#b57a4a', hair: '#141414', hairStyle: 'bun', hat: 'bandana', hatColor: '#c05299', accessory: 'earring' },
+    courses: ['trade', 'lore', 'charm'],
+    likes: ['gem', 'luxury', 'book'],
+    dislikes: ['drink', 'smoke'],
   },
   {
     id: 'c_bayu', name: '巴尤', role: '水手', cityId: 'java', cost: 5_500, speed: 5, trade: 0,
     desc: '火山海边长大，看云识风比看罗盘还准',
     color: '#5f8d4e',
     look: { skin: '#b57a4a', hair: '#141414', hairStyle: 'short', hat: 'bandana', hatColor: '#5f8d4e', accessory: 'pipe' },
+    courses: ['scout', 'nav', 'charm'],
+    likes: ['smoke', 'drink', 'spice'],
+    dislikes: ['weapon', 'honor'],
   },
   {
     id: 'c_mira', name: '米拉', role: '药剂师', cityId: 'madagascar', cost: 6_500, speed: 2, trade: 3,
     desc: '香草与草药专家，船员不晕船，货也不坏',
     color: '#3aa6a0',
     look: { skin: '#8a5a3a', hair: '#141414', hairStyle: 'long', hat: 'feather', hatColor: '#3aa6a0', hatColor2: '#8fd4c8' },
+    courses: ['medic', 'cook', 'lore'],
+    likes: ['medicine', 'herb', 'spice'],
+    dislikes: ['weapon', 'drink'],
   },
   {
     id: 'c_tupa', name: '图帕克', role: '星象舵手', cityId: 'inca', cost: 8_500, speed: 7, trade: 0,
     desc: '云中之城的舵手，夜里靠星星也能抄近路',
     color: '#b8860b',
     look: { skin: '#b57a4a', hair: '#141414', hairStyle: 'long', hat: 'feather', hatColor: '#b8860b', hatColor2: '#e8d44a', accessory: 'earring' },
+    courses: ['nav', 'lore', 'scout'],
+    likes: ['book', 'gem', 'music'],
+    dislikes: ['luxury', 'drink'],
   },
 ]
+
+/** 船员人物志与好感故事（v1.6）：bio = 人物志长文；stories = 好感达到 at 时解锁的往事 */
+export const CREW_STORIES: Record<string, { bio: string; stories: { at: number; text: string }[] }> = {
+  c_zheng: {
+    bio: '生于珠江水上人家，十五岁那年珠江发大水，全家随船漂没，是红旗帮的舢板把她捞起来的。夫君郭婆带是帮中少帅，成亲才三年便战死在官军炮火里，二十出头的她被众叔伯硬推上了龙头之位。她立的规矩比官府还硬：劫官船不劫渔船，抢粮仓不抢药铺，伤了妇孺的当场沉海。如今帮众早散了大半，唯有她那枚铜令牌，老海盗们见了仍要低头叫一声当家。',
+    stories: [
+      { at: 20, text: '「我头回掌舵那年，帮里三个叔伯不服，联名要改立男丁。」她笑里藏着刀，「我当着全帮的面，把那封联名状就着灯烧了——火光里，再没人敢抬头看我。」' },
+      { at: 45, text: '「有回官兵扮成商船来剿，我让妇孺先下小船撤。」她摩挲旧腰刀，「自己带人断后，那一夜江水红了一半。活回来的弟兄，从此只叫我当家的，不叫少奶奶。」' },
+      { at: 70, text: '「你船上有规矩吗？」她忽然问。见你摇头，她点头，「没有也好。但记着一条——对穷苦人留条活路，海会记得。规矩是死的，人心是活的。」' },
+      { at: 100, text: '她把那枚磨得发亮的铜令牌塞进你手心：「红旗帮散了，可这海上认令牌的老辈还在。往后遇着难处，报我郑一嫂三个字，有人会给你行个方便。这令牌，值一条命。」' },
+    ],
+  },
+  c_mary: {
+    bio: '英吉利海峡上最年轻的私掠船长，十七岁便凭着一张亲王亲签的私掠证，劫下生平第一条西班牙运银船。她长年男装出海，左眼蒙布不只是扮相，更是为了吓退那些认得她真容的仇家。三十年的刀口舔血，直到亲眼看着最要好的同伴被绞上港口的绞架，她才把船卖了，换身裙子做起体面买卖——可谈判桌上的她，算盘打得比舰炮还准。',
+    stories: [
+      { at: 20, text: '「我头一条船，是从赌桌上赢来的。」她转着酒杯，「对面船长输红了眼，连船带货押上，偏巧那晚我手气旺。打那起我信一条：海上的输赢，开赌前就定了。」' },
+      { at: 45, text: '「有个西班牙伯爵，悬赏要我左手。」她指了指眼罩，「因为这只眼，是他家护卫的弯刀留的。后来他的货船撞上我的私掠证——你说巧不巧，债是要还的。」' },
+      { at: 70, text: '「做买卖这些年，我学了比开炮还难的事：等人还价。」她难得正色，「炮一响就定了，价能谈一整宿。你一急，就输了。沉住气，船长。」' },
+      { at: 100, text: '她从怀里掏出那张泛黄的私掠证塞给你：「留着。哪天岸上待腻了，海上那条路我替你留着门。不过——别学我蒙这只眼，遇着风沙真疼。」' },
+    ],
+  },
+  c_sinbad: {
+    bio: '巴士拉港的茶馆里，说书人最爱拍着惊堂木讲他的故事：巨鸟、海怪、磁石山、会唱歌的沉船，七次远航每一次都像一段神话。可真实的老辛巴达只是个极精明的领航员，所谓的巨鸟不过是大鹰，海怪是缠满藤壶的朽木。他从不拆穿说书人——「故事比真相值钱，听客掏的铜板，买的是惊险，不是实数。」如今他头发花白，却仍是这片海里最认得风的人。',
+    stories: [
+      { at: 20, text: '「人们只记得我第几次差点死，没人记得我怎么活下来。」他指指脑袋，「记性、耐心，再加一点好运——这就是航海家全部的当心家当。海不挑人，它只挑肯学的人。」' },
+      { at: 45, text: '「说书人讲我斗巨鸟，其实那是只大鹰，叼走了我的帽子。」他笑，「可你说给茶馆听，谁爱听真话？故事要惊险，账要实数，两码事。」' },
+      { at: 70, text: '「第七次远航回来我就发誓不再出海。」他把旧罗盘递给你，「可跟着你跑了几程，我又想多讲一个故事了。看来誓言这东西，遇着对的人就软。」' },
+      { at: 100, text: '他拍拍你肩：「罗盘我留了半辈子，今个给你。它指的不是北，是‘该去的地方’。你信它，它就灵。下一段故事，该你来讲了。」' },
+    ],
+  },
+  c_zhenghe: {
+    bio: '宝船舰队的总帅，当年率两百余艘巨舰七下西洋，最远抵得过赤道以南的远邦。朝廷裁撤宝船后，他留在马六甲的港务司里，整日伏案重抄那部半毁的航海志。年轻人笑他守着旧纸，他只摇头：「舰队散了，海还在。后人要出海，总得有人告诉他们哪儿有暗礁、哪儿有淡水。」',
+    stories: [
+      { at: 20, text: '「舰队最盛时，两百余艘船，桅杆如林，夜里灯火照得海面发红。」他望着港口，「可我记最牢的，是风暴夜里每一盏不肯熄的灯——那是活人的念想。」' },
+      { at: 45, text: '「朝廷说宝船费钱，把船都拆了。」他手指划过案上的旧图，「我没争。争来的船也是木，会烂。可这图上的风讯，烂不了。」' },
+      { at: 70, text: '他把一册手抄航海志推到你面前：「西洋的暗礁、淡水的湾、哪国港口的人情，都在里面。舰队散了，海还在——你拿去，替我多看几眼。」' },
+      { at: 100, text: '「我这一生，七下西洋，没丢过一艘船、一个人。」他极慢地说，「如今把这份安稳托付给你。航程长，记得常常靠岸，看看灯。」' },
+    ],
+  },
+  c_raja: {
+    bio: '孟买码头最大的搬运行里，拉吉·辛十六岁就扛起了别人扛不动的樟木箱。他爹是码头的老秤官，教他一句话：秤能骗人一时，骗不了一世。二十年下来，他练出一手绝活——不用开箱，掂一掂、闻一闻，就能报出货色成色，连最精的老板都挑不出错。他笑说自己是「用脚丈量过半条印度洋的人」。',
+    stories: [
+      { at: 20, text: '「我爹是码头秤官，临老教我：秤能骗人一时，骗不了一世。」拉吉拍拍胸口的旧秤砣，「所以我装货，从不短人一斤，口碑比银两圆。」' },
+      { at: 45, text: '「有回一箱丝绸夹层藏了走私的火药，我掂出分量不对，当场拦下。」他压低声，「那一箱要是上船，半条船都没了。老板夸我，我只要了句实话。」' },
+      { at: 70, text: '「跟你跑了几趟，攒的钱够回孟买开间小货栈了。」他咧嘴笑，「不过嘛，码头的风、船上的闹，货栈里可没有。我再陪你跑两年。」' },
+      { at: 100, text: '临别他塞给你一把小铜秤：「带着。买卖公道，路才走得长。哪天你不想漂了，来孟买，我的栈门给你留着。」' },
+    ],
+  },
+  c_kotaro: {
+    bio: '九州渔村最小的儿子，生来坐不住，总爬上村口那棵老松往海里望。十二岁那年偷爬上过路的商船，被水手长拎下来时，怀里还揣着半块饭团。从那以后他认定自己属于桅杆而不是田地，身轻如燕，能在颠簸的帆索间睡觉。他的梦很简单也很野：攒够钱造一条自己的小船，去「海的那一边」亲眼看看。',
+    stories: [
+      { at: 20, text: '「村里的老人说，海的那边是龙神的国度。」他挠挠头，「我倒不是想见龙神，就是想亲眼看看，海到底有没有尽头。」' },
+      { at: 45, text: '「上次风浪大，我爬上桅顶收帆，底下的人脸都白了。」他得意，「我在绳上睡惯了，晃？那是龙神在摇摇篮呢。」' },
+      { at: 70, text: '他忽然认真：「船长，等我攒够了钱，能请你给我那条小船起个名字吗？要威风点的，比如‘斩浪’之类。」' },
+      { at: 100, text: '「钱攒得差不多啦！」他掏出个木雕小帆船，「这是我照想的样子刻的。名字你来起，我信你起的，准能真出海。」' },
+    ],
+  },
+  c_john: {
+    bio: '北海的浪养大的孩子，从十四岁跟船打杂，到如今白胡子结了四十年盐霜。他认得每一段洋流的脾气，据说闭着眼能嗅出三天后的风暴，老水手们说他是「被海记住的人」。年轻时他有个孪生弟弟同船出海，约定谁先攒够钱就回村成家——可那一年的大风暴，只送回了他一个人。',
+    stories: [
+      { at: 20, text: '「年轻时我和弟弟各跟一条船，说好谁先攒够钱就回村成家。」他灌口烈酒，「后来我攒够了，他的船却再没回来。那年大风暴，海不讲情面。」' },
+      { at: 45, text: '「打那以后我学了一手：看云识风。」他眯眼望天，「云压得低、泛着铁色，三天内必有风。这本事，是我用弟弟换来的，舍不得烂在肚里。」' },
+      { at: 70, text: '「我这条老骨头，本来打算沉在北海里的。」他难得笑了，「现在嘛，再陪你跑几年。你船上热闹，比海底强。」' },
+      { at: 100, text: '他把自己用了四十年的旧罗盘递来：「指针早偏了，可我闻风比看针准。给你，算个念想。哪天你迷了，别信针，信你闻到的海。」' },
+    ],
+  },
+  c_pierre: {
+    bio: '里昂名厨世家的旁支，打小在灶台边闻着勃艮第的红酒炖牛肉长大。只因一道汤的咸淡得罪了来赴宴的公爵夫人，他连夜卷了铺盖逃出家门，阴差阳错上了船。没想到一手家常炖菜，竟比船上的火药还管用——最挑剔的港口税官，吃过他一顿饭也能多宽限三天。他常说自己卖的不是菜，是人情。',
+    stories: [
+      { at: 20, text: '「厨艺的尽头不是味道，是人情。」他掂着汤勺，「让谁吃、什么时候吃、和谁一起吃——这三件事想明白了，谈判就赢了一半。」' },
+      { at: 45, text: '「有回税官卡我们货，我请他吃了顿勃艮第炖牛肉。」他眨眼，「他边吃边松了口，那批货省下的税，够买十头牛。你看，灶台也是账房。」' },
+      { at: 70, text: '「我要在普罗旺斯开间小馆子，只做给水手吃。」他擦擦手，「不过在那之前，你的船员归我喂饱。饿着的兵，打不了好仗，也谈不成好价。」' },
+      { at: 100, text: '他塞给你一张油渍斑斑的配方：「这是我祖母的炖牛肉方子。哪天你不想跑船了，照着做，开个店，养活自己。别忘了，先喂饱人，再谈生意。」' },
+    ],
+  },
+  c_diaz: {
+    bio: '绕过好望角的狠角色，半张脸被非洲的日头烙下深褐的印。年轻时替王室探海，画的航线图被里斯本重金收进档案馆，本人却宁可蹲在甲板上抽他的烟斗。他见过的好望角风暴，比多数船长见过的晴天还多，船员私下叫他「不怕死的迪亚士」，他却说自己只是「回头路太远，只好往前」。',
+    stories: [
+      { at: 20, text: '「好望角那晚，浪比桅杆还高。」他吐个烟圈，「船员都在祷告，我在想——回头路更远，那就再往前走走看。怕，是最费帆的事。」' },
+      { at: 45, text: '「王室收了我的航线图，封了爵位想留我。」他把烟斗在靴底磕磕，「我拒了。画图的手，不该困在档案室。航海人的封地，是整片海。」' },
+      { at: 70, text: '「你走的线，比我当年野。」他难得有了精神，「好。海是给敢走的人留的，循规蹈矩的，只配在港里数浪。」' },
+      { at: 100, text: '他解下腰间旧烟袋：「陪我半辈子了，给你。想家或想不通时，抽一口，看会儿海——答案都在浪里，不在陆上。」' },
+    ],
+  },
+  c_katalina: {
+    bio: '塞维利亚炮术世家的独女，因一场决斗风波，连夜随商船远走新大陆。红发烈性，自幼摸炮，装填速度是寻常炮手的两倍，据说闭着眼都能在三百步外命中靶船的桅杆。她从不让男人替她上膛，腰间别着兄长留下的火折子，说那是「主炮第一响的引子」。',
+    stories: [
+      { at: 20, text: '「我兄长教我开炮，说炮响之前，先想清楚为谁而响。」她擦着炮膛，「那时我不懂。后来懂了：为船，为船上的弟兄，不是为勋章。」' },
+      { at: 45, text: '「那场决斗，是为护一个被欺的船娘。」她眼神冷了冷，「他们笑女人碰不得炮。我让他们看看，火光里分不出男女，只分得出准不准。」' },
+      { at: 70, text: '「新大陆的银子买不到的东西，我在这条船上找到了。」她把家传火折子递来，「以后主炮的第一响，永远为你放。这是承诺，不是客气。」' },
+      { at: 100, text: '她握住你手，把火折子按进掌心：「火折子燃过三百仗，从没哑过。你是我认的船长，它认你。往后风浪再大，炮响处，我在。」' },
+    ],
+  },
+  c_kwame: {
+    bio: '好望角渔村出身，左脸一道弯疤，是与一条虎鲨搏命的纪念。风浪越大他越兴奋，收网时唱的渔歌能压过浪头，船员们笑称他是「海神发小」。他认得每一处暗礁后的避风湾，也认得哪片云里藏着雨——在这片吃人的海里，他活成了最被偏爱的那个。',
+    stories: [
+      { at: 20, text: '「这道疤？十六岁那年一条虎鲨送的。」他笑露白牙，「它咬我一口，我捅它三刀——海里的规矩，讲究个礼尚往来，不白挨。」' },
+      { at: 45, text: '「有回遇着暗礁，全船慌，我凭记认出那是小时候躲过的湾。」他拍胸，「海神发小不是白叫的，它认得我，我也认得它的脾气。」' },
+      { at: 70, text: '「我妈说我是海神庙里挂名的孩子。」他望着浪，「跟着你跑了这么远，我看海神是点了头，默认了。那我更得替它照看这船。」' },
+      { at: 100, text: '他解下颈间一小串鲨齿：「这是我第一条鲨的牙。给你，挂着。海再狠，也认肯跟它打交道的人。你够胆，它护你。」' },
+    ],
+  },
+  c_daisy: {
+    bio: '代尔夫特商人的长女，本该继承父辈的账房与运河边的宅子，却偏爱上爬桅杆。她的目力惊人，站上桅顶能分辨十海里外船帆的国籍，顺带算出对方载的是香料还是火药。父亲气得撕了她的嫁妆单，她却把账本一推：「账房里的数字会骗人，桅杆上看见的，才是真金。」',
+    stories: [
+      { at: 20, text: '「父亲说我眼睛里全是浪，留不住钱。」她从桅顶跳下，「可他不知道，桅杆上看得的每一笔生意，都比账房里算的值钱——我看见的是真金。」' },
+      { at: 45, text: '「有回我望见十海里外是敌船，报了你不信，结果绕开一劫。」她耸肩，「账本能算盈亏，算不出远处的帆。信我眼睛，省你半条命。」' },
+      { at: 70, text: '「我给家里去了封信，附了张自己画的航海图。」她眨眼，「落款写：您的女儿，是一名航海家。父亲回了信，只说‘别累着眼睛’。」' },
+      { at: 100, text: '她把那支随身的小望远镜递来：「陪我望过无数远帆。给你，替我看更远的。海的那头有什么，我猜了一辈子，该你去看真相了。」' },
+    ],
+  },
+  c_nefertari: {
+    bio: '亚历山大港数得着的大商贾，手掌一摸货色，比秤还准。她做生意的规矩全城闻名：价可以谈，货不能假，掺假的伙计她当场请出柜台。十二岁替瞎眼的父亲看铺，一场沙暴毁了整仓亚麻，她却在那次亏空里悟出道理——商人真正的本钱不是货，是信了她的人。',
+    stories: [
+      { at: 20, text: '「我十二岁替瞎眼父亲看铺，一场沙暴毁了整仓亚麻。」她转着戒指，「那年我懂：商人真正的本钱不是货，是信了你好、肯再来的人。」' },
+      { at: 45, text: '「有个伙计往香料里掺沙，我当场请他出柜台。」她淡淡，「街坊说我狠。可今天省一勺沙，明天丢的是整条街的信任，划不来。」' },
+      { at: 70, text: '「我在尼罗河边给你留了块地。」她难得笑，「盖个货栈吧——商人的情谊，就该用生意来还。你帮我跑货，我给你落脚处。」' },
+      { at: 100, text: '她把一枚印章塞给你：「这是我铺子的章，认货也认人。往后你运来的，盖了这章就是‘奈菲尔塔莉家’的，全港认。这是信，不是印。」' },
+    ],
+  },
+  c_rustam: {
+    bio: '《列王纪》里英雄鲁斯塔姆的旁系后人，打小听着先祖斩妖的史诗长大。他没去战场，却干了十五年押镖，黄金、宝石、王冠都押过，一趟没丢。他话少，腰间弯刀却从不出鞘——老镖师说，刀出鞘是要见血的，能不动刀化解的，都不叫事。',
+    stories: [
+      { at: 20, text: '「祖父教我刀法，第一课不是出刀，是收刀。」他按着刀柄，「让人怕你容易，让人信你，难。我押了十五年镖，靠的是后头这句。」' },
+      { at: 45, text: '「有回遇匪，我没拔刀，只把货往地上一放，说‘拿去，但记着是谁给的’。」他平静，「他们真拿了，可后来那帮人再没劫过我们的船。」' },
+      { at: 70, text: '「我这辈子押过黄金、宝石、王冠。」他第一次笑得轻松，「最难押的原来是人心——而你这条船，我押对了。人心这镖，我接了。」' },
+      { at: 100, text: '他解下腰间弯刀横在你面前：「它从没为钱出过鞘。今个给你——不是让你砍，是让你记着：能不动刀化解的，都不叫事。船交你，我放心。」' },
+    ],
+  },
+  c_vira: {
+    bio: '科伦坡宝石街最好的匠人之一，家传四代的鉴石眼力。据说她把宝石贴在耳边听一听，就知道它埋在哪一国的河床、沾过谁的手。老板们出三倍工钱想挖她去大埠，她都摇头——「街角那家小铺，是我祖母磨了一辈子的，我舍不得。」',
+    stories: [
+      { at: 20, text: '「这颗蓝宝石里有一丝云。」她对着光，「和我祖母当年留下的一模一样。宝石会记事——就像人，磨不掉来处。」' },
+      { at: 45, text: '「有回客人拿假祖母绿来骗，我贴耳一听就笑了。」她摇头，「石头不说话，可它震动的频率会。真假，耳朵比眼睛诚实。」' },
+      { at: 70, text: '「我打磨了此生最得意的四方宝石。」她把锦盒推来，「等你哪天不跑船了，它替我向你问好。也算我这行当，给你留个念。」' },
+      { at: 100, text: '她解下颈间一枚祖传的蓝石坠子：「磨了我祖母、我娘、我三代的手。给你，挂着。好货要识货的人戴，就像好船要懂海的人开。」' },
+    ],
+  },
+  c_bayu: {
+    bio: '爪哇火山脚下长大的孩子，看云识风比看罗盘还准。闲下来就嚼着槟榔，讲山神打喷嚏、海就得跟着抖三抖的怪谈，船员们半信半疑，却不得不服他报的风向。那次火山灰落了满甲板，全船慌作一团，唯他稳稳掌舵：「别怕，山神在给咱们的船撒圣灰呢。」',
+    stories: [
+      { at: 20, text: '「那次火山灰落了满甲板，大伙都慌。」他嚼槟榔笑，「我说别怕，山神在给咱们的船撒圣灰呢——这叫开光。后来真顺风顺水。」' },
+      { at: 45, text: '「云往哪边跑，雨就在哪边等。」他指天，「罗盘指北，可风不认北。我看云比看针准，你信我，少绕三程路。」' },
+      { at: 70, text: '「我娘托商队捎了袋家乡咖啡豆。」他把袋子塞你，「船上的活我多干点，你多分我几杯就行。家乡味，抵得半程想家。」' },
+      { at: 100, text: '他掏出个火山石雕的小像：「山神的样子，我照记忆刻的。给你，挂船上。它护过我这条命，也护你的。风浪大时，摸摸它。」' },
+    ],
+  },
+  c_mira: {
+    bio: '香草庄园的第三代药师，精通草药与香料配伍。她的晕船药和腌菜方子，是全船的命根子——没有它们，半船人到了好望角都得趴在船舷吐。她脾气和药一样，苦口但管用，船员嫌她啰嗦，真遇上寒热时却第一个找她。她说香草不认贵贱，谁需要，它就救谁。',
+    stories: [
+      { at: 20, text: '「我祖母用香草救过一船瘟病的水手。」她捣药臼，「药草不认贵贱，谁需要，它就救谁。这道理，我用来待人。」' },
+      { at: 45, text: '「有回半船人晕浪吐虚了，我的药下去，第二天全活蹦乱跳。」她别过脸，「他们谢我，我嫌吵。药到就好，谢什么。」' },
+      { at: 70, text: '「我配了副新药，专治想家的病。」她难得软了声调，「成分保密——反正船长你要是想家了，就来找我。这病，我包治。」' },
+      { at: 100, text: '她塞给你一个小布囊：「里头是安神的香草，闻着像家。跑远了、睡不着时打开。我治得了全船，也得治得了你这个船长。」' },
+    ],
+  },
+  c_tupa: {
+    bio: '安第斯山城的观星者后裔，族人说他「把星星当亲戚认」。他白天睡觉，夜里掌舵，靠南十字星就能在不见陆地的黑夜里定位。祭司说他天生属于夜空，不该困在甲板，他却笑：「夜里的海最老实，它只对星星说真话，而我听得懂。」',
+    stories: [
+      { at: 20, text: '「祭司说，星星是先祖的眼睛。」他仰头指南十字，「迷路时别看海，看天——先祖一直都在，他们认得你回的路。」' },
+      { at: 45, text: '「有回浓雾三天不见岸，我靠星星把船领回航道。」他平静，「船员说我疯，可星星从没骗过我。海会吞人，天不会。」' },
+      { at: 70, text: '「我给一颗最亮的星起了你的名字。」他难得郑重，「往后夜里掌舵，等于你陪我一起走。你不在甲板，也在天上看着。」' },
+      { at: 100, text: '他把一册手绘星图铺开：「这是我们山城传了十二代的星位。给你，照着走，黑夜再长也不迷。先祖的眼睛，替你亮着。」' },
+    ],
+  },
+}
 
 export const CREW_BY_ID: Record<string, CrewMember> = Object.fromEntries(
   CREW.map(c => [c.id, c]),
@@ -1097,6 +1569,16 @@ export const VOYAGE_EVENTS: VoyageEventDef[] = [
   { id: 'spring', icon: 'beer', title: '甘泉补给', kind: 'good', desc: '泊近小岛补足淡水给养，士气大振，获加速卡 ×1。' },
   { id: 'wreck', icon: 'gem', title: '海难遗财', kind: 'good', desc: '捞起沉船散落的财宝箱，白得一笔不小的金币。' },
   { id: 'current', icon: 'bolt', title: '幸运洋流', kind: 'good', desc: '恰好搭上强劲洋流，顺流而下，航程被大幅缩短。' },
+  { id: 'corsair', icon: 'helm', title: '私掠船追袭', kind: 'bad', desc: '挂着私掠旗的快船咬上船尾，被迫改道绕行，白白多耗一段航程。' },
+  { id: 'kraken', icon: 'hourglass', title: '海怪惊扰', kind: 'bad', desc: '深海中巨影掠过船底，船员心慌手抖，航速骤降、行程拖慢。' },
+  { id: 'sirens', icon: 'purse', title: '海妖之歌', kind: 'bad', desc: '礁石间传来惑人心神的歌声，得花一笔金币才能稳住船员心神。' },
+  { id: 'oasis', icon: 'coin', title: '无名小岛补给', kind: 'good', desc: '泊近一座无人小岛补给淡水给养，落袋一笔金币还获加速卡。' },
+  { id: 'envoy', icon: 'crown', title: '王国使节船', kind: 'good', desc: '偶遇王国的使节帆船，领到一笔丰厚的远洋赏金。' },
+  { id: 'lighthouse', icon: 'spyglass', title: '灯塔引航', kind: 'good', desc: '夜航望见远方灯塔，借光校准航线，航程明显缩短。' },
+  { id: 'smuggle', icon: 'gift', title: '走私黑市', kind: 'good', desc: '夜色中撞见走私黑市，顺手做成一笔来路不明的暴利买卖，落袋一笔金币。' },
+  { id: 'seabird', icon: 'sparkles', title: '海鸟指路', kind: 'good', desc: '一群海鸟盘旋不散，循着它们的去向抄了近道，航程缩短。' },
+  { id: 'dehydrate', icon: 'sun', title: '暴晒脱水', kind: 'bad', desc: '烈日当空、淡水告急，船员口干舌燥体力不支，航程被拖慢。' },
+  { id: 'iceberg', icon: 'snow', title: '冰山漂近', kind: 'bad', desc: '海面漂来浮冰，只能改道绕行，白白多耗一段航程。' },
 ]
 
 /** 市场刷新周期（秒） */

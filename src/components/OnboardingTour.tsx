@@ -19,21 +19,21 @@ interface Props {
 }
 
 const COPY: Record<OnboardingStep, { title: string; body: string; selector?: string | null; needTab?: string }> = {
-  welcome: { title: '欢迎船长', body: `你是新一任远洋贸易船长。地图上 21 座港口、${GOODS.length} 种货物 —— 接下来带你跑通整条贸易回路，顺便认识港口里的各大设施。` },
-  sail:    { title: '① 点城市启航',   body: '点地图上任意一座亮起的城市即可起航。航行途中不可买卖，抵达新港后右下角有「加速」按钮。海上偶尔有奇遇：风暴、漂流瓶，也可能撞上海盗。', selector: '.city-hit',               needTab: 'map'    },
-  mapmode: { title: '地图双模式',      body: '右上角可切换「平面地图 / 球形地球」。地球模式可以拖动旋转、双指/滚轮缩放，两种模式港口位置一致，随你喜好。', selector: '.map-mode-toggle',      needTab: 'map'    },
-  trade:   { title: '② 市场低买高卖', body: '切到「市场」：本港只经营特产 + 紧缺货。特产港只卖不买（你只能买入），紧缺港只买不卖（你只能卖出，本港买价高）—— 产地买、销地卖，跑差价。行情不断浮动，留意丰产 / 抢购的时机。', selector: '.nav-btn:nth-of-type(2)', needTab: 'market' },
-  bank:    { title: '③ 港口银行',      body: '本金不够换大船？市场页这行「港口银行」按资产 50% 给信用额度，随借随还、立刻到账。但债务每周期计息 0.15%，超过资产 3 倍会被强制清算 —— 刀尖上的杠杆，量力而行。', selector: '.bank-bar',               needTab: 'market' },
-  dock:    { title: '④ 船坞升级与改名', body: '切到「船坞」：赚够金币就换更大的船 —— 更多舱位就是更高的单趟利润。点座舰名字旁的羽毛笔图标可以给爱船取个响亮的名字。', selector: '.nav-btn:nth-of-type(4)',   needTab: 'dock'   },
-  tavern:  { title: '⑤ 酒馆好手与工坊', body: '船坞上方的分区栏共 5 个设施。「酒馆」：18 位航海好手散布世界各港，亲自到岗才能雇佣，提供永久的航速或利润加成。「工坊」：船具与补给 —— 舰炮组、修船工具都会在海上事件里自动派上用场。', selector: '.tavern-toggle',           needTab: 'dock'   },
-  hall:    { title: '⑥ 市政厅：投资与委托', body: '「市政厅」里投资港口：永久买卖折扣 + 周期分红，2 级起进港关税减半、3 级全免，1 级还能解锁该港的隐藏特产！下方委托板限时送货，报酬远高于市价 —— 顺路捎货是最赚的。', selector: '.hall-toggle',             needTab: 'dock'   },
-  navy:    { title: '⑦ 海事署：悬赏与秘藏', body: '「海事署」定期发布海盗通缉令：消耗 1 组舰炮组即可出击，战力 = 船级 + 舰炮组，出手前就能看到预估胜率。交付委托、捡漂流瓶、击溃海盗都可能凑齐藏宝图碎片 —— 集齐 4 块，去指定海域挖沉没神殿！', selector: '.navy-toggle',             needTab: 'dock'   },
-  quest:   { title: '⑧ 功勋目标',     body: '切到「功勋」：达成总资产里程碑能领大奖（免费船 + 满载金币），红点亮起即可领取。三大长列表（传奇功勋 / 船员委托 / 贸易成就）已改为可点开的卡片，带进度条，默认收起，想看哪块点哪块。', selector: '.nav-btn:nth-of-type(5)',   needTab: 'quest'  },
-  codex:   { title: '⑨ 三大图鉴',     body: '「功勋」页底部有三张图鉴卡片：商品图鉴（83 种货的产地 / 销地推荐航线）、城市图鉴（每座港的招牌特产）、海上事件图鉴（20 种奇遇集齐解锁「命运弄人」）。没见过的先留 ???，是收藏党的长线目标。', selector: null, needTab: 'quest' },
-  finish:  { title: '准备就绪',        body: '主线是跑商攒钱换大船；投资、银行、船员、悬赏与秘藏都是放大器。盯紧货舱容量 —— 满载后买不了新货。风起了，船长，出航吧！' },
+  welcome: { title: '欢迎，船长', body: `地图上有 ${GOODS.length} 种货。便宜处买，贵处卖 —— 就这一条主线。跟我走一遍，很快。` },
+  sail:    { title: '① 点港口出海', body: '点地图上亮起的港口就出发。到港后，右下角可以加速。', selector: '.city-hit', needTab: 'map' },
+  mapmode: { title: '地图两种看法', body: '右上角切换平面 / 地球，随你习惯。', selector: '.map-mode-toggle', needTab: 'map' },
+  trade:   { title: '② 低买高卖', body: '产地买特产，销地卖紧缺。看清价差，别把货舱塞满卖不掉。', selector: '.nav-btn:nth-of-type(2)', needTab: 'market' },
+  bank:    { title: '缺钱找银行', body: '市场页可抵押资产借钱，随借随还；借太多会被清算。', selector: '.bank-bar', needTab: 'market' },
+  dock:    { title: '③ 换条大船', body: '金币够了就换更大的船。舱位越多，一趟赚得越多。', selector: '.nav-btn:nth-of-type(4)', needTab: 'dock' },
+  tavern:  { title: '④ 酒馆：招人 + 养成', body: '请船员永久加航速或利润。还能上课、送礼，好感高了会讲往事。', selector: '.tavern-toggle', needTab: 'dock' },
+  hall:    { title: '⑤ 投资港口', body: '每港三个项目任选：进货更便宜、卖价更高，或躺着分红。投满关税全免。', selector: '.hall-toggle', needTab: 'dock' },
+  navy:    { title: '⑥ 悬赏与藏宝', body: '派舰炮组打海盗拿赏金。集齐 4 张藏宝图，去挖沉船宝藏。', selector: '.navy-toggle', needTab: 'dock' },
+  quest:   { title: '⑦ 领奖与图鉴', body: '功勋页领里程碑大奖；商品、城市、事件三本图鉴等你集齐。', selector: '.nav-btn:nth-of-type(5)', needTab: 'quest' },
+  codex:   { title: '三本图鉴', body: '商品、城市、海上事件，没见过的先显示 ???。', selector: null, needTab: 'quest' },
+  finish:  { title: '出发吧', body: '跑商攒钱，换船、投资、变强。货舱满了先卖货。风起了，船长！' },
 }
 
-const ORDER: OnboardingStep[] = ['welcome', 'sail', 'mapmode', 'trade', 'bank', 'dock', 'tavern', 'hall', 'navy', 'quest', 'codex', 'finish']
+const ORDER: OnboardingStep[] = ['welcome', 'sail', 'trade', 'dock', 'tavern', 'hall', 'navy', 'quest', 'finish']
 
 function getRect(sel?: string | null): { top: number; left: number; width: number; height: number } | null {
   if (!sel) return null
@@ -90,7 +90,8 @@ export default function OnboardingTour({ step, onDone, open = true, activeTab, s
 
   const goNext = () => {
     const next = ORDER[idx + 1]
-    if (!next) { finish(); return }
+    // 走到结尾（finish 页不单独展示）：直接完成并写入「已看过」标记，避免下次再弹
+    if (!next || next === 'finish') { finish(); return }
     if (!step) setInternal(next)
   }
 

@@ -7,11 +7,12 @@
 //   4. 读到脏数据不崩：校验失败直接丢弃，回到新开局
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { CITIES, CITY_BY_ID, EQUIP_BY_ID, GOOD_BY_ID, INVEST_LEVELS, MAP_FRAGS_NEED, ORDER_ACTIVE_MAX, ORDER_BOARD_MAX, PIRATE_BY_ID, REP_MAX, SHIPS, SUPPLY_BY_ID } from './data'
+import { CITIES, CITY_BY_ID, CREW_BY_ID, CREW_COURSES, CREW_FAVOR_MAX, CREW_MAX_LEVEL, EQUIP_BY_ID, GOOD_BY_ID, HOUSES, HOUSE_STAGE_NAMES, INVEST_LEVELS, INVEST_PROJECTS, MAP_FRAGS_NEED, ORDER_ACTIVE_MAX, ORDER_BOARD_MAX, PIRATE_BY_ID, REP_MAX, SHIPS, SUPPLY_BY_ID } from './data'
 import { ensureMarkets, type CityEvent } from './engine'
-import { initialState, type Bounty, type GameState, type SellRecord, type TradeOrder, type Voyage } from './state'
+import { initialState, type Bounty, type CheckinState, type DailyGoal, type DailyState, type GameState, type SellRecord, type TradeOrder, type Voyage } from './state'
 
 const SAVE_KEY = 'ocean-trade-save-v1'
+const SAVE_BACKUP_KEY = 'ocean-trade-save-v1-backup'
 const SAVE_VERSION = 1
 
 /** 存档里不放瞬时数据：toasts 是几秒就消失的提示气泡 */
@@ -99,13 +100,70 @@ function sanitize(raw: any): GameState | null {
     }
     return out
   }
-  /** 投资等级：0-3（v1.3.0） */
-  const investMap = (v: unknown): Record<string, number> => {
+  /** 港口投资（v1.7）：兼容旧档的等级数字（1/2/3 → 投前 N 个项目） */
+  const investMap = (v: unknown): Record<string, Record<string, number>> => {
+    const out: Record<string, Record<string, number>> = {}
+    if (v && typeof v === 'object') {
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        const defs = INVEST_PROJECTS[k]
+        if (!CITY_BY_ID[k] || !defs) continue
+        if (typeof val === 'number' && Number.isFinite(val)) {
+          const n = Math.max(0, Math.min(defs.length, Math.round(val)))
+          if (n > 0) {
+            const sub: Record<string, number> = {}
+            for (let i = 0; i < n; i++) sub[defs[i].id] = 1
+            out[k] = sub
+          }
+          continue
+        }
+        if (val && typeof val === 'object') {
+          const sub: Record<string, number> = {}
+          for (const [pid, lvRaw] of Object.entries(val as Record<string, unknown>)) {
+            if (!defs.some(d => d.id === pid) || typeof lvRaw !== 'number' || !Number.isFinite(lvRaw)) continue
+            const lv = Math.max(0, Math.min(1, Math.round(lvRaw)))
+            if (lv > 0) sub[pid] = lv
+          }
+          if (Object.keys(sub).length > 0) out[k] = sub
+        }
+      }
+    }
+    return out
+  }
+  /** 船员修习课程等级（v1.7）：crewId → { courseId → 0..CREW_MAX_LEVEL }，只留合法 id */
+  const crewCoursesMap = (v: unknown, validIds: Set<string>): Record<string, Record<string, number>> => {
+    const out: Record<string, Record<string, number>> = {}
+    if (v && typeof v === 'object') {
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (!validIds.has(k) || typeof val !== 'object' || val === null) continue
+        const sub: Record<string, number> = {}
+        for (const [cid, lvRaw] of Object.entries(val as Record<string, unknown>)) {
+          if (!(cid in CREW_COURSES) || typeof lvRaw !== 'number' || !Number.isFinite(lvRaw)) continue
+          const lv = Math.max(0, Math.min(CREW_MAX_LEVEL, Math.round(lvRaw)))
+          if (lv > 0) sub[cid] = lv
+        }
+        if (Object.keys(sub).length > 0) out[k] = sub
+      }
+    }
+    return out
+  }
+  /** 船员好感（v1.6）：只留合法船员 id，好感夹到 [0, CREW_FAVOR_MAX] */
+  const crewFavorMap = (v: unknown, validIds: Set<string>): Record<string, number> => {
     const out: Record<string, number> = {}
     if (v && typeof v === 'object') {
       for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-        if (!CITY_BY_ID[k] || typeof val !== 'number' || !Number.isFinite(val)) continue
-        out[k] = Math.max(0, Math.min(INVEST_LEVELS.length, Math.round(val)))
+        if (!validIds.has(k) || typeof val !== 'number' || !Number.isFinite(val)) continue
+        out[k] = Math.max(0, Math.min(CREW_FAVOR_MAX, Math.round(val)))
+      }
+    }
+    return out
+  }
+  /** 各地宅邸（v1.6）：只留合法城市 id，等级夹到 [0, 3] */
+  const houseMap = (v: unknown): Record<string, number> => {
+    const out: Record<string, number> = {}
+    if (v && typeof v === 'object') {
+      for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
+        if (!HOUSES[k] || typeof val !== 'number' || !Number.isFinite(val)) continue
+        out[k] = Math.max(0, Math.min(HOUSE_STAGE_NAMES.length, Math.round(val)))
       }
     }
     return out
@@ -134,7 +192,8 @@ function sanitize(raw: any): GameState | null {
         taken += 1
       } else if (out.filter(y => !y.taken).length >= ORDER_BOARD_MAX) continue
       seen.add(o.id)
-      out.push({ id: o.id, fromCity: o.fromCity, toCity: o.toCity, goodId: o.goodId, qty, reward, deadline, taken: isTaken })
+      const reason = typeof o.reason === 'string' && o.reason.trim() ? o.reason : ''
+      out.push({ id: o.id, fromCity: o.fromCity, toCity: o.toCity, goodId: o.goodId, qty, reward, deadline, taken: isTaken, reason })
     }
     return out
   }
@@ -166,13 +225,17 @@ function sanitize(raw: any): GameState | null {
     for (const x of v.slice(0, 120)) {
       if (!x || typeof x !== 'object') continue
       const r = x as Record<string, unknown>
-      if (typeof r.id !== 'number' || !CITY_BY_ID[r.cityId] || !GOOD_BY_ID[r.goodId]) continue
+      const id = r.id
+      const cityId = r.cityId
+      const goodId = r.goodId
+      if (typeof id !== 'number' || typeof cityId !== 'string' || typeof goodId !== 'string') continue
+      if (!CITY_BY_ID[cityId] || !GOOD_BY_ID[goodId]) continue
       const qty = Number(r.qty)
       const unit = Number(r.unit)
       const revenue = Number(r.revenue)
       const profit = Number(r.profit)
       if (![qty, unit, revenue, profit].every(Number.isFinite)) continue
-      out.push({ id: r.id, t: Number(r.t) || 0, cityId: r.cityId, goodId: r.goodId, qty, unit, revenue, profit })
+      out.push({ id, t: Number(r.t) || 0, cityId, goodId, qty, unit, revenue, profit })
     }
     return out
   }
@@ -191,6 +254,24 @@ function sanitize(raw: any): GameState | null {
     shipId,
     ownedShips: owned.includes(shipId) ? owned : [...owned, shipId],
     hiredCrew: strList(raw.hiredCrew),
+    crewCourses: (() => {
+      const hired = new Set(strList(raw.hiredCrew))
+      const nested = crewCoursesMap(raw.crewCourses, hired)
+      if (Object.keys(nested).length > 0) return nested
+      // 旧档兼容（v1.6）：crewLevels 单值 → 该船员第一门可修课程，等级不丢
+      const legacy = (raw as unknown as Record<string, unknown>).crewLevels
+      if (!legacy || typeof legacy !== 'object') return nested
+      const out: Record<string, Record<string, number>> = {}
+      for (const [cid, lvRaw] of Object.entries(legacy as Record<string, unknown>)) {
+        if (!hired.has(cid) || typeof lvRaw !== 'number' || !Number.isFinite(lvRaw)) continue
+        const lv = Math.max(0, Math.min(CREW_MAX_LEVEL, Math.round(lvRaw)))
+        const first = CREW_BY_ID[cid]?.courses?.[0]
+        if (lv > 0 && first) out[cid] = { [first]: lv }
+      }
+      return out
+    })(),
+    crewFavor: crewFavorMap(raw.crewFavor, new Set(strList(raw.hiredCrew))),
+    houses: houseMap(raw.houses),
     goodsBought: strList(raw.goodsBought),
     goodsSold: strList(raw.goodsSold),
     sellLog: sellLogOf(raw.sellLog),
@@ -212,6 +293,28 @@ function sanitize(raw: any): GameState | null {
       : 20,
     mapFrags,
     digCity: mapFrags >= MAP_FRAGS_NEED ? digCity : null,
+    daily: (() => {
+      const d = raw.daily as unknown as Record<string, unknown> | undefined
+      const goals: DailyGoal[] = []
+      if (d && Array.isArray(d.goals)) {
+        for (const g of d.goals) {
+          if (!g || typeof g !== 'object') continue
+          const o = g as Record<string, unknown>
+          if (typeof o.id !== 'string' || typeof o.kind !== 'string' || typeof o.label !== 'string') continue
+          const target = Math.round(Number(o.target))
+          if (!Number.isFinite(target) || target <= 0) continue
+          const base = Math.round(Number(o.base))
+          goals.push({ id: o.id, kind: o.kind, label: o.label, target, base: Number.isFinite(base) ? base : 0, claimed: o.claimed === true })
+        }
+      }
+      const date = d && typeof d.date === 'string' ? d.date : ''
+      return { date, goals } as DailyState
+    })(),
+    checkin: (() => {
+      const c = raw.checkin as unknown as Record<string, unknown> | undefined
+      const streak = Math.max(0, Math.round(Number(c?.streak) || 0))
+      return { last: c && typeof c.last === 'string' ? c.last : '', streak } as CheckinState
+    })(),
     markets: ensureMarkets(raw.markets),
     visited: strList(raw.visited).length ? strList(raw.visited) : [raw.cityId],
     stats: (() => {
@@ -239,11 +342,10 @@ function sanitize(raw: any): GameState | null {
   }
 }
 
-/** 读档；没有 / 坏了 / 存储不可用 都返回 null */
-export function loadSave(): { state: GameState; savedAt: number } | null {
+/** 解析一段存档文本；结构不合法返回 null */
+function parseSave(text: string | null): { state: GameState; savedAt: number } | null {
+  if (!text) return null
   try {
-    const text = localStorage.getItem(SAVE_KEY)
-    if (!text) return null
     const payload = JSON.parse(text) as SavePayload
     if (!payload || payload.v !== SAVE_VERSION) return null
     const state = sanitize(payload.state)
@@ -254,14 +356,38 @@ export function loadSave(): { state: GameState; savedAt: number } | null {
   }
 }
 
-/** 写档；成功返回时间戳，失败返回 null（配额满 / 存储被禁用） */
+/** 读档；主档缺失/损坏时回退到备份档，尽量不让玩家丢进度 */
+export function loadSave(): { state: GameState; savedAt: number } | null {
+  try {
+    const primary = parseSave(localStorage.getItem(SAVE_KEY))
+    if (primary) return primary
+    return parseSave(localStorage.getItem(SAVE_BACKUP_KEY))
+  } catch {
+    return null
+  }
+}
+
+/** 写档；成功返回时间戳，失败返回 null（配额满 / 存储被禁用）
+ *  双写：上一次的主档先转成备份，再写主档；主档写失败时把新档落到备份。 */
 export function saveGame(state: GameState): number | null {
   try {
     const savedAt = Date.now()
     const persisted: SavedGame = { ...state, toasts: [] } as SavedGame
     const payload: SavePayload = { v: SAVE_VERSION, savedAt, state: persisted }
-    localStorage.setItem(SAVE_KEY, JSON.stringify(payload))
-    return savedAt
+    const text = JSON.stringify(payload)
+    try {
+      const prev = localStorage.getItem(SAVE_KEY)
+      // 只备份「能正常解析」的主档，避免把损坏档覆盖掉上一份好备份
+      if (prev && parseSave(prev)) localStorage.setItem(SAVE_BACKUP_KEY, prev)
+    } catch { /* 备份失败不影响主流程 */ }
+    try {
+      localStorage.setItem(SAVE_KEY, text)
+      return savedAt
+    } catch {
+      // 主档写不进去（多半是配额满）：至少把新档保到备份里
+      try { localStorage.setItem(SAVE_BACKUP_KEY, text) } catch { /* ignore */ }
+      return null
+    }
   } catch {
     return null
   }
@@ -270,6 +396,7 @@ export function saveGame(state: GameState): number | null {
 export function clearSave(): void {
   try {
     localStorage.removeItem(SAVE_KEY)
+    localStorage.removeItem(SAVE_BACKUP_KEY)
   } catch {
     /* 存储不可用，忽略 */
   }
