@@ -5,10 +5,10 @@ import {
 } from '../game/engine'
 import { cityEventOf, houseBonusOf, investBonusOf, repBonusOf, repOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
+import { adManager, AD_ENABLED } from '../game/ads'
 import { CityLandmark } from '../components/Landmarks'
 import BankView from './BankView'
 import { Glyph } from '../components/Glyph'
-import { ArtIcon } from '../components/ArtIcon'
 import { audio } from '../game/audio'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -319,6 +319,20 @@ export default function MarketView() {
         </div>
       )}
 
+      {/* ── 8.5 看广告刷新行情（仅 TapTap） ─────────────────────────────── */}
+      {AD_ENABLED && !sailing && (
+        <div className="px-4 pb-2">
+          <button
+            className="w-full text-left text-xs font-800 flex items-center gap-2 px-3 py-2 rounded-xl"
+            style={{ background: '#fff5ec', color: '#f5913a', border: '1.5px solid #f5c87a' }}
+            onClick={() => { audio.sfx('click'); adManager.onReward(() => dispatch({ type: 'AD_REFRESH_MARKET' })); adManager.showRewarded() }}
+          >
+            <span className="text-base leading-none">📺</span>
+            <span>看广告立即刷新全市场行情（跳过 {refreshIn}s 等待）</span>
+          </button>
+        </div>
+      )}
+
       {/* ── 9. 货物列表（玩家最关心的内容，紧跟辅助面板之后）─────────────── */}
       <div className="px-4 pb-6 flex flex-col gap-2">
         {tradedIds.map(id => {
@@ -348,7 +362,7 @@ export default function MarketView() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F7F0E1' }}>
-                    <ArtIcon name={g.icon} size={38} />
+                    <Glyph name={g.icon} size={38} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
