@@ -5,7 +5,6 @@ import {
 } from '../game/engine'
 import { cityEventOf, houseBonusOf, investBonusOf, repBonusOf, repOf, secretUnlocked, shipNow } from '../game/state'
 import { useGame } from '../game/store'
-import { adManager, AD_ENABLED } from '../game/ads'
 import { CityLandmark } from '../components/Landmarks'
 import BankView from './BankView'
 import { Glyph } from '../components/Glyph'
@@ -316,20 +315,6 @@ export default function MarketView() {
           <div className="panel-orange px-3 py-2 text-xs font-800 flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5"><Glyph name="ban" size={14} />只能在停靠的港口交易，此处仅可查看行情比价</span>
           </div>
-        </div>
-      )}
-
-      {/* ── 8.5 看广告刷新行情（仅 TapTap） ─────────────────────────────── */}
-      {AD_ENABLED && !sailing && (
-        <div className="px-4 pb-2">
-          <button
-            className="w-full text-left text-xs font-800 flex items-center gap-2 px-3 py-2 rounded-xl"
-            style={{ background: '#fff5ec', color: '#f5913a', border: '1.5px solid #f5c87a' }}
-            onClick={() => { audio.sfx('click'); adManager.onReward(() => dispatch({ type: 'AD_REFRESH_MARKET' })); adManager.showRewarded() }}
-          >
-            <span className="text-base leading-none">📺</span>
-            <span>看广告立即刷新全市场行情（跳过 {refreshIn}s 等待）</span>
-          </button>
         </div>
       )}
 
