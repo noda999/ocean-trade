@@ -944,7 +944,7 @@ export function CityLandmark({ id, size = 96, crop, forceSvg }: { id: string; si
     const h = Math.round(size * (crop ?? 1.08))
     return (
       <img
-        src={`./icons/${id}.png?v=${ICON_VER}`}
+        src={`${import.meta.env.BASE_URL}icons/${id}.png?v=${ICON_VER}`}
         width={size}
         height={h}
         alt=""

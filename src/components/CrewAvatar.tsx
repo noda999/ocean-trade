@@ -19,7 +19,7 @@ export function CrewAvatar({ look, size = 56, bg = '#fffdf8', icon }: {
   if (icon && !failed) {
     return (
       <img
-        src={`./icons/${icon}.png?v=${ICON_VER}`}
+        src={`${import.meta.env.BASE_URL}icons/${icon}.png?v=${ICON_VER}`}
         width={size}
         height={size}
         alt=""

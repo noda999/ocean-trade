@@ -27,7 +27,7 @@ export function ArtIcon({ name, size = 40, className, style, onError }: Props) {
           flexShrink: 0,
           width: size,
           height: size,
-          backgroundImage: `url(./icons/ui-sprite.png?v=${ICON_VER})`,
+          backgroundImage: `url(${import.meta.env.BASE_URL}icons/ui-sprite.png?v=${ICON_VER})`,
           backgroundSize: `${UI_SPRITE_COLS * size}px ${UI_SPRITE_ROWS * size}px`,
           backgroundPosition: `-${cell[0] * size}px -${cell[1] * size}px`,
           backgroundRepeat: 'no-repeat',
@@ -38,7 +38,7 @@ export function ArtIcon({ name, size = 40, className, style, onError }: Props) {
   }
   return (
     <img
-      src={`./icons/${name}.png?v=${ICON_VER}`}
+      src={`${import.meta.env.BASE_URL}icons/${name}.png?v=${ICON_VER}`}
       width={size}
       height={size}
       alt=""

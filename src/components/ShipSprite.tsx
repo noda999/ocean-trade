@@ -78,7 +78,7 @@ export function ShipSprite({ color, size = 46, highlight = false, flip = false, 
               display: 'block',
               width: size,
               height: h,
-              backgroundImage: `url(./icons/ui-sprite.png?v=${ICON_VER})`,
+              backgroundImage: `url(${import.meta.env.BASE_URL}icons/ui-sprite.png?v=${ICON_VER})`,
               backgroundSize: `${UI_SPRITE_COLS * size}px ${UI_SPRITE_ROWS * size}px`,
               backgroundPosition: `-${UI_SPRITE[icon][0] * size}px -${UI_SPRITE[icon][1] * size + (size - h) / 2}px`,
               backgroundRepeat: 'no-repeat',
@@ -86,7 +86,7 @@ export function ShipSprite({ color, size = 46, highlight = false, flip = false, 
           />
         ) : (
           <img
-            src={`./icons/${icon}.png?v=${ICON_VER}`}
+            src={`${import.meta.env.BASE_URL}icons/${icon}.png?v=${ICON_VER}`}
             width={size}
             height={h}
             alt=""
