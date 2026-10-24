@@ -89,7 +89,7 @@ export default function FollowRewardModal({ onClose }: { onClose: () => void }):
           >
             {!failed[slide] && (
               <img
-                src={`${import.meta.env.BASE_URL}promo/${cur.img}.png`}
+                src={`${import.meta.env.BASE_URL}promo/${cur.img}.jpg`}
                 alt={cur.title}
                 onError={() => setFailed((f) => { const n = [...f]; n[slide] = true; return n })}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
