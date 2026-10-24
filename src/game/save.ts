@@ -1,8 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  存档（单槽 · localStorage）
+//  存档（单槽）
+//  存储后端见 ./storage（普通网页走 localStorage；小红书沙箱优先平台 Storage API，
+//  不可用时回退 localStorage，全程容忍丢失）。
 //  设计原则：
 //   1. 只用一个 key，整局状态序列化成一段 JSON（几 KB，远低于配额）
-//   2. 所有读写都包 try/catch —— 小工具环境可能禁用存储或配额已满，失败就静默降级（当无存档）
+//   2. 所有读写都走 safeGet/safeSet/safeRemove —— 小工具环境可能禁用存储或配额已满，
+//      失败就静默降级（当无存档）
 //   3. key 里带版本号，数据结构大改时换个 key，旧档自然失效，不做迁移
 //   4. 读到脏数据不崩：校验失败直接丢弃，回到新开局
 // ─────────────────────────────────────────────────────────────────────────────
@@ -10,6 +13,7 @@
 import { CITIES, CITY_BY_ID, CREW_BY_ID, CREW_COURSES, CREW_FAVOR_MAX, CREW_MAX_LEVEL, EQUIP_BY_ID, GOOD_BY_ID, HOUSES, HOUSE_STAGE_NAMES, INVEST_LEVELS, INVEST_PROJECTS, MAP_FRAGS_NEED, ORDER_ACTIVE_MAX, ORDER_BOARD_MAX, PIRATE_BY_ID, REP_MAX, SHIPS, SUPPLY_BY_ID } from './data'
 import { ensureMarkets, type CityEvent } from './engine'
 import { initialState, type Bounty, type CheckinState, type DailyGoal, type DailyState, type GameState, type SellRecord, type TradeOrder, type Voyage } from './state'
+import { safeGet, safeSet, safeRemove } from './storage'
 
 const SAVE_KEY = 'ocean-trade-save-v1'
 const SAVE_BACKUP_KEY = 'ocean-trade-save-v1-backup'
@@ -359,9 +363,9 @@ function parseSave(text: string | null): { state: GameState; savedAt: number } |
 /** 读档；主档缺失/损坏时回退到备份档，尽量不让玩家丢进度 */
 export function loadSave(): { state: GameState; savedAt: number } | null {
   try {
-    const primary = parseSave(localStorage.getItem(SAVE_KEY))
+    const primary = parseSave(safeGet(SAVE_KEY))
     if (primary) return primary
-    return parseSave(localStorage.getItem(SAVE_BACKUP_KEY))
+    return parseSave(safeGet(SAVE_BACKUP_KEY))
   } catch {
     return null
   }
@@ -376,16 +380,16 @@ export function saveGame(state: GameState): number | null {
     const payload: SavePayload = { v: SAVE_VERSION, savedAt, state: persisted }
     const text = JSON.stringify(payload)
     try {
-      const prev = localStorage.getItem(SAVE_KEY)
+      const prev = safeGet(SAVE_KEY)
       // 只备份「能正常解析」的主档，避免把损坏档覆盖掉上一份好备份
-      if (prev && parseSave(prev)) localStorage.setItem(SAVE_BACKUP_KEY, prev)
+      if (prev && parseSave(prev)) safeSet(SAVE_BACKUP_KEY, prev)
     } catch { /* 备份失败不影响主流程 */ }
     try {
-      localStorage.setItem(SAVE_KEY, text)
+      safeSet(SAVE_KEY, text)
       return savedAt
     } catch {
       // 主档写不进去（多半是配额满）：至少把新档保到备份里
-      try { localStorage.setItem(SAVE_BACKUP_KEY, text) } catch { /* ignore */ }
+      try { safeSet(SAVE_BACKUP_KEY, text) } catch { /* ignore */ }
       return null
     }
   } catch {
@@ -395,8 +399,8 @@ export function saveGame(state: GameState): number | null {
 
 export function clearSave(): void {
   try {
-    localStorage.removeItem(SAVE_KEY)
-    localStorage.removeItem(SAVE_BACKUP_KEY)
+    safeRemove(SAVE_KEY)
+    safeRemove(SAVE_BACKUP_KEY)
   } catch {
     /* 存储不可用，忽略 */
   }
