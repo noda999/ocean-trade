@@ -5,9 +5,12 @@ import { agoLabel } from '../game/save'
 import { Glyph } from './Glyph'
 import ChangelogModal from './ChangelogModal'
 import FollowAuthor from './FollowAuthor'
+import { canFollowAuthor } from '../game/xhs'
 
 interface Props {
   onClose: () => void
+  /** 打开「关注作者领加速卡」福利弹窗（仅小红书小工具内） */
+  onOpenFollowReward?: () => void
 }
 
 function Toggle({ label, on, onToggle }: { label: string; on: boolean; onToggle: () => void }) {
@@ -28,7 +31,7 @@ function Toggle({ label, on, onToggle }: { label: string; on: boolean; onToggle:
 }
 
 /** 最小化的设置面板 —— 存档管理 + 玩法简介 + 重置进度 */
-export default function SettingsModal({ onClose }: Props): ReactNode {
+export default function SettingsModal({ onClose, onOpenFollowReward }: Props): ReactNode {
   const { state, reset, save, loadFromSave, removeSave, lastSaved } = useGame()
   const [sfxOn, setSfxOn] = useState(audio.sfxOn)
   const [bgmOn, setBgmOn] = useState(audio.bgmOn)
@@ -171,6 +174,15 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
 
           {/* 关注作者（仅小红书小工具内显示） */}
           <FollowAuthor />
+
+          {/* 关注作者福利入口（仅小红书小工具内） */}
+          {canFollowAuthor() && onOpenFollowReward && (
+            <button
+              onClick={onOpenFollowReward}
+              className="w-full py-2 text-xs font-800 rounded-xl mb-3 inline-flex items-center justify-center gap-1.5"
+              style={{ background: '#fff8f0', color: '#e0863a', border: '1.5px solid #f0c89a' }}
+            >🎁 创作者福利 · 关注领加速卡</button>
+          )}
 
           {/* 玩法简介 */}
           <div className="mb-4">

@@ -15,9 +15,11 @@ import PirateModal from './components/PirateModal'
 import VictoryModal from './components/VictoryModal'
 import DebugPanel from './components/DebugPanel'
 import SettingsModal from './components/SettingsModal'
+import FollowRewardModal from './components/FollowRewardModal'
 import SoundLayer from './components/SoundLayer'
 import { Glyph, type GlyphName } from './components/Glyph'
 import { audio } from './game/audio'
+import { canFollowAuthor } from './game/xhs'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
 
@@ -195,6 +197,15 @@ function Game() {
   const [tab, setTab] = useState<Tab>('map')
   const [intelOpen, setIntelOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const { state, dispatch } = useGame()
+  const [followRewardOpen, setFollowRewardOpen] = useState(false)
+
+  // 小红书小工具内：首次进入自动弹出一次「关注作者领加速卡」福利弹窗
+  useEffect(() => {
+    if (!canFollowAuthor() || state.followRewardSeen) return
+    const t = setTimeout(() => setFollowRewardOpen(true), 1400)
+    return () => clearTimeout(t)
+  }, [state.followRewardSeen])
 
   // 首个用户手势解锁 Web Audio 并启动 BGM（浏览器自动播放策略要求）
   useEffect(() => {
@@ -223,8 +234,16 @@ function Game() {
             {tab === 'quest' && <QuestView />}
             {intelOpen && <IntelView onClose={() => setIntelOpen(false)} />}
                     </ErrorBoundary>
-                    {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+                    {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} onOpenFollowReward={() => setFollowRewardOpen(true)} />}
           <Toasts />
+          {followRewardOpen && (
+            <FollowRewardModal
+              onClose={() => {
+                setFollowRewardOpen(false)
+                dispatch({ type: 'MARK_FOLLOW_REWARD_SEEN' })
+              }}
+            />
+          )}
         </div>
         <NavBar tab={tab} setTab={setTab} />
         <OnboardingTour activeTab={tab} setActiveTab={t => setTab(t as Tab)} />

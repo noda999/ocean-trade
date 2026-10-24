@@ -188,6 +188,10 @@ export interface GameState {
   newsTimer: number
   /** 委托板刷新计时（v1.3.0） */
   orderTimer: number
+  /** 关注作者福利弹窗是否已自动展示过（防重复弹） */
+  followRewardSeen?: boolean
+  /** 关注作者赠送的加速卡是否已领取（防重复发放） */
+  followBoostClaimed?: boolean
   seq: number
 }
 
@@ -228,6 +232,10 @@ export type Action =
   /** 用存档覆盖整局状态（读档） */
   | { type: 'HYDRATE'; state: GameState }
   | { type: 'CLOSE_VICTORY' }
+  /** 关注作者福利：领取加速卡（仅在小工具容器内、且关注成功后由弹窗触发） */
+  | { type: 'GRANT_FOLLOW_BOOST' }
+  /** 关注作者福利弹窗已自动展示过（不再自动弹出） */
+  | { type: 'MARK_FOLLOW_REWARD_SEEN' }
   /** 调试面板专用：直接改写状态（仅 dev 生效，生产构建里整段被剔除） */
   | { type: 'DEBUG_PATCH'; patch: Partial<GameState>; stats?: Partial<GameState['stats']> }
 
@@ -282,6 +290,8 @@ export function initialState(): GameState {
     eventTimer: 5,
     newsTimer: 20,
     orderTimer: 15,
+    followRewardSeen: false,
+    followBoostClaimed: false,
     seq: 10,
   }
 }
@@ -1680,6 +1690,21 @@ function coreReducer(state: GameState, action: Action): GameState {
       return s
     }
 
+    // ── 关注作者领加速卡（仅小红书小工具内触发）────────────────────────────────
+    case 'GRANT_FOLLOW_BOOST': {
+      if (state.followBoostClaimed) return state
+      const s2: GameState = { ...state, toasts: [...state.toasts] }
+      s2.followBoostClaimed = true
+      s2.boost += FOLLOW_BOOST_REWARD
+      pushToast(s2, 'gift', `关注作者福利：获得加速卡 ×${FOLLOW_BOOST_REWARD}`, 'good')
+      pushLog(s2, `关注作者：获得加速卡 ×${FOLLOW_BOOST_REWARD}`, 'good')
+      return s2
+    }
+    case 'MARK_FOLLOW_REWARD_SEEN': {
+      if (state.followRewardSeen) return state
+      return { ...state, followRewardSeen: true }
+    }
+
     // ── 领取里程碑 ────────────────────────────────────────────────────────────
     case 'CLAIM': {
       const m = MILESTONES.find(x => x.id === action.id)
@@ -2170,6 +2195,9 @@ function notifyLegends(s: GameState): GameState {
   }
   return out
 }
+
+/** 关注作者福利发放的加速卡数量 */
+export const FOLLOW_BOOST_REWARD = 2
 
 export function reducer(state: GameState, action: Action): GameState {
   const s = coreReducer(state, action)
