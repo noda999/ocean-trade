@@ -72,7 +72,6 @@ export default function FollowRewardModal({ onClose }: { onClose: () => void }):
         {/* 头部 */}
         <div className="relative px-4 pt-4 pb-2 flex items-center gap-2">
           <Glyph name="gift" size={18} color="#e0863a" />
-          <span className="font-900 text-base" style={{ color: '#3d2b10' }}>创作者福利 · AI 画廊</span>
           <button
             onClick={onClose}
             aria-label="关闭"
