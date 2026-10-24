@@ -3,7 +3,6 @@ import { SHIPS, SHIP_NAME_MAX, shipDisplayName } from '../game/data'
 import { shipOf } from '../game/engine'
 import { crewBonusOf, shipNow } from '../game/state'
 import { useGame } from '../game/store'
-import { ShipSprite } from '../components/ShipSprite'
 import { Glyph, type GlyphName } from '../components/Glyph'
 import TavernView from './TavernView'
 import WorkshopView from './WorkshopView'
@@ -136,7 +135,11 @@ export default function DockView() {
               </div>
             </div>
             <div>
-              <ShipSprite color={current.color} size={76} highlight icon={current.icon} />
+              <img
+                src={`${import.meta.env.BASE_URL}ships/${current.id}.jpg`}
+                alt={current.name}
+                style={{ width: 86, height: 86, borderRadius: 20, objectFit: 'cover', boxShadow: '0 4px 12px rgba(0,0,0,0.18)', display: 'block' }}
+              />
             </div>
           </div>
           {editingName && (
@@ -185,8 +188,12 @@ export default function DockView() {
                 style={{ borderRadius: 16, borderLeft: `4px solid ${s.color}`, opacity: !owned && !affordable ? 0.72 : 1 }}
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: `${s.color}22` }}>
-                    <ShipSprite color={s.color} size={58} icon={s.icon} />
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0" style={{ background: `${s.color}22` }}>
+                    <img
+                      src={`${import.meta.env.BASE_URL}ships/${s.id}.jpg`}
+                      alt={s.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

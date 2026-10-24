@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { AI_SHIPS, CITIES, CITY_BY_ID, START_CITY, shipDisplayName } from '../game/data'
+import { AI_SHIPS, CITIES, CITY_BY_ID, START_CITY, seasonOf, shipDisplayName } from '../game/data'
 import { cargoUnits, routePath, routePoint, shipOf } from '../game/engine'
 import { useGame } from '../game/store'
 import { CityLandmark } from '../components/Landmarks'
@@ -343,6 +343,7 @@ export default function FlatWorld({ selected, setSelected }: Props) {
   const lmEff = Math.max(36, Math.min(130, 72 * zoom))
   const lmWorld = Math.round(lmEff / zoom)
   // 圆点在 world 层会随 zoom 放大，做反向补偿
+  const season = seasonOf(state.clock)
   const dotSize = Math.max(5, Math.round(9 / zoom))
 
   return (
@@ -484,6 +485,14 @@ export default function FlatWorld({ selected, setSelected }: Props) {
             />
           )}
         </svg>
+
+        {/* ── 季节羊皮纸纹理：随季风换色调（低透明度正片叠底，不影响可读性） ── */}
+        <img
+          src={`${import.meta.env.BASE_URL}seasons/${season.id}.jpg`}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.4, mixBlendMode: 'multiply', pointerEvents: 'none', transition: 'opacity 0.4s ease' }}
+        />
 
         {/* ── 地理标注：大洋/马六甲常显，其余按 minZoom 随缩放淡入（v1.5.1 分层） ── */}
         {GEO_FEATURES.filter(f => f.flatText).map(f => (

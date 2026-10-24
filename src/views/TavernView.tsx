@@ -20,6 +20,11 @@ export default function TavernView() {
 
   return (
     <>
+      <img
+        src={`${import.meta.env.BASE_URL}misc/tavern.jpg`}
+        alt=""
+        style={{ width: '100%', height: 110, objectFit: 'cover', borderRadius: 16, marginBottom: 12, display: 'block' }}
+      />
       {/* 船员总览 */}
       <div className="panel-orange p-4 mb-4" style={{ borderRadius: 18 }}>
         <div className="flex items-center gap-3 mb-3">

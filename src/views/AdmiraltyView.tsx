@@ -94,6 +94,11 @@ export default function AdmiraltyView() {
         <span className="text-xs ml-auto" style={{ color: '#a07030' }}>已挖出 {state.stats.treasures ?? 0} 处宝藏</span>
       </div>
       <div className="panel-white p-3" style={{ borderRadius: 14 }}>
+        <img
+          src={`${import.meta.env.BASE_URL}promo/${digTarget ? 'dig_relic' : 'dig_treasure'}.jpg`}
+          alt=""
+          style={{ width: '100%', height: 88, objectFit: 'cover', borderRadius: 10, marginBottom: 8, display: 'block' }}
+        />
         <div className="flex items-center gap-1.5 mb-2">
           {Array.from({ length: MAP_FRAGS_NEED }).map((_, i) => (
             <span

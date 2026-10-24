@@ -20,7 +20,13 @@ export default function BankView() {
   const canRepay = debt > 0 && state.money > 0 && !sailing
 
   return (
-    <div className="bank-bar panel-white mb-3" style={{ borderRadius: 14, overflow: 'hidden' }}>
+    <>
+      <img
+        src={`${import.meta.env.BASE_URL}misc/bank_vault.jpg`}
+        alt=""
+        style={{ width: '100%', height: 96, objectFit: 'cover', borderRadius: 14, marginBottom: 10, display: 'block' }}
+      />
+      <div className="bank-bar panel-white mb-3" style={{ borderRadius: 14, overflow: 'hidden' }}>
       {/* 折叠行：一眼看到债务与额度 */}
       <button
         className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
@@ -96,5 +102,6 @@ export default function BankView() {
         </div>
       )}
     </div>
+    </>
   )
 }

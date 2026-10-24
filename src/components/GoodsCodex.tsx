@@ -103,6 +103,12 @@ export default function GoodsCodex(
         onClick={e => e.stopPropagation()}
       >
         <div className="panel-white p-4 flex flex-col overflow-hidden" style={{ borderRadius: 18, maxHeight: '86vh' }}>
+          {/* 东方市集封面 */}
+          <img
+            src={`${import.meta.env.BASE_URL}misc/market_bazaar.jpg`}
+            alt=""
+            style={{ width: '100%', height: 96, objectFit: 'cover', borderRadius: 12, marginBottom: 10, display: 'block' }}
+          />
           {/* 头部：标题 + 计数 + 关闭 */}
           <div className="flex items-center gap-2 mb-2 flex-shrink-0">
             <Glyph name="book" size={18} color="#c98a30" />
