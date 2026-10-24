@@ -116,7 +116,7 @@ export default function GoodsCodex(
               {page === 'goods' && `${goodsKnown}/${GOODS.length}`}
               {page === 'sells' && `${sellsTotal} 笔`}
             </span>
-            <button className="px-1 leading-none" onClick={onClose}>
+            <button className="px-1 leading-none" onClick={onClose} aria-label="关闭">
               <Glyph name="cross" size={16} color="#c9b394" />
             </button>
           </div>

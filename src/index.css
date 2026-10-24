@@ -658,6 +658,17 @@ html, body, #root { height: 100%; margin: 0; }
   );
 }
 
+/* 小红书右上角「胶囊」按钮：避让留白由 applyXhsSafeArea() 写入 --xhs-capsule-safe。
+   非 XHS 环境下该变量为 0，无任何影响。 */
+.top-bar {
+  padding-right: calc(var(--xhs-capsule-safe, 0px)) !important;
+}
+/* 弹窗右上角关闭按钮避让胶囊：absolute 用 right 偏移，流布局用 margin-right */
+button[aria-label="关闭"] {
+  right: calc(0.75rem + var(--xhs-capsule-safe, 0px)) !important;
+  margin-right: var(--xhs-capsule-safe, 0px) !important;
+}
+
 .app-title {
   font-weight: 900;
   font-size: 19px;

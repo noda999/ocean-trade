@@ -14,6 +14,7 @@ import {
   totalAssets, voyageSeconds, type AllMarkets, type Cargo, type CityEvent,
 } from './engine'
 import type { GlyphName } from '../components/Glyph'
+import { vibrateShort } from './xhs'
 
 export interface Toast {
   id: number
@@ -301,6 +302,8 @@ export function initialState(): GameState {
 function pushToast(s: GameState, icon: GlyphName, text: string, kind: Toast['kind']): void {
   s.seq += 1
   s.toasts = [...s.toasts, { id: s.seq, icon, text, kind, ttl: 4.2 }].slice(-4)
+  // 正反馈（领奖 / 抵达 / 完成等）在小红书容器内给一次触感反馈
+  if (kind === 'good') vibrateShort('medium')
 }
 
 function pushLog(s: GameState, text: string, kind: LogEntry['kind']): void {

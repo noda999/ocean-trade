@@ -19,7 +19,7 @@ import FollowRewardModal from './components/FollowRewardModal'
 import SoundLayer from './components/SoundLayer'
 import { Glyph, type GlyphName } from './components/Glyph'
 import { audio } from './game/audio'
-import { canFollowAuthor } from './game/xhs'
+import { canFollowAuthor, applyXhsSafeArea, cacheXhsVersion } from './game/xhs'
 
 type Tab = 'map' | 'market' | 'cargo' | 'dock' | 'quest'
 
@@ -216,6 +216,12 @@ function Game() {
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)
     }
+  }, [])
+
+  // 小红书容器：缓存客户端版本 + 读取窗口信息避让右上角胶囊按钮
+  useEffect(() => {
+    void cacheXhsVersion()
+    void applyXhsSafeArea()
   }, [])
 
   return (

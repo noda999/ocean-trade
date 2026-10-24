@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ACHIEVEMENTS, CITIES, CREW_QUESTS, GOODS, LEGENDS, LEGEND_TITLE } from '../game/data'
 import { allLegendsDone, type GameState } from '../game/state'
+import { canPostNote, canSaveImage, postNote, saveImageToPhotosAlbum, writeTempFile } from '../game/xhs'
 import { drawGlyph, Glyph, type GlyphName } from './Glyph'
 
 const W = 1080
@@ -219,6 +220,28 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
     a.click()
   }
 
+  async function handleSave() {
+    if (!url) return
+    // 小红书容器内走原生保存相册；其余环境回退到 <a download>
+    if (canSaveImage()) {
+      const fp = await writeTempFile(url)
+      if (fp && (await saveImageToPhotosAlbum(fp))) return
+    }
+    save()
+  }
+
+  async function handlePost() {
+    if (!url || !canPostNote()) return
+    const fp = await writeTempFile(url)
+    if (!fp) return
+    await postNote({
+      title: '我的远洋贸易航海生涯',
+      content: `在《远洋贸易》里我积累了 ${assets.toLocaleString()} 金资产、到访 ${state.visited.length} 座港口！来一起当大航海王吧～ #远洋贸易 #小游戏推荐`,
+      pageType: 'photo_publish',
+      mediaInfo: { image_resources: [{ url: fp }] },
+    })
+  }
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center px-4"
@@ -243,13 +266,19 @@ export default function ShareCard({ state, assets, title, onClose }: Props) {
               className="btn-ghost-orange flex-1 py-2.5 text-sm font-800"
               onClick={onClose}
             >关闭</button>
+            {canPostNote() && (
+              <button
+                className="btn-orange flex-1 py-2.5 text-sm font-900"
+                onClick={handlePost}
+              ><span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="camera" size={15} />发到小红书</span></button>
+            )}
             <button
               className="btn-orange flex-1 py-2.5 text-sm font-900"
-              onClick={save}
+              onClick={handleSave}
             ><span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="book" size={15} />保存图片</span></button>
           </div>
           <div className="text-[10px] text-center mt-2" style={{ color: '#c0a070' }}>
-            手机端也可长按图片保存 · 发到小红书记得带上游戏链接
+            {canPostNote() ? '把战绩发到小红书，找更多船长一起出海～' : '手机端也可长按图片保存 · 发到小红书记得带上游戏链接'}
           </div>
         </div>
       </div>

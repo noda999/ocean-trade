@@ -84,7 +84,7 @@ export default function SettingsModal({ onClose, onOpenFollowReward }: Props): R
           <div className="font-900 text-base inline-flex items-center gap-1.5" style={{ color: '#3d2b10' }}>
             <Glyph name="gear" size={16} />关于
           </div>
-          <button className="ml-auto top-icon-btn" style={{ width: 28, height: 28 }} onClick={onClose}>
+          <button className="ml-auto top-icon-btn" style={{ width: 28, height: 28 }} onClick={onClose} aria-label="关闭">
             <Glyph name="cross" size={15} />
           </button>
         </div>

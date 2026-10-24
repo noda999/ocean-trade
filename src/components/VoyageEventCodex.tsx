@@ -43,7 +43,7 @@ export default function VoyageEventCodex({ seen, onClose }: { seen: string[]; on
             >
               {knownCount}/{VOYAGE_EVENTS.length}
             </span>
-            <button className="px-1 leading-none" onClick={onClose}>
+            <button className="px-1 leading-none" onClick={onClose} aria-label="关闭">
               <Glyph name="cross" size={16} color="#c9b394" />
             </button>
           </div>
