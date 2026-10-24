@@ -2197,7 +2197,7 @@ function notifyLegends(s: GameState): GameState {
 }
 
 /** 关注作者福利发放的加速卡数量 */
-export const FOLLOW_BOOST_REWARD = 2
+export const FOLLOW_BOOST_REWARD = 10
 
 export function reducer(state: GameState, action: Action): GameState {
   const s = coreReducer(state, action)
