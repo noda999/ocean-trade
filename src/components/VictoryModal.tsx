@@ -33,6 +33,11 @@ export default function VictoryModal() {
         style={{ borderRadius: 20, width: '100%', maxWidth: 340 }}
         onClick={e => e.stopPropagation()}
       >
+        <img
+          src={`${import.meta.env.BASE_URL}promo/victory.jpg`}
+          alt=""
+          style={{ width: '100%', borderRadius: 14, marginBottom: 10, display: 'block' }}
+        />
         <div className="text-center mb-1">
           <span className="inline-flex w-14 h-14 rounded-2xl items-center justify-center mb-2" style={{ background: '#fff3c4' }}>
             <Glyph name="crown" size={30} color="#d99b1f" />

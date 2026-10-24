@@ -12,12 +12,14 @@ interface Slide {
   gradient: string
 }
 
-// 画廊三屏：真实 AI 图放在 public/promo/ai1.png ~ ai3.png（相对路径，沙箱内可加载）；
+// 画廊五屏：真实 AI 图放在 public/promo/ai1.jpg ~ ai5.jpg（相对路径，沙箱内可加载）；
 // 若图片缺失，自动回退到主题渐变 + emoji，照样好看。
 const SLIDES: Slide[] = [
   { img: 'ai1', emoji: '⛵', title: '启航 · 黄金航线', caption: '扬帆穿越晨雾，驶向远方的丰饶之港。', gradient: 'linear-gradient(155deg,#ffb46b,#ff7e5f 55%,#3a6ea5)' },
   { img: 'ai2', emoji: '🏝️', title: '宝藏 · 失落海湾', caption: '传说中的无人海湾，沉睡着上个世纪的珍宝。', gradient: 'linear-gradient(155deg,#7be0c8,#2bb6a0 55%,#0e6b7a)' },
   { img: 'ai3', emoji: '🏯', title: '盛世 · 东方商港', caption: '千帆竞渡、万货云集的世界级商埠。', gradient: 'linear-gradient(155deg,#ffd56b,#ff9a5a 55%,#b5522e)' },
+  { img: 'ai4', emoji: '🏔️', title: '秘境 · 北欧峡湾', caption: '瀑布与极光之间的隐世良港，木材与皮草满舱。', gradient: 'linear-gradient(155deg,#8fd0ff,#4f8fd0 55%,#1e3a5f)' },
+  { img: 'ai5', emoji: '🐪', title: '香料 · 丝路集市', caption: '驼铃与香料的国度，一匹绸缎换一船黄金。', gradient: 'linear-gradient(155deg,#ffc86b,#e09040 55%,#8a4a20)' },
 ]
 
 /**

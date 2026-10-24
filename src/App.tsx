@@ -163,6 +163,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
       return (
         <div className="absolute inset-0 overflow-auto p-5" style={{ background: '#fff8f0' }}>
           <div className="panel-white p-4" style={{ borderRadius: 16 }}>
+            <img
+              src={`${import.meta.env.BASE_URL}promo/error.jpg`}
+              alt=""
+              style={{ width: '100%', borderRadius: 12, marginBottom: 10, display: 'block' }}
+            />
             <div className="font-900 text-base mb-2 inline-flex items-center gap-1.5" style={{ color: '#c05050' }}>
               <Glyph name="warn" size={18} />这个界面出错了
             </div>

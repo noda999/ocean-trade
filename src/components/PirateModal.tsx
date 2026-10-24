@@ -17,6 +17,11 @@ export default function PirateModal() {
       style={{ background: 'rgba(0,0,0,0.6)', zIndex: 9998 }}
     >
       <div className="panel-white p-5 flex flex-col" style={{ borderRadius: 18, width: '100%', maxWidth: 340 }}>
+        <img
+          src={`${import.meta.env.BASE_URL}promo/pirate.jpg`}
+          alt=""
+          style={{ width: '100%', borderRadius: 14, marginBottom: 10, display: 'block' }}
+        />
         <div className="flex items-center gap-2 mb-2">
           <span className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fdeaea' }}>
             <Glyph name="pirate" size={24} color="#c05050" />
