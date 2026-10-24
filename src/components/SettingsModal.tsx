@@ -4,6 +4,7 @@ import { audio } from '../game/audio'
 import { agoLabel } from '../game/save'
 import { Glyph } from './Glyph'
 import ChangelogModal from './ChangelogModal'
+import FollowAuthor from './FollowAuthor'
 
 interface Props {
   onClose: () => void
@@ -167,6 +168,9 @@ export default function SettingsModal({ onClose }: Props): ReactNode {
           >
             <span className="inline-flex items-center gap-1.5 justify-center"><Glyph name="scroll" size={14} />查看更新日志</span>
           </button>
+
+          {/* 关注作者（仅小红书小工具内显示） */}
+          <FollowAuthor />
 
           {/* 玩法简介 */}
           <div className="mb-4">
